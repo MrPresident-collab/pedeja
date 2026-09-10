@@ -17,7 +17,6 @@ import type {
   Identity,
   Notification,
   ParcelEstimate,
-  PaymentMethod,
   Rating,
   SupportTicket,
 } from '@/types/domain';

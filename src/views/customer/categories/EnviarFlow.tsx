@@ -7,6 +7,7 @@ import {
   Car,
   Check,
   CloudRain,
+  Loader2,
   MapPin,
   Navigation,
   Package,
@@ -55,6 +56,7 @@ export function EnviarFlow({ onBack, onComplete }: Props) {
   const [instruction, setInstruction] = useState<string | null>(null);
   const [customInstruction, setCustomInstruction] = useState('');
   const [photoTaken, setPhotoTaken] = useState(false);
+  const [placing, setPlacing] = useState(false);
 
   const vehicles = repositories.parcel.listVehicles();
   const instructions = repositories.parcel.listInstructions();
@@ -105,22 +107,25 @@ export function EnviarFlow({ onBack, onComplete }: Props) {
 
   function confirmOrder() {
     const estimate = currentEstimate;
-    if (!estimate) return;
-    const total = Math.round(estimate.price.amount * quantity);
-    repositories.order.create({
-      merchant: `Enviar: ${what}`,
-      type: 'Enviar',
-      icon: 'send',
-      lines: [{ productId: 'parcel-1', name: what, unitPrice: estimate.price.amount, quantity }],
-      subtotal: total,
-      discounts: 0,
-      deliveryFee: 0,
-      tip: 0,
-      total,
-      note: `${origin} → ${destination}${instruction ? ` · ${instructions.find((i) => i.id === instruction)?.label}` : ''}`,
-    });
-    showToast('Envio registado! Vamos encontrar um estafeta.');
-    onComplete();
+    if (!estimate || placing) return;
+    setPlacing(true);
+    setTimeout(() => {
+      const total = Math.round(estimate.price.amount * quantity);
+      repositories.order.create({
+        merchant: `Enviar: ${what}`,
+        type: 'Enviar',
+        icon: 'send',
+        lines: [{ productId: 'parcel-1', name: what, unitPrice: estimate.price.amount, quantity }],
+        subtotal: total,
+        discounts: 0,
+        deliveryFee: 0,
+        tip: 0,
+        total,
+        note: `${origin} → ${destination}${instruction ? ` · ${instructions.find((i) => i.id === instruction)?.label}` : ''}`,
+      });
+      showToast('Envio registado! Vamos encontrar um estafeta.');
+      onComplete();
+    }, 1200);
   }
 
   return (
@@ -414,8 +419,12 @@ export function EnviarFlow({ onBack, onComplete }: Props) {
             Continuar <ArrowRight size={18} />
           </button>
         ) : (
-          <button className="btn-primary" onClick={confirmOrder}>
-            Confirmar envio <ArrowRight size={18} />
+          <button className="btn-primary" onClick={confirmOrder} disabled={placing}>
+            {placing ? (
+              <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> A processar envio...</>
+            ) : (
+              <>Confirmar envio <ArrowRight size={18} /></>
+            )}
           </button>
         )}
       </div>

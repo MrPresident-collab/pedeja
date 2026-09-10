@@ -9,6 +9,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import { repositories } from '@/repositories';
+import { showToast } from '@/components/toastStore';
 import type { Category } from '@/types';
 
 const categoryMeta: { label: string; detail: string; icon: typeof Utensils; tone: string; cat: Category }[] = [
@@ -26,6 +27,8 @@ type Props = {
 
 export function HomeView({ onAddress, onCategory, onMarketplace }: Props) {
   const profile = repositories.profile.getProfile();
+  const activeOrders = repositories.order.listActive();
+  const activeCount = activeOrders.length;
 
   return (
     <main className="page home-page">
@@ -41,9 +44,19 @@ export function HomeView({ onAddress, onCategory, onMarketplace }: Props) {
             </strong>
           </span>
         </button>
-        <button className="icon-button notification-button">
+        <button
+          className="icon-button notification-button"
+          onClick={() => {
+            if (activeCount > 0) {
+              const o = activeOrders[0];
+              showToast(`Pedido ${o.id}: ${o.merchant}`);
+            } else {
+              showToast('Sem notificacoes novas.');
+            }
+          }}
+        >
           <Bell size={20} />
-          <span />
+          {activeCount > 0 && <span />}
         </button>
       </header>
 

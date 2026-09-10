@@ -19,7 +19,10 @@ export const mockMerchantProfile: MerchantProfile = {
 export const mockMerchantSettings: MerchantSettings = {
   businessName: 'Cantinho da Belita',
   address: 'Miramar, Luanda',
+  phone: '+244 923 456 789',
+  nif: '5417283910',
   open: true,
+  ordersPaused: false,
   basePrepTime: 20,
   soundEnabled: true,
   notificationEnabled: true,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Banknote, CreditCard, MapPin, ShoppingBag } from 'lucide-react';
 import { repositories } from '@/repositories';
 import { formatKz } from '@/utils/format';
-import type { PaymentMethod } from '@/types/domain';
+import type { PaymentMethod } from '@/types/common';
 
 type Props = { onBack: () => void; onPlaced: (orderId: string) => void };
 

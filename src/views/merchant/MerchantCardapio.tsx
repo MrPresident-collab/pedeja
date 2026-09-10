@@ -7,6 +7,8 @@ type Props = {
   repo: MerchantRepository;
 };
 
+const MOCK_PASSWORD = '1234';
+
 export function MerchantCardapio({ repo }: Props) {
   const [, setTick] = useState(0);
   const products = repo.listProducts();
@@ -76,7 +78,16 @@ export function MerchantCardapio({ repo }: Props) {
                 if (editing.id) {
                   repo.updateProduct(editing.id, data);
                 } else {
-                  repo.addProduct({ ...data, available: true });
+                  const p: MerchantProduct = {
+                    id: '',
+                    name: editing.name,
+                    category: editing.category,
+                    price: editing.price,
+                    prepTime: editing.prepTime,
+                    available: true,
+                    description: editing.description || undefined,
+                  };
+                  repo.addProduct(p);
                 }
                 setEditing(null);
                 refresh();
@@ -106,6 +117,30 @@ function ProductForm({
   const [price, setPrice] = useState(product.price);
   const [prepTime, setPrepTime] = useState(product.prepTime);
   const [description, setDescription] = useState(product.description ?? '');
+  const [confirmingPrice, setConfirmingPrice] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const priceChanged = product.id && price !== product.price;
+
+  function handleSave() {
+    if (priceChanged && !confirmingPrice) {
+      setConfirmingPrice(true);
+      setPasswordInput('');
+      setPasswordError('');
+      return;
+    }
+    onSave({ name, category, price, prepTime, description: description || undefined });
+  }
+
+  function confirmPrice() {
+    if (passwordInput === MOCK_PASSWORD) {
+      setConfirmingPrice(false);
+      onSave({ name, category, price, prepTime, description: description || undefined });
+    } else {
+      setPasswordError('Palavra-passe incorreta.');
+    }
+  }
 
   return (
     <div className="merchant-form">
@@ -131,10 +166,29 @@ function ProductForm({
         <span>Descricao</span>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
       </label>
+
+      {confirmingPrice && (
+        <div className="merchant-price-confirm">
+          <p>Alteracao de preco detetada. Introduz a palavra-passe para confirmar.</p>
+          <label>
+            <span>Palavra-passe</span>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
+              onKeyDown={(e) => e.key === 'Enter' && confirmPrice()}
+              placeholder="1234"
+              autoFocus
+            />
+          </label>
+          {passwordError && <p className="merchant-password-error">{passwordError}</p>}
+        </div>
+      )}
+
       <div className="merchant-form-actions">
         <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" onClick={() => onSave({ name, category, price, prepTime, description: description || undefined })}>
-          Guardar
+        <button className="btn-primary" onClick={confirmingPrice ? confirmPrice : handleSave}>
+          {confirmingPrice ? 'Confirmar alteracao' : 'Guardar'}
         </button>
       </div>
     </div>

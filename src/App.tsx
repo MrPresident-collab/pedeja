@@ -352,12 +352,16 @@ function OpsApp() {
 function MerchantApp() {
   const [section, setSection] = useState<MerchantSection>('pedidos');
 
+  function handleSignOut() {
+    merchantRepo.signOut();
+  }
+
   return (
     <MerchantLayout repo={merchantRepo} section={section} onSection={setSection}>
       {section === 'pedidos' && <MerchantPedidos repo={merchantRepo} />}
       {section === 'cardapio' && <MerchantCardapio repo={merchantRepo} />}
       {section === 'relatorios' && <MerchantRelatorios repo={merchantRepo} />}
-      {section === 'config' && <MerchantConfig repo={merchantRepo} />}
+      {section === 'config' && <MerchantConfig repo={merchantRepo} onSignOut={handleSignOut} />}
     </MerchantLayout>
   );
 }

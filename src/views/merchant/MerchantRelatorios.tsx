@@ -1,4 +1,5 @@
-import { Download } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Lock } from 'lucide-react';
 import type { MerchantRepository } from '@/repositories/merchantTypes';
 import { formatKz } from '@/utils/format';
 
@@ -6,9 +7,22 @@ type Props = {
   repo: MerchantRepository;
 };
 
+const MOCK_PASSWORD = '1234';
+
 export function MerchantRelatorios({ repo }: Props) {
   const report = repo.getReport();
   const maxRevenue = Math.max(...report.revenueByDay.map((d) => d.amount));
+  const [locked, setLocked] = useState(true);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  function unlock() {
+    if (passwordInput === MOCK_PASSWORD) {
+      setLocked(false);
+    } else {
+      setPasswordError('Palavra-passe incorreta.');
+    }
+  }
 
   function exportCsv() {
     const rows = [
@@ -25,6 +39,36 @@ export function MerchantRelatorios({ repo }: Props) {
     a.download = `relatorio-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  if (locked) {
+    return (
+      <div className="merchant-config">
+        <div className="merchant-page-header">
+          <h1>Relatorios</h1>
+          <p>Desempenho do teu restaurante.</p>
+        </div>
+        <div className="merchant-analytics-lock">
+          <div className="merchant-analytics-lock-icon"><Lock size={28} /></div>
+          <h3>Dados financeiros protegidos</h3>
+          <p>Introduz a palavra-passe para aceder aos relatorios e analises.</p>
+          <label>
+            <span>Palavra-passe</span>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(''); }}
+              onKeyDown={(e) => e.key === 'Enter' && unlock()}
+              placeholder="1234"
+            />
+          </label>
+          {passwordError && <p className="merchant-password-error">{passwordError}</p>}
+          <button className="btn-primary" style={{ width: 'auto', minWidth: 160 }} onClick={unlock}>
+            Desbloquear relatorios
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

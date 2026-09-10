@@ -3,6 +3,7 @@ import {
   Clock3,
   MapPin,
   MessageCircle,
+  Pause,
   Phone,
   User,
 } from 'lucide-react';
@@ -47,6 +48,7 @@ export function MerchantPedidos({ repo }: Props) {
   const [, setTick] = useState(0);
   const orders = repo.listOrders();
   const report = repo.getReport();
+  const ordersPaused = repo.isOrdersPaused();
   const refresh = () => setTick((t) => t + 1);
   const [selected, setSelected] = useState<MerchantOrder | null>(null);
 
@@ -65,12 +67,28 @@ export function MerchantPedidos({ repo }: Props) {
     }
   }
 
+  function handleCallPhone(phone: string) {
+    window.location.href = `tel:${phone.replace(/[\s+]/g, '')}`;
+  }
+
+  function handleMessage(phone: string) {
+    const number = phone.replace(/[\s+]/g, '');
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent('Ola, falemos sobre o teu pedido Pedeja.')}`, '_blank');
+  }
+
   return (
     <div className="merchant-pedidos">
       <div className="merchant-page-header">
         <h1>Pedidos</h1>
         <p>Gestao de pedidos em tempo real.</p>
       </div>
+
+      {ordersPaused && (
+        <div className="merchant-orders-paused-banner">
+          <Pause size={16} />
+          <span>Pedidos pausados. O restaurante nao esta a aceitar novos pedidos.</span>
+        </div>
+      )}
 
       <div className="merchant-summary-row">
         <div className="merchant-summary-card">
@@ -147,7 +165,12 @@ export function MerchantPedidos({ repo }: Props) {
 
         <div className="merchant-order-detail">
           {selected ? (
-            <OrderDetail order={selected} onAdvance={() => advance(selected)} />
+            <OrderDetail
+              order={selected}
+              onAdvance={() => advance(selected)}
+              onCallPhone={handleCallPhone}
+              onMessage={handleMessage}
+            />
           ) : (
             <div className="merchant-empty-detail">
               <p>Seleciona um pedido para ver detalhes.</p>
@@ -159,7 +182,7 @@ export function MerchantPedidos({ repo }: Props) {
   );
 }
 
-function OrderDetail({ order, onAdvance }: { order: MerchantOrder; onAdvance: () => void }) {
+function OrderDetail({ order, onAdvance, onCallPhone, onMessage }: { order: MerchantOrder; onAdvance: () => void; onCallPhone: (phone: string) => void; onMessage: (phone: string) => void }) {
   const action = nextLabel[order.status];
   return (
     <div className="merchant-order-detail-content">
@@ -182,10 +205,10 @@ function OrderDetail({ order, onAdvance }: { order: MerchantOrder; onAdvance: ()
             <strong>{order.customer}</strong>
             <small>{order.customerPhone}</small>
           </div>
-          <button className="merchant-detail-action" aria-label="Ligar">
+          <button className="merchant-detail-action" aria-label="Ligar" onClick={() => onCallPhone(order.customerPhone)}>
             <Phone size={15} />
           </button>
-          <button className="merchant-detail-action" aria-label="Mensagem">
+          <button className="merchant-detail-action" aria-label="Mensagem" onClick={() => onMessage(order.customerPhone)}>
             <MessageCircle size={15} />
           </button>
         </div>

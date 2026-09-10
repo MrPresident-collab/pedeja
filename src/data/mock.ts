@@ -3,11 +3,12 @@ import type {
   Business,
   DeliveryInstruction,
   Order,
+  PaymentMethod,
   Product,
   Profile,
   Vehicle,
 } from '@/types';
-import type { Identity, PaymentMethod } from '@/types/domain';
+import type { Identity } from '@/types/domain';
 
 export const mockProfile: Profile = {
   name: 'Amélia Manuel',

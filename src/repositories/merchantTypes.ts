@@ -55,7 +55,10 @@ export type MerchantReport = {
 export type MerchantSettings = {
   businessName: string;
   address: string;
+  phone: string;
+  nif: string;
   open: boolean;
+  ordersPaused: boolean;
   basePrepTime: number;
   soundEnabled: boolean;
   notificationEnabled: boolean;
@@ -86,4 +89,7 @@ export interface MerchantRepository {
   updateProduct(id: string, partial: Partial<MerchantProduct>): void;
   toggleProductAvailability(id: string): void;
   getReport(): MerchantReport;
+  isOrdersPaused(): boolean;
+  setOrdersPaused(value: boolean): void;
+  signOut(): void;
 }

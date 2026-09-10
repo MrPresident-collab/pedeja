@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   BarChart3,
+  Bell,
   ChevronLeft,
   ClipboardList,
   HelpCircle,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { BrandMark } from '@/components/BrandMark';
 import type { OperationsRepository } from '@/repositories/operationsTypes';
+import { showToast } from '@/components/toastStore';
 
 export type OpsSection =
   | 'overview'
@@ -45,6 +47,9 @@ export function OperationsLayout({ repo, section, onSection, children }: Props) 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const operator = repo.getOperator();
+  const orders = repo.listOrders();
+  const activeCount = orders.filter((o) => !['entregue', 'cancelado'].includes(o.status)).length;
+  const lateCount = orders.filter((o) => o.flags.late).length;
 
   function handleNav(id: OpsSection) {
     onSection(id);
@@ -77,9 +82,9 @@ export function OperationsLayout({ repo, section, onSection, children }: Props) 
 
         <div className="ops-sidebar-bottom">
           {!collapsed && (
-            <button className="ops-sidebar-help" onClick={() => undefined} title="Ajuda interna">
+            <button className="ops-sidebar-help" onClick={() => onSection('overview')} title="Centro de operacoes">
               <HelpCircle size={17} />
-              <span>Centro de operações</span>
+              <span>Centro de operacoes</span>
             </button>
           )}
           <div className="ops-sidebar-operator">
@@ -105,8 +110,18 @@ export function OperationsLayout({ repo, section, onSection, children }: Props) 
           </div>
           <div className="ops-header-right">
             <span className="ops-env-badge">DEVELOPMENT PREVIEW</span>
-            <button className="ops-notification-bell" aria-label="Notificações">
-              <span className="ops-notification-dot" />
+            <button
+              className="ops-notification-bell"
+              aria-label="Notificacoes"
+              onClick={() => {
+                const msg = lateCount > 0
+                  ? `${activeCount} pedidos ativos — ${lateCount} atrasados`
+                  : `${activeCount} pedidos ativos`;
+                showToast(msg);
+              }}
+            >
+              <Bell size={18} />
+              {activeCount > 0 && <span className="ops-notification-dot" />}
             </button>
             <span className="ops-header-avatar">{operator.initials}</span>
           </div>

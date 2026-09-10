@@ -84,36 +84,51 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
       </header>
 
       {!online && !activeDelivery && (
-        <div className="rider-offline-panel">
-          <div className="rider-offline-stats">
-            <div className="rider-stat-card">
-              <span className="rider-stat-value">{formatKz(stats.todayEarnings.amount)}</span>
-              <small>Ganhos de hoje</small>
-            </div>
-            <div className="rider-stat-card">
-              <span className="rider-stat-value">{stats.deliveriesCompleted}</span>
-              <small>Entregas</small>
-            </div>
-            <div className="rider-stat-card">
-              <span className="rider-stat-value">{stats.onTimePct}%</span>
-              <small>Pontualidade</small>
-            </div>
+        <>
+          <div className="rider-map-fill rider-map-offline">
+            <div className="rider-map-grid" />
+            <MapPin size={24} className="rider-map-pin" />
+            <span className="rider-map-label">Tu</span>
           </div>
-          <button className="btn-primary rider-go-online" onClick={toggleOnline}>
-            Ficar online
-          </button>
-          <p className="rider-offline-hint">
-            Fica online para receberes entregas na tua zona.
-          </p>
-        </div>
+          <div className="rider-offline-panel">
+            <div className="rider-offline-stats">
+              <div className="rider-stat-card">
+                <span className="rider-stat-value">{formatKz(stats.todayEarnings.amount)}</span>
+                <small>Ganhos de hoje</small>
+              </div>
+              <div className="rider-stat-card">
+                <span className="rider-stat-value">{stats.deliveriesCompleted}</span>
+                <small>Entregas</small>
+              </div>
+              <div className="rider-stat-card">
+                <span className="rider-stat-value">{stats.onTimePct}%</span>
+                <small>Pontualidade</small>
+              </div>
+            </div>
+            <button className="btn-primary rider-go-online" onClick={toggleOnline}>
+              Ficar online
+            </button>
+            <p className="rider-offline-hint">
+              Fica online para receberes entregas na tua zona.
+            </p>
+          </div>
+        </>
       )}
 
       {online && !activeDelivery && (
         <div className="rider-online-area">
-          <div className="rider-map-placeholder">
+          <div className="rider-map-fill">
             <div className="rider-map-grid" />
+            <div className="rider-map-hub hub-a">
+              <span className="rider-hub-dot" />
+              <span className="rider-hub-label">Zona ativa · Miramar</span>
+            </div>
+            <div className="rider-map-hub hub-b">
+              <span className="rider-hub-dot" />
+              <span className="rider-hub-label">Alta procura</span>
+            </div>
             <div className="rider-pulse" />
-            <MapPin size={24} className="rider-map-pin" />
+            <MapPin size={26} className="rider-map-pin" />
             <span className="rider-map-label">Tu</span>
           </div>
           {request ? (
@@ -128,21 +143,33 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
               <div className="rider-radar-ring" />
               <div className="rider-radar-ring ring-2" />
               <div className="rider-radar-ring ring-3" />
-              <p>A procurar entregas nearby...</p>
+              <p>A procurar entregas perto de ti...</p>
             </div>
           )}
         </div>
       )}
 
       {activeDelivery && (
-        <ActiveDeliveryPanel
-          delivery={activeDelivery}
-          onAdvance={advance}
-          onCall={() => callPhone(activeDelivery.customerPhone)}
-          onChat={() => onChat(activeDelivery.customer)}
-          onSupport={onSupport}
-          onNavigate={() => showToast('A abrir navegacao...')}
-        />
+        <>
+          <div className="rider-map-fill">
+            <div className="rider-map-grid" />
+            <div className="rider-map-route">
+              <span className="rider-route-dot rider-route-pickup" />
+              <span className="rider-route-line-v" />
+              <span className="rider-route-dot rider-route-dropoff" />
+            </div>
+            <div className="rider-pulse" />
+            <MapPin size={24} className="rider-map-pin" />
+          </div>
+          <ActiveDeliverySheet
+            delivery={activeDelivery}
+            onAdvance={advance}
+            onCall={() => callPhone(activeDelivery.customerPhone)}
+            onChat={() => onChat(activeDelivery.customer)}
+            onSupport={onSupport}
+            onNavigate={() => showToast('A abrir navegacao...')}
+          />
+        </>
       )}
 
       <div className="bottom-space" />
@@ -229,7 +256,7 @@ function DeliveryRequestCard({
   );
 }
 
-function ActiveDeliveryPanel({
+function ActiveDeliverySheet({
   delivery,
   onAdvance,
   onCall,
@@ -248,7 +275,14 @@ function ActiveDeliveryPanel({
   const currentIdx = steps.indexOf(delivery.step);
 
   return (
-    <div className="rider-active-delivery">
+    <div className="rider-active-sheet">
+      <div className="rider-sheet-handle" />
+
+      <div className="rider-sheet-header">
+        <span className="rider-sheet-badge">EM ENTREGA</span>
+        <span className="rider-sheet-id">{delivery.orderId}</span>
+      </div>
+
       <div className="rider-progress">
         {steps.map((s, i) => {
           const Icon = stepIcons[s];
