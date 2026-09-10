@@ -67,6 +67,7 @@ export const mockActiveDelivery: ActiveDelivery = {
   distanceLabel: '2,3 km',
   etaLabel: '~12 min',
   step: 'pickup',
+  paymentMethod: 'cash',
   earnings: m(500),
   instructions: 'Portão azul, 2º andar.',
 };

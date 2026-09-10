@@ -1,4 +1,4 @@
-import type { Category, GeoPoint, ID, Money, ParcelSize, Timestamp, VehicleType } from './common';
+import type { Category, GeoPoint, ID, Money, ParcelSize, PaymentMethod, Timestamp, VehicleType } from './common';
 
 // ================================================================
 // IDENTITY & MARKETPLACE CAPABILITY
@@ -347,8 +347,6 @@ export type Product = {
 // ================================================================
 // PAYMENTS / PAYOUTS
 // ================================================================
-
-export type PaymentMethod = 'cash' | 'multicaixa' | 'future';
 
 export type Payment = {
   id: ID;

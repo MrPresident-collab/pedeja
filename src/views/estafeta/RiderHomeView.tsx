@@ -10,6 +10,7 @@ import {
   Store,
   HelpCircle,
 } from 'lucide-react';
+import { BrandMark } from '@/components/BrandMark';
 import type { RiderRepository, ActiveDelivery, RiderStep } from '@/repositories/riderTypes';
 import { formatKz } from '@/utils/format';
 
@@ -66,7 +67,7 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
       <header className="rider-topbar">
         <div className="rider-topbar-left">
           <div className="rider-logo-small">
-            <span className="brand-mark logo-sm">Pedej<span className="brand-dot">a</span></span>
+            <BrandMark className="logo-sm" />
           </div>
           <div className="rider-balance">
             <small>Ganhos de hoje</small>
@@ -296,6 +297,18 @@ function ActiveDeliveryPanel({
         {delivery.instructions && (
           <div className="rider-delivery-instructions">
             <small>Instrucao: {delivery.instructions}</small>
+          </div>
+        )}
+
+        {delivery.paymentMethod === 'cash' ? (
+          <div className="rider-delivery-cash">
+            <strong>Pagamento: Dinheiro</strong>
+            <small>Receber {formatKz(delivery.earnings.amount + (delivery.tip?.amount ?? 0))} ao entregar</small>
+          </div>
+        ) : (
+          <div className="rider-delivery-cash multicaixa">
+            <strong>Pagamento: Multicaixa</strong>
+            <small>Sem recolha de dinheiro</small>
           </div>
         )}
 

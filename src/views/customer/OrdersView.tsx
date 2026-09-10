@@ -310,6 +310,12 @@ function ActiveOrder({
         ) : null}
         <span className="total-label">Total</span>
         <strong className="total-value">{formatKz(order.total)}</strong>
+        {order.paymentMethod && (
+          <>
+            <span>Pagamento</span>
+            <strong className="order-payment">{order.paymentMethod === 'cash' ? 'Dinheiro' : 'Multicaixa'}</strong>
+          </>
+        )}
       </div>
 
       <div className="order-actions">
@@ -390,6 +396,12 @@ function ReceiptContent({
           <span>Total</span>
           <strong>{formatKz(order.total)}</strong>
         </div>
+        {order.paymentMethod && (
+          <div className="checkout-row">
+            <span>Método de pagamento</span>
+            <strong>{order.paymentMethod === 'cash' ? 'Dinheiro' : 'Multicaixa'}</strong>
+          </div>
+        )}
         {order.rider ? (
           <div className="checkout-row">
             <span>Estafeta</span>

@@ -31,6 +31,7 @@ export type ActiveDelivery = {
   distanceLabel: string;
   etaLabel: string;
   step: RiderStep;
+  paymentMethod: 'cash' | 'multicaixa';
   earnings: Money;
   tip?: Money;
   instructions?: string;
@@ -86,6 +87,10 @@ export interface RiderRepository {
   getStats(): RiderStats;
   isOnline(): boolean;
   setOnline(value: boolean): void;
+  isDarkTheme(): boolean;
+  setDarkTheme(value: boolean): void;
+  isCashOrders(): boolean;
+  setCashOrders(value: boolean): void;
   getActiveDelivery(): ActiveDelivery | null;
   getDeliveryRequest(): RiderDeliveryRequest | null;
   acceptDelivery(requestId: string): void;

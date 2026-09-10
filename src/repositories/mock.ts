@@ -51,6 +51,7 @@ function buildOrder(input: CreateOrderInput): Order {
     deliveryFee: input.deliveryFee,
     discount: discount || undefined,
     tip: input.tip || undefined,
+    paymentMethod: input.paymentMethod ?? 'cash',
     lines: input.lines,
     timeline: [
       { status: 'novo', label: 'Pedido confirmado', timestamp: time, done: true },

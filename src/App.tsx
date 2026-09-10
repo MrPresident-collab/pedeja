@@ -22,8 +22,23 @@ import { CheckoutView } from '@/views/customer/CheckoutView';
 import { CategoryView } from '@/views/customer/categories/CategoryView';
 import { EnviarFlow } from '@/views/customer/categories/EnviarFlow';
 import { DevSwitcherView } from '@/views/dev/DevSwitcherView';
-import { MerchantView } from '@/views/dev/MerchantView';
-import { OperationsView } from '@/views/dev/OperationsView';
+import { OperationsLayout, type OpsSection } from '@/views/operations/OperationsLayout';
+import { OpsOverview } from '@/views/operations/OpsOverview';
+import { OpsPedidos } from '@/views/operations/OpsPedidos';
+import { OpsRiders } from '@/views/operations/OpsRiders';
+import { OpsReceita } from '@/views/operations/OpsReceita';
+import { OpsClientes } from '@/views/operations/OpsClientes';
+import { OpsRelatorios } from '@/views/operations/OpsRelatorios';
+import { OpsConfig } from '@/views/operations/OpsConfig';
+import { createMockOperationsRepository } from '@/repositories/operationsMock';
+import type { OperationsRepository } from '@/repositories/operationsTypes';
+import { MerchantLayout, type MerchantSection } from '@/views/merchant/MerchantLayout';
+import { MerchantPedidos } from '@/views/merchant/MerchantPedidos';
+import { MerchantCardapio } from '@/views/merchant/MerchantCardapio';
+import { MerchantRelatorios } from '@/views/merchant/MerchantRelatorios';
+import { MerchantConfig } from '@/views/merchant/MerchantConfig';
+import { createMockMerchantRepository } from '@/repositories/merchantMock';
+import type { MerchantRepository } from '@/repositories/merchantTypes';
 import { RiderHomeView } from '@/views/estafeta/RiderHomeView';
 import { RiderWalletView } from '@/views/estafeta/RiderWalletView';
 import { RiderHistoryView } from '@/views/estafeta/RiderHistoryView';
@@ -31,6 +46,8 @@ import { RiderProfileView } from '@/views/estafeta/RiderProfileView';
 import type { Business, Category } from '@/types';
 
 const riderRepo: RiderRepository = createMockRiderRepository();
+const merchantRepo: MerchantRepository = createMockMerchantRepository();
+const opsRepo: OperationsRepository = createMockOperationsRepository();
 
 type CustomerScreen =
   | { name: 'splash' }
@@ -311,12 +328,44 @@ function App() {
 
   if (route.surface === 'dev') return <DevSwitcherView />;
   if (route.surface === 'estafeta') return <RiderApp tab={route.tab} onTabChange={(tab) => setRoute({ surface: 'estafeta', tab })} />;
-  if (route.surface === 'merchant') return <MerchantView />;
-  if (route.surface === 'operations') return <OperationsView />;
+  if (route.surface === 'merchant') return <MerchantApp />;
+  if (route.surface === 'operations') return <OpsApp />;
   return <CustomerApp />;
 }
 
+function OpsApp() {
+  const [section, setSection] = useState<OpsSection>('overview');
+
+  return (
+    <OperationsLayout repo={opsRepo} section={section} onSection={setSection}>
+      {section === 'overview' && <OpsOverview repo={opsRepo} onSection={setSection} />}
+      {section === 'pedidos' && <OpsPedidos repo={opsRepo} />}
+      {section === 'entregadores' && <OpsRiders repo={opsRepo} onOrders={() => setSection('pedidos')} />}
+      {section === 'receita' && <OpsReceita repo={opsRepo} />}
+      {section === 'clientes' && <OpsClientes repo={opsRepo} onOrders={() => setSection('pedidos')} />}
+      {section === 'relatorios' && <OpsRelatorios repo={opsRepo} />}
+      {section === 'config' && <OpsConfig repo={opsRepo} />}
+    </OperationsLayout>
+  );
+}
+
+function MerchantApp() {
+  const [section, setSection] = useState<MerchantSection>('pedidos');
+
+  return (
+    <MerchantLayout repo={merchantRepo} section={section} onSection={setSection}>
+      {section === 'pedidos' && <MerchantPedidos repo={merchantRepo} />}
+      {section === 'cardapio' && <MerchantCardapio repo={merchantRepo} />}
+      {section === 'relatorios' && <MerchantRelatorios repo={merchantRepo} />}
+      {section === 'config' && <MerchantConfig repo={merchantRepo} />}
+    </MerchantLayout>
+  );
+}
+
 function RiderApp({ tab, onTabChange }: { tab: RiderTab; onTabChange: (tab: RiderTab) => void }) {
+  const [, setThemeTick] = useState(0);
+  const isDark = riderRepo.isDarkTheme();
+
   function handleAction(label: string) {
     if (label === 'logout') {
       riderRepo.setOnline(false);
@@ -326,8 +375,12 @@ function RiderApp({ tab, onTabChange }: { tab: RiderTab; onTabChange: (tab: Ride
     showToast('Em breve.');
   }
 
+  function handleThemeChange() {
+    setThemeTick((t) => t + 1);
+  }
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isDark ? 'rider-dark' : ''}`}>
       <div className="app-frame">
         {tab === 'inicio' && (
           <RiderHomeView
@@ -338,7 +391,7 @@ function RiderApp({ tab, onTabChange }: { tab: RiderTab; onTabChange: (tab: Ride
         )}
         {tab === 'carteira' && <RiderWalletView riderRepo={riderRepo} />}
         {tab === 'historico' && <RiderHistoryView riderRepo={riderRepo} />}
-        {tab === 'perfil' && <RiderProfileView riderRepo={riderRepo} onAction={handleAction} />}
+        {tab === 'perfil' && <RiderProfileView riderRepo={riderRepo} onAction={handleAction} onThemeChange={handleThemeChange} />}
       </div>
       <RiderBottomNav tab={tab} onChange={onTabChange} />
       <ToastHost />

@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import {
   Bike,
   ChevronRight,
   Clock3,
   FileCheck,
   FileWarning,
+  Moon,
   MessageCircle,
   Scale,
   ScrollText,
   ShieldCheck,
   Star,
+  Sun,
+  Banknote,
   TrendingUp,
 } from 'lucide-react';
 import type { RiderRepository } from '@/repositories/riderTypes';
@@ -17,11 +21,27 @@ import { formatKz } from '@/utils/format';
 type Props = {
   riderRepo: RiderRepository;
   onAction: (label: string) => void;
+  onThemeChange?: () => void;
 };
 
-export function RiderProfileView({ riderRepo, onAction }: Props) {
+export function RiderProfileView({ riderRepo, onAction, onThemeChange }: Props) {
   const profile = riderRepo.getProfile();
   const stats = riderRepo.getStats();
+  const [dark, setDark] = useState(() => riderRepo.isDarkTheme());
+  const [cash, setCash] = useState(() => riderRepo.isCashOrders());
+
+  function toggleDark() {
+    const next = !dark;
+    setDark(next);
+    riderRepo.setDarkTheme(next);
+    onThemeChange?.();
+  }
+
+  function toggleCash() {
+    const next = !cash;
+    setCash(next);
+    riderRepo.setCashOrders(next);
+  }
 
   return (
     <main className="page rider-page inner-page profile-page">
@@ -64,6 +84,35 @@ export function RiderProfileView({ riderRepo, onAction }: Props) {
           <small>Media</small>
         </div>
       </div>
+
+      <section className="profile-group">
+        <p className="eyebrow">PREFERENCIAS</p>
+        <div className="profile-links">
+          <div className="profile-link rider-toggle-row">
+            <span className="profile-link-icon">{dark ? <Moon size={17} /> : <Sun size={17} />}</span>
+            <span>
+              <strong>Tema escuro</strong>
+              <small>{dark ? 'Ativado' : 'Desativado'}</small>
+            </span>
+            <button className={`rider-switch ${dark ? 'on' : ''}`} onClick={toggleDark} aria-label="Alternar tema">
+              <span className="rider-switch-thumb" />
+            </button>
+          </div>
+          <div className="profile-link rider-toggle-row">
+            <span className="profile-link-icon"><Banknote size={17} /></span>
+            <span>
+              <strong>Pedidos em dinheiro</strong>
+              <small>{cash ? 'Ativado' : 'Desativado'}</small>
+            </span>
+            <button className={`rider-switch ${cash ? 'on' : ''}`} onClick={toggleCash} aria-label="Alternar pedidos em dinheiro">
+              <span className="rider-switch-thumb" />
+            </button>
+          </div>
+        </div>
+        <p className="rider-settings-note">
+          Pedidos em dinheiro depende de autorizacao operacional do servidor.
+        </p>
+      </section>
 
       <section className="profile-group">
         <p className="eyebrow">DOCUMENTOS</p>

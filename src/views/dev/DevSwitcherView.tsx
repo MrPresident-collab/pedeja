@@ -4,7 +4,7 @@ const surfaces = [
   { id: 'customer', label: 'Customer', desc: 'Customer-facing app', icon: ShoppingCart, path: '/customer' },
   { id: 'estafeta', label: 'Estafeta', desc: 'Delivery partner interface', icon: Bike, path: '/estafeta' },
   { id: 'merchant', label: 'Merchant', desc: 'Merchant dashboard', icon: Briefcase, path: '/merchant' },
-  { id: 'operations', label: 'Operations', desc: 'Internal staff preview', icon: ShieldCheck, path: '/operations' },
+  { id: 'operations', label: 'Operations — Development Preview', desc: 'Internal staff preview', icon: ShieldCheck, path: '/operations' },
 ];
 
 export function DevSwitcherView() {

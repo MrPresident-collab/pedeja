@@ -9,6 +9,8 @@ import {
 } from '@/data/riderMock';
 
 let online = false;
+let darkTheme = false;
+let cashOrders = true;
 let activeDelivery: ActiveDelivery | null = null;
 let currentRequest: RiderDeliveryRequest | null = mockDeliveryRequest;
 let currentStep: RiderStep = 'pickup';
@@ -27,6 +29,10 @@ export function createMockRiderRepository(): RiderRepository {
         currentRequest = mockDeliveryRequest;
       }
     },
+    isDarkTheme: () => darkTheme,
+    setDarkTheme: (value) => { darkTheme = value; },
+    isCashOrders: () => cashOrders,
+    setCashOrders: (value) => { cashOrders = value; },
     getActiveDelivery: () => activeDelivery,
     getDeliveryRequest: () => (online && !activeDelivery ? currentRequest : null),
     acceptDelivery: () => {

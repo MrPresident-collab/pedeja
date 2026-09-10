@@ -43,6 +43,7 @@ export function CheckoutView({ onBack, onPlaced }: Props) {
       deliveryFee,
       tip,
       total,
+      paymentMethod: method,
     });
     cart.clear();
     onPlaced(order.id);

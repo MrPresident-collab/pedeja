@@ -1,4 +1,4 @@
-import type { Category, GeoPoint, ID, VehicleType } from './common';
+import type { Category, GeoPoint, ID, PaymentMethod, VehicleType } from './common';
 export * from './common';
 
 export type OrderStatus =
@@ -71,6 +71,7 @@ export type Order = {
   rider?: string;
   riderPhone?: string;
   merchantPhone?: string;
+  paymentMethod?: PaymentMethod;
 };
 
 export type Address = {

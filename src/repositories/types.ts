@@ -6,6 +6,7 @@ import type {
   DeliveryInstruction,
   ID,
   Order,
+  PaymentMethod,
   Product,
   Profile,
   Vehicle,
@@ -50,6 +51,7 @@ export type CreateOrderInput = {
   deliveryFee: number;
   tip: number;
   total: number;
+  paymentMethod?: PaymentMethod;
   note?: string;
 };
 
