@@ -56,7 +56,7 @@ export function OperationsLayout({ repo, section, onSection, children }: Props) 
       {mobileOpen && <div className="ops-backdrop" onClick={() => setMobileOpen(false)} />}
       <aside className={`ops-sidebar ${mobileOpen ? 'ops-mobile-open' : ''}`}>
         <div className="ops-sidebar-header">
-          <BrandMark className="ops-brand" />
+          <BrandMark className="ops-brand on-dark" />
           {!collapsed && <span className="ops-brand-sub">OPERATIONS</span>}
           <button className="ops-sidebar-collapse" onClick={() => setCollapsed(!collapsed)} aria-label="Recolher sidebar">
             {collapsed ? <ChevronLeft size={18} className="ops-rotated" /> : <ChevronLeft size={18} />}

@@ -42,7 +42,7 @@ export function MerchantLayout({ repo, section, onSection, children }: Props) {
       {mobileOpen && <div className="merchant-backdrop" onClick={() => setMobileOpen(false)} />}
       <aside className={`merchant-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="merchant-sidebar-header">
-          {!collapsed && <BrandMark className="logo-sm" />}
+          {!collapsed && <BrandMark className="logo-sm on-dark" />}
           <button className="merchant-sidebar-toggle" onClick={() => setCollapsed(!collapsed)} aria-label="Recolher sidebar">
             <ChevronLeft size={18} className={collapsed ? 'rotated' : ''} />
           </button>

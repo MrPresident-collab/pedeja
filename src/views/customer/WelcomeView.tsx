@@ -9,7 +9,7 @@ export function WelcomeView({ onEnter, onCreate, onGuest }: Props) {
     <main className="onboarding welcome-screen">
       <div className="welcome-glow" />
       <div className="welcome-top">
-        <Logo dark />
+        <Logo />
         <span className="language-pill">
           PT <ChevronRight size={14} />
         </span>
