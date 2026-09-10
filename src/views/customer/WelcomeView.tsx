@@ -2,9 +2,9 @@ import { ArrowRight, ChevronRight } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { HeroImage } from '@/components/HeroImage';
 
-type Props = { onEnter: () => void; onCreate: () => void; onGuest: () => void };
+type Props = { onEnter: () => void; onCreate: () => void; onGuest: () => void; demoMode?: boolean };
 
-export function WelcomeView({ onEnter, onCreate, onGuest }: Props) {
+export function WelcomeView({ onEnter, onCreate, onGuest, demoMode }: Props) {
   return (
     <main className="onboarding welcome-screen">
       <div className="welcome-glow" />
@@ -34,7 +34,7 @@ export function WelcomeView({ onEnter, onCreate, onGuest }: Props) {
           Criar conta
         </button>
         <button className="guest-link" onClick={onGuest}>
-          Continuar como convidado
+          Continuar como convidado{demoMode ? ' (modo demo)' : ''}
         </button>
       </div>
     </main>

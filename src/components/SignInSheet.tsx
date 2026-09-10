@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Check, Smartphone } from 'lucide-react';
-import { repositories } from '@/repositories';
+import { useAuth } from '@/auth/useAuth';
 import { showToast } from '@/components/toastStore';
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
 };
 
 export function SignInSheet({ onClose, onSuccess }: Props) {
+  const auth = useAuth();
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -21,22 +22,25 @@ export function SignInSheet({ onClose, onSuccess }: Props) {
       return;
     }
     setSending(true);
-    const ok = await repositories.auth.requestOtp(digits);
+    const result = await auth.signInWithPhone(digits);
     setSending(false);
-    if (ok) {
+    if (result.success) {
       setStep('code');
-      showToast('Código enviado por SMS. (modo demo: qualquer código serve)');
+      showToast(auth.isDemo ? 'Código enviado por SMS. (modo demo: código 1234)' : 'Código enviado por SMS.');
+    } else {
+      showToast(result.error ?? 'Não foi possível enviar o código. Tenta de novo.');
     }
   }
 
   async function verify() {
     if (code.trim().length < 4) return;
-    const ok = await repositories.auth.verifyOtp(phone, code.trim());
-    if (ok) {
+    const digits = phone.replace(/[^\d+]/g, '');
+    const result = await auth.verifyOtp(digits, code.trim());
+    if (result.success) {
       showToast('Sessão iniciada. Bem-vindo/a ao Pedejá.');
       onSuccess();
     } else {
-      showToast('Código incorreto. Tenta de novo.');
+      showToast(result.error ?? 'Código incorreto. Tenta de novo.');
     }
   }
 

@@ -7,6 +7,8 @@ import { ToastHost } from '@/components/Toast';
 import { showToast } from '@/components/toastStore';
 import { SignInSheet } from '@/components/SignInSheet';
 import { repositories } from '@/repositories';
+import { useAuth } from '@/auth/useAuth';
+import { SessionGate } from '@/auth/SessionGate';
 import { createMockRiderRepository } from '@/repositories/riderMock';
 import type { RiderRepository } from '@/repositories/riderTypes';
 import { HomeView } from '@/views/customer/HomeView';
@@ -81,6 +83,7 @@ function openWhatsApp(text: string) {
 }
 
 function CustomerApp() {
+  const auth = useAuth();
   const [screen, setScreen] = useState<CustomerScreen>({ name: 'splash' });
   const [tab, setTab] = useState<Tab>('home');
   const [showAddress, setShowAddress] = useState(false);
@@ -89,6 +92,14 @@ function CustomerApp() {
   function navigateToApp() {
     setScreen({ name: 'app' });
     setTab('home');
+  }
+
+  function handleGuest() {
+    if (!auth.isDemo && !auth.user) {
+      setShowSignIn(true);
+      return;
+    }
+    navigateToApp();
   }
 
   function handleCategory(cat: Category) {
@@ -104,6 +115,11 @@ function CustomerApp() {
   }
 
   function openCheckout() {
+    if (!auth.user) {
+      setShowSignIn(true);
+      showToast('Entra para finalizar a compra.');
+      return;
+    }
     setScreen({ name: 'checkout' });
   }
 
@@ -117,7 +133,7 @@ function CustomerApp() {
 
   function handleAction(label: string) {
     if (label === 'logout') {
-      repositories.auth.signOut();
+      void auth.signOut();
       setScreen({ name: 'welcome' });
       showToast('Sessão terminada.');
       return;
@@ -156,7 +172,8 @@ function CustomerApp() {
         <WelcomeView
           onEnter={() => setShowSignIn(true)}
           onCreate={() => setShowSignIn(true)}
-          onGuest={navigateToApp}
+          onGuest={handleGuest}
+          demoMode={auth.isDemo}
         />
         <BottomSheet
           open={showSignIn}
@@ -316,7 +333,12 @@ function CustomerApp() {
 }
 
 function App() {
+  const auth = useAuth();
   const [route, setRoute] = useState<Route>(readRoute);
+
+  const protectedSurface = route.surface === 'estafeta' || route.surface === 'merchant';
+  const requireIdentity = !auth.isDemo && !auth.user && protectedSurface;
+  const renderSurface = requireIdentity ? ('customer' as const) : route.surface;
 
   useEffect(() => {
     function onPop() {
@@ -326,10 +348,21 @@ function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  if (route.surface === 'dev') return <DevSwitcherView />;
-  if (route.surface === 'estafeta') return <RiderApp tab={route.tab} onTabChange={(tab) => setRoute({ surface: 'estafeta', tab })} />;
-  if (route.surface === 'merchant') return <MerchantApp />;
-  if (route.surface === 'operations') return <OpsApp />;
+  useEffect(() => {
+    if (!requireIdentity) return;
+    window.history.replaceState(null, '', '/customer');
+  }, [requireIdentity]);
+
+  if (auth.status === 'loading') return <SessionGate />;
+  if (auth.status === 'error') {
+    return <SessionGate error={auth.error ?? 'Não foi possível verificar a sessão.'} onRetry={auth.retry} />;
+  }
+  if (renderSurface === 'dev') return <DevSwitcherView />;
+  if (renderSurface === 'estafeta' && route.surface === 'estafeta') {
+    return <RiderApp tab={route.tab} onTabChange={(tab) => setRoute({ surface: 'estafeta', tab })} />;
+  }
+  if (renderSurface === 'merchant') return <MerchantApp />;
+  if (renderSurface === 'operations') return <OpsApp />;
   return <CustomerApp />;
 }
 
