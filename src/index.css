@@ -283,7 +283,7 @@ input { font: inherit; }
 
 /* ===== Bottom Sheet ===== */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(14,11,18,.5); display: flex; align-items: flex-end; justify-content: center; }
-.bottom-sheet { width: min(520px, 100%); background: #fff; border-radius: 25px 25px 0 0; padding: 12px 20px max(25px, env(safe-area-inset-bottom)); animation: sheet-up .25s ease both; }
+.bottom-sheet { width: min(520px, 100%); background: #fff; border-radius: 25px 25px 0 0; padding: 12px 20px max(25px, env(safe-area-inset-bottom)); max-height: 88dvh; overflow-y: auto; animation: sheet-up .25s ease both; }
 .sheet-handle { width: 38px; height: 4px; border-radius: 4px; background: #dbd5df; margin: 0 auto 22px; }
 .bottom-sheet header { display: flex; align-items: start; justify-content: space-between; }
 .bottom-sheet h2 { margin: 0; font-size: 22px; letter-spacing: -.8px; }
@@ -663,14 +663,23 @@ input { font: inherit; }
 .rider-offline-hint { color: var(--muted); font-size: 12px; text-align: center; margin: 0; }
 
 /* ----- Online Map Area ----- */
-.rider-online-area { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-.rider-map-fill { flex: 1; position: relative; background: #dfd9cc; border-radius: 0; overflow: hidden; min-height: 0; }
+.rider-online-area { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 240px; }
+.rider-map-fill { flex: 1; position: relative; background: #dfd9cc; border-radius: 0; overflow: hidden; min-height: 140px; }
 .rider-map-grid { inset: -20px; position: absolute; opacity: .45; background: repeating-linear-gradient(25deg, transparent 0 30px, #c9c1b4 31px 33px), repeating-linear-gradient(110deg, transparent 0 50px, #c9c1b4 51px 53px); }
 .rider-map-offline { opacity: .85; }
 .rider-pulse { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; background: var(--purple); border-radius: 50%; animation: rider-pulse 2s ease-out infinite; z-index: 2; }
 @keyframes rider-pulse { 0% { box-shadow: 0 0 0 0 rgba(138,43,226,.45); } 70% { box-shadow: 0 0 0 45px rgba(138,43,226,0); } 100% { box-shadow: 0 0 0 0 rgba(138,43,226,0); } }
-.rider-map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--purple); z-index: 3; filter: drop-shadow(0 2px 4px rgba(0,0,0,.18)); }
+.rider-map-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--purple); z-index: 3; filter: drop-shadow(0 0 9px rgba(138,43,226,.5)) drop-shadow(0 2px 4px rgba(0,0,0,.18)); }
 .rider-map-label { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); background: var(--purple); color: #fff; padding: 3px 9px; border-radius: 8px; font-size: 9px; font-weight: 700; z-index: 3; white-space: nowrap; }
+.rider-search-radius {
+  position: absolute; left: 50%; top: 50%;
+  width: clamp(150px, 46vw, 220px); height: clamp(150px, 46vw, 220px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(138,43,226,.10) 0%, rgba(138,43,226,.045) 55%, rgba(138,43,226,0) 72%);
+  border: 1px solid rgba(138,43,226,.22);
+  pointer-events: none; z-index: 1;
+}
 .rider-map-route { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .rider-route-dot { position: absolute; left: 50%; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
 .rider-route-pickup { top: 28%; margin-left: -7px; background: var(--purple); }
@@ -689,10 +698,10 @@ input { font: inherit; }
 /* ----- Empty Radar (searching within map) ----- */
 .rider-empty-radar { position: absolute; bottom: 0; left: 0; right: 0; height: 140px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 24px; z-index: 4; pointer-events: none; background: linear-gradient(to top, rgba(223,217,204,.85) 0%, transparent 100%); }
 .rider-empty-radar p { color: var(--muted); font-size: 13px; font-weight: 600; z-index: 1; background: rgba(255,255,255,.85); padding: 6px 14px; border-radius: 20px; backdrop-filter: blur(6px); }
-.rider-radar-ring { position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); border: 1px solid rgba(138,43,226,.12); border-radius: 50%; animation: radar-expand 3s ease-out infinite; }
-.rider-radar-ring.ring-2 { animation-delay: 1s; }
-.rider-radar-ring.ring-3 { animation-delay: 2s; }
-@keyframes radar-expand { 0% { width: 30px; height: 30px; opacity: .6; } 100% { width: 150px; height: 150px; opacity: 0; } }
+.rider-radar-ring { position: absolute; left: 50%; top: 50%; width: 190px; height: 190px; border: 1px solid rgba(138,43,226,.2); border-radius: 50%; transform: translate(-50%, -50%) scale(.18); animation: radar-expand 3.2s ease-out infinite; }
+.rider-radar-ring.ring-2 { animation-delay: 1.07s; }
+.rider-radar-ring.ring-3 { animation-delay: 2.13s; }
+@keyframes radar-expand { 0% { transform: translate(-50%, -50%) scale(.18); opacity: .55; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
 
 /* ----- Active Delivery Bottom Sheet ----- */
 .rider-active-sheet { position: relative; z-index: 5; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--line); border-radius: 20px 20px 0 0; padding: 10px 20px 24px; max-height: 52vh; overflow-y: auto; display: grid; gap: 14px; animation: sheet-up .28s ease both; }
@@ -702,7 +711,7 @@ input { font: inherit; }
 .rider-sheet-id { color: var(--muted); font-size: 12px; font-weight: 600; }
 
 /* ----- Delivery Request Card (bottom sheet over map) ----- */
-.rider-request-card { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 5; background: var(--surface); border: 2px solid var(--purple); border-radius: 18px; padding: 16px; display: grid; gap: 12px; animation: sheet-up .25s ease both; }
+.rider-request-card { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 5; background: var(--surface); border: 2px solid var(--purple); border-radius: 18px; padding: 16px; display: grid; gap: 12px; max-height: calc(100% - 24px); overflow-y: auto; animation: sheet-up .25s ease both; }
 .rider-request-header { display: flex; justify-content: space-between; align-items: center; }
 .rider-request-badge { background: var(--purple); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 5px 10px; border-radius: 8px; }
 .rider-request-timer { font-size: 14px; font-weight: 800; color: var(--error); }
@@ -1073,6 +1082,7 @@ input { font: inherit; }
 }
 .merchant-modal {
   background: #fff; border-radius: 14px; padding: 28px; width: 90%; max-width: 480px; box-shadow: 0 24px 60px rgba(0,0,0,.18);
+  max-height: calc(100dvh - 32px); overflow-y: auto;
 }
 .merchant-modal h3 { font-size: 18px; font-weight: 700; margin: 0 0 20px; }
 .merchant-form { display: flex; flex-direction: column; gap: 14px; }

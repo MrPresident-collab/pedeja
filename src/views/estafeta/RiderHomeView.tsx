@@ -63,7 +63,7 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
   }
 
   return (
-    <main className="page rider-page">
+    <main className="rider-home">
       <header className="rider-topbar">
         <div className="rider-topbar-left">
           <div className="rider-logo-small">
@@ -127,6 +127,11 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
               <span className="rider-hub-dot" />
               <span className="rider-hub-label">Alta procura</span>
             </div>
+            <div className="rider-search-radius">
+              <div className="rider-radar-ring" />
+              <div className="rider-radar-ring ring-2" />
+              <div className="rider-radar-ring ring-3" />
+            </div>
             <div className="rider-pulse" />
             <MapPin size={26} className="rider-map-pin" />
             <span className="rider-map-label">Tu</span>
@@ -140,9 +145,6 @@ export function RiderHomeView({ riderRepo, onChat, onSupport }: Props) {
             />
           ) : (
             <div className="rider-empty-radar">
-              <div className="rider-radar-ring" />
-              <div className="rider-radar-ring ring-2" />
-              <div className="rider-radar-ring ring-3" />
               <p>A procurar entregas perto de ti...</p>
             </div>
           )}
