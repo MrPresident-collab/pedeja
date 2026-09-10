@@ -125,13 +125,37 @@ type-level code changes. No UI changes, no Supabase, no database, no auth implem
 - All repository interfaces documented with method signatures
 - All four surfaces (consumer, merchant, estafeta, operations) covered
 
-### Phase 3B — Repository interface alignment
+### Phase 3B — Repository interface alignment (done)
 
-- Verify all repository interfaces match domain model entities
-- Add missing repository methods if any domain entity lacks CRUD coverage
-- Ensure `CreateOrderInput` aligns with `Order` domain entity
-- Verify `ParcelEstimateInput` aligns with `ParcelEstimate` domain entity
-- Document any gaps between domain model and current mock implementation
+- Verified all repository interfaces against the domain model aggregate boundaries.
+- **Order boundary**: `OrderRepository` now owns order-level workflows — added
+  `cancelOrder(orderId)` and `getOrderEvents(orderId)` (maps the view timeline to the
+  domain `OrderEvent` vocabulary). Remains free of payment/rider/authorization logic.
+- **Delivery boundary**: Order/Delivery/DeliveryAssignment kept separate; added
+  `getActiveAssignment(deliveryId)` to `DeliveryRepository`.
+- **Payment boundary**: payment is a separate aggregate, not `order.isPaid` — added
+  `getOrderPayment(orderId)` and `updatePaymentStatus(orderId, state)` to
+  `PaymentRepository`.
+- **Payout boundary**: Payout is money to a recipient, kept out of Payment — added
+  `getPayouts()` to `RiderRepository` (itemized `PayoutLine[]` → `gross`).
+- **Merchant boundary**: added explicit `pauseOrders()`, `resumeOrders()`, and
+  `setProductAvailability(id, available)` without touching sensitive-action authorization
+  (that remains a future server concern).
+- **Estafeta boundary**: capabilities never granted by the repository; `getPayouts()` maps
+  the rider wallet/history onto the domain `Payout`.
+- **Operations boundary**: broader authorization, not structurally local — added
+  `getRider(id)`; no bypass of the domain aggregate model.
+- **Parcel boundary**: Parcel kept separate from Order/Delivery/Payment — added
+  `createParcel(input)` and `getParcel(id)` to `ParcelRepository`, preserving the future
+  `ParcelEvidence` boundary (no storage yet).
+- **Notification / Support / Rating boundaries**: `listUnread()`/`markAllAsRead()`;
+  support lifecycle `getTicket()`/`addMessage()`/`updateStatus()`. Rating keeps
+  `submitFor()`/`getForOrder()` (existing convention) and stays out of the Order aggregate.
+- **Authorization boundary preserved**: no `setUserRole`, no capability/approval methods;
+  `/change` dev route remains a local preview utility only.
+- **No UI changes**: views consume the same method names; all additions are contract-level.
+- Verified: `npm run typecheck` ✓, `npm run lint` ✓, `npm run build` ✓, all surfaces
+  smoke-tested via dev server.
 
 ### Phase 3C — Type alignment
 

@@ -169,6 +169,7 @@ export interface OperationsRepository {
   reassignDelivery(orderId: string, riderId: string): void;
   cancelOrder(orderId: string): void;
   listRiders(): OpsRider[];
+  getRider(id: string): OpsRider | null;
   blockRider(id: string): void;
   unblockRider(id: string): void;
   getRevenue(): OpsRevenue;

@@ -97,6 +97,7 @@ export function createMockOperationsRepository(): OperationsRepository {
     },
 
     listRiders: () => riders,
+    getRider: (id) => riders.find((r) => r.id === id) ?? null,
     blockRider: (id) => {
       riders = riders.map((r) => (r.id === id ? { ...r, blocked: true } : r));
     },

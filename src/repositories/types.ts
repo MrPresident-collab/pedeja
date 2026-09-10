@@ -11,14 +11,22 @@ import type {
   Profile,
   Vehicle,
 } from '@/types';
+import type { ParcelSize, VehicleType } from '@/types/common';
 import type {
+  AddressRef,
   Delivery,
   DeliveryAssignment,
   Identity,
   Notification,
+  OrderEvent,
+  Parcel,
   ParcelEstimate,
+  Payment,
+  PaymentState,
   Rating,
+  SupportMessage,
   SupportTicket,
+  SupportTicketState,
 } from '@/types/domain';
 
 export type ExploreGroup = {
@@ -38,6 +46,18 @@ export type ParcelEstimateInput = {
   distanceMeters: number;
   factors: string[];
 };
+
+export type CreateParcelInput = {
+  content: string;
+  size: ParcelSize;
+  vehicle: VehicleType;
+  pickup: AddressRef;
+  dropoff: AddressRef;
+  distanceMeters: number;
+  factors: string[];
+};
+
+export type SupportMessageAuthor = SupportMessage['author'];
 
 export type CreateOrderInput = {
   merchant: string;
@@ -89,6 +109,8 @@ export interface OrderRepository {
   getById(id: string): Order | null;
   create(input: CreateOrderInput): Order;
   repeat(orderId: string): Order | null;
+  cancelOrder(orderId: string): Order | null;
+  getOrderEvents(orderId: string): OrderEvent[];
 }
 
 export interface CartRepository {
@@ -112,16 +134,21 @@ export interface RatingRepository {
 export interface DeliveryRepository {
   getForOrder(orderId: string): Delivery | null;
   listAssignments(deliveryId: string): DeliveryAssignment[];
+  getActiveAssignment(deliveryId: string): DeliveryAssignment | null;
 }
 
 export interface PaymentRepository {
   listMethods(): PaymentMethodOption[];
+  getOrderPayment(orderId: string): Payment | null;
+  updatePaymentStatus(orderId: string, state: PaymentState): void;
 }
 
 export interface ParcelRepository {
   listVehicles(): Vehicle[];
   listInstructions(): DeliveryInstruction[];
   estimate(input: ParcelEstimateInput): ParcelEstimate;
+  createParcel(input: CreateParcelInput): Parcel;
+  getParcel(id: string): Parcel | null;
 }
 
 export interface ExploreRepository {
@@ -130,12 +157,17 @@ export interface ExploreRepository {
 
 export interface NotificationRepository {
   list(): Notification[];
+  listUnread(): Notification[];
   markRead(id: string): void;
+  markAllAsRead(): void;
 }
 
 export interface SupportRepository {
   listTickets(): SupportTicket[];
   createTicket(ticket: SupportTicket): SupportTicket;
+  getTicket(id: string): SupportTicket | null;
+  addMessage(ticketId: string, author: SupportMessageAuthor, body: string): SupportTicket;
+  updateStatus(ticketId: string, state: SupportTicketState): void;
 }
 
 export interface Repositories {

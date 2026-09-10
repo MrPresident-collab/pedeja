@@ -1,4 +1,5 @@
 import type { RiderRepository, RiderDeliveryRequest, ActiveDelivery, RiderStep } from './riderTypes';
+import type { Payout, PayoutLine } from '@/types/domain';
 import {
   mockRiderProfile,
   mockRiderStats,
@@ -14,6 +15,40 @@ let cashOrders = true;
 let activeDelivery: ActiveDelivery | null = null;
 let currentRequest: RiderDeliveryRequest | null = mockDeliveryRequest;
 let currentStep: RiderStep = 'pickup';
+
+function buildTodayPayout(): Payout {
+  const lines: PayoutLine[] = [
+    { component: 'base_pay', amount: mockEarningsBreakdown.basePay },
+    { component: 'distance_pay', amount: mockEarningsBreakdown.distancePay },
+    { component: 'waiting_time', amount: mockEarningsBreakdown.waitingPay },
+    { component: 'peak_bonus', amount: mockEarningsBreakdown.peakBonus },
+    { component: 'customer_tip', amount: mockEarningsBreakdown.customerTip },
+    { component: 'platform_fee', amount: mockEarningsBreakdown.platformFee },
+  ];
+  const now = Date.now();
+  return {
+    id: 'payout-today',
+    identityId: 'id-nelson',
+    periodFrom: new Date(now - 1000 * 60 * 60 * 6.5).toISOString(),
+    periodTo: new Date(now).toISOString(),
+    lines,
+    gross: mockEarningsBreakdown.total,
+    state: 'scheduled',
+  };
+}
+
+function buildHistoryPayouts(): Payout[] {
+  const now = Date.now();
+  return mockDeliveryHistory.map((h, i) => ({
+    id: `payout-${h.id}`,
+    identityId: 'id-nelson',
+    periodFrom: new Date(now - (i + 1) * 60 * 60 * 1000).toISOString(),
+    periodTo: new Date(now - i * 60 * 60 * 1000).toISOString(),
+    lines: [{ component: 'base_pay', amount: h.payout }],
+    gross: h.payout,
+    state: h.status === 'completed' ? 'paid' : 'failed',
+  }));
+}
 
 export function createMockRiderRepository(): RiderRepository {
   return {
@@ -60,6 +95,7 @@ export function createMockRiderRepository(): RiderRepository {
       }
     },
     getEarningsBreakdown: () => mockEarningsBreakdown,
+    getPayouts: () => [buildTodayPayout(), ...buildHistoryPayouts()],
     getHistory: () => mockDeliveryHistory,
   };
 }

@@ -49,9 +49,14 @@ export function createMockMerchantRepository(): MerchantRepository {
     toggleProductAvailability: (id) => {
       products = products.map((p) => (p.id === id ? { ...p, available: !p.available } : p));
     },
+    setProductAvailability: (id, available) => {
+      products = products.map((p) => (p.id === id ? { ...p, available } : p));
+    },
     getReport: () => mockMerchantReport,
     isOrdersPaused: () => settings.ordersPaused,
     setOrdersPaused: (value) => { settings = { ...settings, ordersPaused: value }; },
+    pauseOrders: () => { settings = { ...settings, ordersPaused: true }; },
+    resumeOrders: () => { settings = { ...settings, ordersPaused: false }; },
     signOut: () => { window.location.href = '/'; },
   };
 }

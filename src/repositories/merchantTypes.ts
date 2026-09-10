@@ -88,8 +88,11 @@ export interface MerchantRepository {
   addProduct(product: Omit<MerchantProduct, 'id'>): MerchantProduct;
   updateProduct(id: string, partial: Partial<MerchantProduct>): void;
   toggleProductAvailability(id: string): void;
+  setProductAvailability(id: string, available: boolean): void;
   getReport(): MerchantReport;
   isOrdersPaused(): boolean;
   setOrdersPaused(value: boolean): void;
+  pauseOrders(): void;
+  resumeOrders(): void;
   signOut(): void;
 }

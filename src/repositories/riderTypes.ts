@@ -1,4 +1,5 @@
 import type { Money, VehicleType } from '@/types/common';
+import type { Payout } from '@/types/domain';
 
 export type RiderStep = 'pickup' | 'picked_up' | 'delivered';
 
@@ -97,5 +98,6 @@ export interface RiderRepository {
   expireDelivery(requestId: string): void;
   advanceStep(): void;
   getEarningsBreakdown(): EarningsBreakdown;
+  getPayouts(): Payout[];
   getHistory(): DeliveryHistoryItem[];
 }

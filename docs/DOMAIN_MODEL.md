@@ -729,32 +729,32 @@ graph TD
 | `MerchantRepository` | `listNearby(limit?)`, `listByCategory(category)`, `getById(id)` |
 | `ProductRepository` | `listByBusiness(businessId)`, `getById(id)` |
 | `CartRepository` | `getBusiness()`, `getLines()`, `getTip()`, `getDeliveryFee()`, `setBusiness()`, `addProduct()`, `setQuantity()`, `removeProduct()`, `setTip()`, `clear()` |
-| `OrderRepository` | `listActive()`, `listHistory()`, `getById(id)`, `create(input)`, `repeat(orderId)` |
-| `DeliveryRepository` | `getForOrder(orderId)`, `listAssignments(deliveryId)` |
-| `PaymentRepository` | `listMethods()` |
-| `ParcelRepository` | `listVehicles()`, `listInstructions()`, `estimate(input)` |
+| `OrderRepository` | `listActive()`, `listHistory()`, `getById(id)`, `create(input)`, `repeat(orderId)`, `cancelOrder(orderId)`, `getOrderEvents(orderId)` |
+| `DeliveryRepository` | `getForOrder(orderId)`, `listAssignments(deliveryId)`, `getActiveAssignment(deliveryId)` |
+| `PaymentRepository` | `listMethods()`, `getOrderPayment(orderId)`, `updatePaymentStatus(orderId, state)` |
+| `ParcelRepository` | `listVehicles()`, `listInstructions()`, `estimate(input)`, `createParcel(input)`, `getParcel(id)` |
 | `ExploreRepository` | `getGroups()` |
-| `NotificationRepository` | `list()`, `markRead(id)` |
-| `SupportRepository` | `listTickets()`, `createTicket(ticket)` |
+| `NotificationRepository` | `list()`, `listUnread()`, `markRead(id)`, `markAllAsRead()` |
+| `SupportRepository` | `listTickets()`, `createTicket(ticket)`, `getTicket(id)`, `addMessage(ticketId, author, body)`, `updateStatus(ticketId, state)` |
 | `RatingRepository` | `getForOrder(orderId)`, `submitFor(orderId, score, comment?)` |
 
 ### Estafeta-facing
 
 | Interface | Methods |
 | --- | --- |
-| `RiderRepository` | `getProfile()`, `getStats()`, `isOnline()`, `setOnline()`, `isDarkTheme()`, `setDarkTheme()`, `isCashOrders()`, `setCashOrders()`, `getActiveDelivery()`, `getDeliveryRequest()`, `acceptDelivery()`, `expireDelivery()`, `advanceStep()`, `getEarningsBreakdown()`, `getHistory()` |
+| `RiderRepository` | `getProfile()`, `getStats()`, `isOnline()`, `setOnline()`, `isDarkTheme()`, `setDarkTheme()`, `isCashOrders()`, `setCashOrders()`, `getActiveDelivery()`, `getDeliveryRequest()`, `acceptDelivery()`, `expireDelivery()`, `advanceStep()`, `getEarningsBreakdown()`, `getPayouts()`, `getHistory()` |
 
 ### Merchant-facing
 
 | Interface | Methods |
 | --- | --- |
-| `MerchantRepository` | `getProfile()`, `getSettings()`, `updateSettings()`, `isOpen()`, `setOpen()`, `listOrders()`, `getOrder()`, `updateOrderStatus()`, `listProducts()`, `listCategories()`, `addProduct()`, `updateProduct()`, `toggleProductAvailability()`, `getReport()`, `isOrdersPaused()`, `setOrdersPaused()`, `signOut()` |
+| `MerchantRepository` | `getProfile()`, `getSettings()`, `updateSettings()`, `isOpen()`, `setOpen()`, `listOrders()`, `getOrder()`, `updateOrderStatus()`, `listProducts()`, `listCategories()`, `addProduct()`, `updateProduct()`, `toggleProductAvailability()`, `setProductAvailability()`, `getReport()`, `isOrdersPaused()`, `setOrdersPaused()`, `pauseOrders()`, `resumeOrders()`, `signOut()` |
 
 ### Operations-facing
 
 | Interface | Methods |
 | --- | --- |
-| `OperationsRepository` | `getOperator()`, `getOverview()`, `listOrders()`, `getOrder()`, `updateOrderStatus()`, `reassignDelivery()`, `cancelOrder()`, `listRiders()`, `blockRider()`, `unblockRider()`, `getRevenue()`, `getReconciliation()`, `getCashPosition()`, `listCustomers()`, `getReports()`, `getSettings()`, `updateSettings()`, `listStaff()` |
+| `OperationsRepository` | `getOperator()`, `getOverview()`, `listOrders()`, `getOrder()`, `updateOrderStatus()`, `reassignDelivery()`, `cancelOrder()`, `listRiders()`, `getRider(id)`, `blockRider()`, `unblockRider()`, `getRevenue()`, `getReconciliation()`, `getCashPosition()`, `listCustomers()`, `getReports()`, `getSettings()`, `updateSettings()`, `listStaff()` |
 
 ---
 
