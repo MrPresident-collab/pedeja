@@ -10,7 +10,7 @@ export const contentTopics: Record<string, ContentTopic> = {
     eyebrow: 'SOBRE',
     paragraphs: [
       'Pedejá é a plataforma angolana de entrega e envio. Comida, compras do dia a dia, supermercados e encomendas — tudo o que precisas, a mover-se contigo.',
-      'Nascido para responder às necessidades de Luanda e de toda a Angola, o Pedejá organiza no mesmo lugar o que está perto de ti e leva-te o que pedires, com estafetas e parceiros locais.',
+      'Nascido para responder às necessidades de Luanda e de toda a Angola, o Pedejá organiza no mesmo lugar o que está perto de ti e leva-te o que pedires, com estafetas locais.',
       'A nossa promessa é simples: "A promessa que se move". Pedes, nós levamos.',
     ],
   },

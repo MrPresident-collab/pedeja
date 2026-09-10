@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Home, MapPin, Plus } from 'lucide-react';
 import { BottomNav, type Tab } from '@/components/BottomNav';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -7,6 +7,7 @@ import { showToast } from '@/components/toastStore';
 import { SignInSheet } from '@/components/SignInSheet';
 import { repositories } from '@/repositories';
 import { HomeView } from '@/views/customer/HomeView';
+import { MarketplaceView } from '@/views/customer/MarketplaceView';
 import { ExploreView } from '@/views/customer/ExploreView';
 import { OrdersView } from '@/views/customer/OrdersView';
 import { ProfileView } from '@/views/customer/ProfileView';
@@ -17,24 +18,45 @@ import { BusinessView } from '@/views/customer/BusinessView';
 import { CheckoutView } from '@/views/customer/CheckoutView';
 import { CategoryView } from '@/views/customer/categories/CategoryView';
 import { EnviarFlow } from '@/views/customer/categories/EnviarFlow';
+import { DevSwitcherView } from '@/views/dev/DevSwitcherView';
+import { EstafetaView } from '@/views/dev/EstafetaView';
+import { MerchantView } from '@/views/dev/MerchantView';
+import { OperationsView } from '@/views/dev/OperationsView';
 import type { Business, Category } from '@/types';
 
-type Screen =
+type CustomerScreen =
   | { name: 'splash' }
   | { name: 'welcome' }
   | { name: 'app' }
+  | { name: 'marketplace' }
   | { name: 'category'; category: Category }
   | { name: 'enviar-flow' }
   | { name: 'business'; business: Business }
   | { name: 'checkout' }
   | { name: 'content'; topicKey: string };
 
+type Route =
+  | { surface: 'dev' }
+  | { surface: 'customer'; screen: CustomerScreen }
+  | { surface: 'estafeta' }
+  | { surface: 'merchant' }
+  | { surface: 'operations' };
+
+function readRoute(): Route {
+  const path = window.location.pathname;
+  if (path === '/estafeta') return { surface: 'estafeta' };
+  if (path === '/merchant') return { surface: 'merchant' };
+  if (path === '/operations') return { surface: 'operations' };
+  if (path === '/customer') return { surface: 'customer', screen: { name: 'splash' } };
+  return { surface: 'dev' };
+}
+
 function openWhatsApp(text: string) {
   window.open(`https://wa.me/244900000000?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-function App() {
-  const [screen, setScreen] = useState<Screen>({ name: 'splash' });
+function CustomerApp() {
+  const [screen, setScreen] = useState<CustomerScreen>({ name: 'splash' });
   const [tab, setTab] = useState<Tab>('home');
   const [showAddress, setShowAddress] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -124,6 +146,18 @@ function App() {
     );
   }
 
+  if (screen.name === 'marketplace') {
+    return (
+      <>
+        <MarketplaceView
+          onBack={() => setScreen({ name: 'app' })}
+          onBusiness={handleBusiness}
+        />
+        <ToastHost />
+      </>
+    );
+  }
+
   if (screen.name === 'category') {
     return (
       <>
@@ -207,7 +241,7 @@ function App() {
           <HomeView
             onAddress={() => setShowAddress(true)}
             onCategory={handleCategory}
-            onBusiness={handleBusiness}
+            onMarketplace={() => setScreen({ name: 'marketplace' })}
           />
         )}
         {tab === 'explore' && <ExploreView onOpen={handleContent} />}
@@ -254,6 +288,24 @@ function App() {
       <ToastHost />
     </div>
   );
+}
+
+function App() {
+  const [route, setRoute] = useState<Route>(readRoute);
+
+  useEffect(() => {
+    function onPop() {
+      setRoute(readRoute());
+    }
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  if (route.surface === 'dev') return <DevSwitcherView />;
+  if (route.surface === 'estafeta') return <EstafetaView />;
+  if (route.surface === 'merchant') return <MerchantView />;
+  if (route.surface === 'operations') return <OperationsView />;
+  return <CustomerApp />;
 }
 
 export default App;

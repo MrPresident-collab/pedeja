@@ -18,6 +18,7 @@ import { repositories } from '@/repositories';
 import { formatKz } from '@/utils/format';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomSheet } from '@/components/BottomSheet';
+import { ChatSheet } from '@/components/ChatSheet';
 import { showToast } from '@/components/toastStore';
 import type { Order } from '@/types';
 
@@ -39,6 +40,7 @@ export function OrdersView({ onAction }: Props) {
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
+  const [chatOrder, setChatOrder] = useState<Order | null>(null);
   const [, setTick] = useState(0);
   const activeOrders = repositories.order.listActive();
   const historyOrders = repositories.order.listHistory();
@@ -76,6 +78,7 @@ export function OrdersView({ onAction }: Props) {
               key={o.id}
               order={o}
               onReceipt={() => setReceiptOrder(o)}
+              onChat={() => setChatOrder(o)}
             />
           ))
         ) : (
@@ -164,6 +167,15 @@ export function OrdersView({ onAction }: Props) {
           />
         )}
       </BottomSheet>
+
+      {chatOrder && (
+        <ChatSheet
+          riderName={chatOrder.rider ?? 'Estafeta'}
+          orderId={chatOrder.id}
+          onClose={() => setChatOrder(null)}
+        />
+      )}
+
       <div className="bottom-space" />
     </main>
   );
@@ -172,9 +184,11 @@ export function OrdersView({ onAction }: Props) {
 function ActiveOrder({
   order,
   onReceipt,
+  onChat,
 }: {
   order: Order;
   onReceipt: () => void;
+  onChat: () => void;
 }) {
   const label = statusLabel[order.status] ?? 'A preparar';
   const hasRider = Boolean(order.rider && order.riderPhone);
@@ -197,10 +211,8 @@ function ActiveOrder({
     }
   }
 
-  async function messageRider() {
-    if (!order.riderPhone) return;
-    const number = order.riderPhone.replace(/[\s+]/g, '');
-    window.open(`https://wa.me/${number}?text=${encodeURIComponent('Olá, o Pedejá está a caminho?')}`, '_blank');
+  function messageRider() {
+    onChat();
   }
 
   return (
