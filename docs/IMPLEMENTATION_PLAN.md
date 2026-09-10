@@ -94,12 +94,90 @@ Threshold: all four consumer intents demonstrable end-to-end on mock repositorie
 
 ## Stage 7 — Hardening & release
 
-- Threat tests from `SECURITY_ARCHITECTURE.md §8` (IDOR/privilege escalation/role tampering/
+- Threat tests from `SECURITY_ARCHITECTURE.md §7` (IDOR/privilege escalation/role tampering/
   OTP abuse/account enumeration/ops access/storage bypass/payment manipulation).
 - Visual QA across 360×800 → 412×915; accessibility; loading/empty/error states;
   safe-area behavior; offline network flows.
 - Portability re-check: `git clone → npm install → npm run dev` on mocks.
 - npm audit remediation; CI (typecheck + lint + build + tests).
+
+---
+
+## Phase 3 — Domain documentation & repository contracts
+
+The current phase. Establishes the formal domain model, entity relationships, state models,
+security boundaries, and repository contract documentation. Purely documentation + minimal
+type-level code changes. No UI changes, no Supabase, no database, no auth implementation.
+
+### Phase 3A — Domain model documentation (current)
+
+- Full `DOMAIN_MODEL.md` rewrite with Mermaid diagrams:
+  - Entity–relationship diagram (all 20+ entities)
+  - Order state machine (4 dimensions: payment/fulfillment/delivery/risk)
+  - Delivery lifecycle sequence diagram
+  - Capability authorization model
+  - Support ticket state machine
+  - Parcel evidence lifecycle
+  - Repository architecture diagram
+- Full `PRODUCT_DECISIONS.md` with 35 locked decisions
+- Full `SECURITY_ARCHITECTURE.md` with Mermaid boundary diagrams
+- Full `IMPLEMENTATION_PLAN.md` with Phase 3 roadmap
+- All repository interfaces documented with method signatures
+- All four surfaces (consumer, merchant, estafeta, operations) covered
+
+### Phase 3B — Repository interface alignment
+
+- Verify all repository interfaces match domain model entities
+- Add missing repository methods if any domain entity lacks CRUD coverage
+- Ensure `CreateOrderInput` aligns with `Order` domain entity
+- Verify `ParcelEstimateInput` aligns with `ParcelEstimate` domain entity
+- Document any gaps between domain model and current mock implementation
+
+### Phase 3C — Type alignment
+
+- Verify `src/types/index.ts` (view projections) properly maps to `src/types/domain.ts`
+- Document the view ↔ domain projection rules
+- Ensure no domain entity is used directly in views (view models should be separate)
+
+### Phase 3D — Mock data audit
+
+- Verify mock data exercises all domain entities
+- Ensure mock data includes edge cases (empty states, error states, partial data)
+- Add mock data for entities not yet represented (support tickets, notifications, ratings)
+
+### Phase 3E — View model documentation
+
+- Document each surface's view models (consumer, merchant, estafeta, operations)
+- Map view models → repository interfaces → domain entities
+- Identify any view model gaps
+
+### Phase 3F — Event system documentation
+
+- Document `OrderEvent` vocabulary and extensibility
+- Document `EventAuthor` kinds and when each is used
+- Map events → state transitions
+
+### Phase 3G — Permission model documentation
+
+- Document `InternalPermission` values and when each is required
+- Document `Scope` resolution (global > region > merchant)
+- Document `BusinessPermission` values for merchant staff
+
+### Phase 3H — Supabase mapping documentation
+
+- Expand repository → Supabase mapping (§20 of DOMAIN_MODEL.md)
+- Document RPC/Edge Function signatures for state transitions
+- Document RLS policies per table (high-level, not SQL)
+
+### Phase 3I — Validation & sign-off
+
+- Full codebase walkthrough against DOMAIN_MODEL.md
+- Verify all domain entities have corresponding TypeScript types
+- Verify all repository interfaces are complete
+- Verify all mock implementations satisfy their interfaces
+- Final commit: `docs: establish Pedejá domain model and technical boundaries`
+
+---
 
 ## Guiding rules
 
@@ -108,3 +186,4 @@ Threshold: all four consumer intents demonstrable end-to-end on mock repositorie
 - Parcel evidence is temporary by default.
 - The repository stays portable and never depends on a vendor backend.
 - Mock mode always works without any `.env`.
+- UI is frozen at commit `d0f2d6b` until domain/backend phases are complete.
