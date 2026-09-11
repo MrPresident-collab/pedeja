@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { ArrowLeft, Banknote, CreditCard, MapPin, ShoppingBag } from 'lucide-react';
 import { repositories } from '@/repositories';
+import { showToast } from '@/components/toastStore';
 import { formatKz } from '@/utils/format';
+import type { Address } from '@/types';
 import type { PaymentMethod } from '@/types/common';
 
-type Props = { onBack: () => void; onPlaced: (orderId: string) => void };
+type Props = {
+  onBack: () => void;
+  onPlaced: (orderId: string) => void;
+  address: Address | null;
+  onChangeAddress: () => void;
+};
 
 const tipOptions = [0, 200, 500, 1000];
 
@@ -12,7 +19,7 @@ function promoDiscount(subtotal: number): number {
   return Math.round(subtotal * 0.1);
 }
 
-export function CheckoutView({ onBack, onPlaced }: Props) {
+export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Props) {
   const cart = repositories.cart;
   const business = cart.getBusiness();
   const lines = cart.getLines();
@@ -21,7 +28,6 @@ export function CheckoutView({ onBack, onPlaced }: Props) {
   const [method, setMethod] = useState<PaymentMethod>(() =>
     methods.find((m) => m.id === 'cash')?.id ?? 'cash'
   );
-  const defaultAddress = repositories.location.getDefaultAddress();
 
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const discount = business?.promo ? promoDiscount(subtotal) : 0;
@@ -31,6 +37,11 @@ export function CheckoutView({ onBack, onPlaced }: Props) {
 
   function placeOrder() {
     if (!business || lines.length === 0) return;
+    if (!address) {
+      showToast('Adiciona um endereço para fazeres o pedido.');
+      onChangeAddress();
+      return;
+    }
     cart.setTip(tip);
     const order = repositories.order.create({
       merchant: business.name,
@@ -44,6 +55,8 @@ export function CheckoutView({ onBack, onPlaced }: Props) {
       tip,
       total,
       paymentMethod: method,
+      deliveryTo: address.line,
+      deliveryAddressId: address.id,
     });
     cart.clear();
     onPlaced(order.id);
@@ -61,10 +74,29 @@ export function CheckoutView({ onBack, onPlaced }: Props) {
         </div>
       </header>
 
-      {!defaultAddress && (
+      {address ? (
+        <section className="checkout-delivery">
+          <span className="checkout-delivery-icon">
+            <MapPin size={19} />
+          </span>
+          <div className="checkout-delivery-main">
+            <small>ENTREGAR EM</small>
+            <strong>
+              {address.label} · {address.line}
+            </strong>
+            {address.neighborhood && <small>{address.neighborhood}</small>}
+          </div>
+          <button className="link-button" onClick={onChangeAddress}>
+            Trocar
+          </button>
+        </section>
+      ) : (
         <div className="checkout-note">
           <MapPin size={16} />
           <span>Define o teu endereço principal para receberes com precisão.</span>
+          <button className="link-button" onClick={onChangeAddress}>
+            Adicionar endereço
+          </button>
         </div>
       )}
 

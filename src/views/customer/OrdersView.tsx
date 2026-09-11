@@ -402,6 +402,12 @@ function ReceiptContent({
             <strong>{order.paymentMethod === 'cash' ? 'Dinheiro' : 'Multicaixa'}</strong>
           </div>
         )}
+        {order.deliveryTo && (
+          <div className="checkout-row delivery-row">
+            <span>Entregar em</span>
+            <strong>{order.deliveryTo}</strong>
+          </div>
+        )}
         {order.rider ? (
           <div className="checkout-row">
             <span>Estafeta</span>

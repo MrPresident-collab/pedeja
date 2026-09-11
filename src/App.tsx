@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Home, MapPin, Plus } from 'lucide-react';
 import { BottomNav, type Tab } from '@/components/BottomNav';
 import { BottomSheet } from '@/components/BottomSheet';
+import { AddressSheet } from '@/components/address/AddressSheet';
+import { PersonalInfoSheet } from '@/components/address/PersonalInfoSheet';
 import { RiderBottomNav, type RiderTab } from '@/components/RiderBottomNav';
 import { ToastHost } from '@/components/Toast';
 import { showToast } from '@/components/toastStore';
@@ -87,7 +88,10 @@ function CustomerApp() {
   const [screen, setScreen] = useState<CustomerScreen>({ name: 'splash' });
   const [tab, setTab] = useState<Tab>('home');
   const [showAddress, setShowAddress] = useState(false);
+  const [showAddressMode, setShowAddressMode] = useState<'picker' | 'manage'>('picker');
+  const [showPersonal, setShowPersonal] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const defaultAddress = repositories.location.getDefaultAddress();
 
   function navigateToApp() {
     setScreen({ name: 'app' });
@@ -144,6 +148,15 @@ function CustomerApp() {
     }
     if (label === 'track') {
       showToast('Encontra o mapa com a localização por cima. O estafeta está a caminho.');
+      return;
+    }
+    if (label === 'addresses') {
+      setShowAddressMode('manage');
+      setShowAddress(true);
+      return;
+    }
+    if (label === 'personal') {
+      setShowPersonal(true);
       return;
     }
     if (label === 'share-app') {
@@ -252,11 +265,22 @@ function CustomerApp() {
               ? setScreen({ name: 'business', business })
               : setScreen({ name: 'app' })
           }
+          address={defaultAddress}
+          onChangeAddress={() => {
+            setShowAddressMode('picker');
+            setShowAddress(true);
+          }}
           onPlaced={(orderId) => {
             showToast(`Pedido ${orderId} confirmado.`);
             setScreen({ name: 'app' });
             setTab('orders');
           }}
+        />
+        <AddressSheet
+          open={showAddress}
+          onClose={() => setShowAddress(false)}
+          onChanged={() => {}}
+          confirmLabel="Escolher"
         />
         <ToastHost />
       </>
@@ -281,9 +305,13 @@ function CustomerApp() {
       <div className="app-frame">
         {tab === 'home' && (
           <HomeView
-            onAddress={() => setShowAddress(true)}
+            onAddress={() => {
+              setShowAddressMode('picker');
+              setShowAddress(true);
+            }}
             onCategory={handleCategory}
             onMarketplace={() => setScreen({ name: 'marketplace' })}
+            defaultAddress={defaultAddress}
           />
         )}
         {tab === 'explore' && <ExploreView onOpen={handleContent} />}
@@ -291,42 +319,18 @@ function CustomerApp() {
         {tab === 'profile' && <ProfileView onAction={handleAction} />}
       </div>
       <BottomNav tab={tab} onChange={setTab} badge={1} />
-      <BottomSheet
+      <AddressSheet
         open={showAddress}
         onClose={() => setShowAddress(false)}
-        eyebrow="ENTREGAR EM"
-        title="Escolhe o teu lugar"
-      >
-        <div className="address-current">
-          <span className="address-current-icon">
-            <Home size={19} />
-          </span>
-          <div>
-            <strong>Casa</strong>
-            <small>Talatona, Luanda</small>
-          </div>
-          <span className="address-check">✓</span>
-        </div>
-        <button className="add-address">
-          <Plus size={18} /> Adicionar outro endereço
-        </button>
-        <div className="location-note">
-          <MapPin size={18} />
-          <span>
-            <strong>Por que pedimos isto?</strong>
-            <small>Para encontrar o caminho certo e entregar sem atrasos.</small>
-          </span>
-        </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            setShowAddress(false);
-            showToast('Localização confirmada.');
-          }}
-        >
-          Confirmar localização
-        </button>
-      </BottomSheet>
+        onChanged={() => {}}
+        closeOnSelect={showAddressMode === 'picker'}
+        confirmLabel={showAddressMode === 'picker' ? 'Confirmar localização' : 'Fechar'}
+      />
+      <PersonalInfoSheet
+        open={showPersonal}
+        onClose={() => setShowPersonal(false)}
+        onSupport={() => openWhatsApp('Olá Pedejá! Quero atualizar os meus dados pessoais.')}
+      />
       <ToastHost />
     </div>
   );

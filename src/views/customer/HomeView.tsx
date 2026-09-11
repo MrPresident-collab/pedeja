@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { repositories } from '@/repositories';
 import { showToast } from '@/components/toastStore';
-import type { Category } from '@/types';
+import type { Address, Category } from '@/types';
 
 const categoryMeta: { label: string; detail: string; icon: typeof Utensils; tone: string; cat: Category }[] = [
   { label: 'Comida', detail: 'Restaurantes perto de ti', icon: Utensils, tone: 'food', cat: 'comida' },
@@ -23,9 +23,10 @@ type Props = {
   onAddress: () => void;
   onCategory: (cat: Category) => void;
   onMarketplace: () => void;
+  defaultAddress: Address | null;
 };
 
-export function HomeView({ onAddress, onCategory, onMarketplace }: Props) {
+export function HomeView({ onAddress, onCategory, onMarketplace, defaultAddress }: Props) {
   const profile = repositories.profile.getProfile();
   const activeOrders = repositories.order.listActive();
   const activeCount = activeOrders.length;
@@ -40,7 +41,7 @@ export function HomeView({ onAddress, onCategory, onMarketplace }: Props) {
           <span>
             <small>Entregar em</small>
             <strong>
-              Talatona, Luanda <ChevronRight size={14} />
+              {defaultAddress?.line ?? 'Adiciona um endereço'} <ChevronRight size={14} />
             </strong>
           </span>
         </button>
