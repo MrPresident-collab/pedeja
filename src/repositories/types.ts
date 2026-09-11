@@ -40,6 +40,29 @@ export type PaymentMethodOption = {
   available: boolean;
 };
 
+export type AppearanceMode = 'auto' | 'light' | 'dark';
+
+export type NotificationPreferences = {
+  orders: boolean;
+  security: boolean;
+  promotions: boolean;
+};
+
+export type AccountDeletionRequest = {
+  state: 'none' | 'pending';
+  requestedAt?: string;
+};
+
+export type PhoneChangeOutcome = {
+  success: boolean;
+  error?: string;
+};
+
+export type PhoneVerifyOutcome = {
+  success: boolean;
+  error?: string;
+};
+
 export type ParcelEstimateInput = {
   size: 'pequeno' | 'medio' | 'grande';
   vehicle: 'mota' | 'carro' | 'van';
@@ -86,6 +109,13 @@ export interface AuthRepository {
 export interface ProfileRepository {
   getProfile(): Profile;
   getIdentity(): Identity;
+  updateName(name: string): Profile;
+  isPhoneVerified(): boolean;
+  requestPhoneChange(phone: string): PhoneChangeOutcome;
+  verifyPhoneChange(phone: string, code: string): PhoneVerifyOutcome;
+  setEmail(email: string): Profile;
+  getDeletionRequest(): AccountDeletionRequest;
+  requestAccountDeletion(): PhoneChangeOutcome;
 }
 
 export interface LocationRepository {
@@ -144,6 +174,8 @@ export interface DeliveryRepository {
 
 export interface PaymentRepository {
   listMethods(): PaymentMethodOption[];
+  getDefaultMethod(): PaymentMethod;
+  setDefaultMethod(method: PaymentMethod): void;
   getOrderPayment(orderId: string): Payment | null;
   updatePaymentStatus(orderId: string, state: PaymentState): void;
 }
@@ -165,6 +197,13 @@ export interface NotificationRepository {
   listUnread(): Notification[];
   markRead(id: string): void;
   markAllAsRead(): void;
+  getPreferences(): NotificationPreferences;
+  setPromotionsEnabled(enabled: boolean): void;
+}
+
+export interface SettingsRepository {
+  getAppearance(): AppearanceMode;
+  setAppearance(mode: AppearanceMode): void;
 }
 
 export interface SupportRepository {
@@ -190,4 +229,5 @@ export interface Repositories {
   notification: NotificationRepository;
   support: SupportRepository;
   rating: RatingRepository;
+  settings: SettingsRepository;
 }

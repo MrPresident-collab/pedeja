@@ -1,106 +1,134 @@
 import type { ReactNode } from 'react';
 import {
   Banknote,
-  Bike,
+  Bell,
   Briefcase,
   ChevronRight,
   CreditCard,
-  Handshake,
   Home,
-  Lock,
+  MapPin,
   MessageCircle,
   MonitorSmartphone,
   Plus,
   Scale,
   ScrollText,
-  ShieldCheck,
+  ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
-  Store,
   UserRound,
 } from 'lucide-react';
 import { repositories } from '@/repositories';
-import type { Address } from '@/types';
+import type { Address, PaymentMethod } from '@/types';
 
 type Props = { onAction: (label: string) => void };
+
+const appearanceLabels: Record<string, string> = {
+  auto: 'Automático',
+  light: 'Claro',
+  dark: 'Escuro',
+};
+
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 12) return `+${digits.slice(0, 3)} ••• ••• •••`;
+  if (digits.length === 9) return `+244 ••• ••• •••`;
+  return phone;
+}
+
+function addressIcon(label: string) {
+  if (label === 'Casa') return <Home size={17} />;
+  if (label === 'Trabalho') return <Briefcase size={17} />;
+  return <MapPin size={17} />;
+}
 
 export function ProfileView({ onAction }: Props) {
   const profile = repositories.profile.getProfile();
   const addresses = repositories.location.listAddresses();
+  const defaultPayment: PaymentMethod = repositories.payment.getDefaultMethod();
+  const appearance = repositories.settings.getAppearance();
+
   return (
     <main className="page inner-page profile-page">
       <header className="inner-header">
         <p className="eyebrow">PERFIL</p>
-        <h1>Olá, {profile.name.split(' ')[0]}.</h1>
-        <p>A tua conta, os teus lugares e a tua participação.</p>
+        <h1>Perfil</h1>
+        <p>Gerir as definições da tua conta.</p>
       </header>
 
       <div className="profile-identity">
         <span className="profile-avatar">{profile.initials}</span>
         <div>
           <strong>{profile.name}</strong>
-          <small>
-            {profile.phone} · desde {profile.memberSince}
-          </small>
+          <small>{maskPhone(profile.phone)} · Desde {profile.memberSince}</small>
         </div>
-        <button>
-          <ChevronRight size={18} />
-        </button>
       </div>
 
       <ProfileGroup title="Conta">
-        <ProfileLink icon={<UserRound />} title="Nome, telefone e email" detail={profile.email} onClick={() => onAction('personal')} />
+        <ProfileLink icon={<UserRound />} title="Dados pessoais" detail={profile.name} onClick={() => onAction('personal')} />
       </ProfileGroup>
 
       <ProfileGroup title="Endereços">
         {addresses.map((address: Address) => (
           <ProfileLink
             key={address.id}
-            icon={address.label === 'Casa' ? <Home /> : <Briefcase />}
+            icon={addressIcon(address.label)}
             title={address.label}
             detail={address.line}
-            badge={address.current ? 'Atual' : undefined}
+            badge={address.current ? 'Predefinida' : undefined}
             onClick={() => onAction('addresses')}
           />
         ))}
         <ProfileLink icon={<Plus />} title="Adicionar endereço" onClick={() => onAction('addresses')} />
       </ProfileGroup>
 
-      <ProfileGroup title="Pagamentos">
-        <ProfileLink icon={<Banknote />} title="Dinheiro" detail="Pagar em dinheiro à entrega" onClick={() => onAction('payments')} />
-        <ProfileLink icon={<CreditCard />} title="Multicaixa" detail="Cartão Multicaixa ou transferência" onClick={() => onAction('payments')} />
+      <ProfileGroup title="Métodos de pagamento">
+        <ProfileLink
+          icon={<Banknote />}
+          title="Dinheiro"
+          detail="Pagar em dinheiro à entrega"
+          badge={defaultPayment === 'cash' ? 'Predefinido' : undefined}
+          onClick={() => onAction('payments')}
+        />
+        <ProfileLink
+          icon={<CreditCard />}
+          title="Multicaixa"
+          detail="Cartão Multicaixa ou transferência"
+          badge={defaultPayment === 'multicaixa' ? 'Predefinido' : undefined}
+          onClick={() => onAction('payments')}
+        />
+        <div className="profile-link disabled">
+          <span className="profile-link-icon"><ShoppingBag size={17} /></span>
+          <span>
+            <strong>Adicionar método em breve</strong>
+          </span>
+          <small>Em breve</small>
+        </div>
       </ProfileGroup>
 
-      <ProfileGroup title="Participação">
-        <ProfileLink icon={<Bike />} title="Tornar-se Estafeta" detail="Entrega e ganha com o Pedejá" onClick={() => onAction('become-rider')} />
-        <ProfileLink icon={<Handshake />} title="Tornar-se Parceiro" detail="Unir-te à rede Pedejá" onClick={() => onAction('become-partner')} />
-        <ProfileLink icon={<Store />} title="Registar negócio" detail="Restaurante, comerciante ou loja" onClick={() => onAction('register-business')} />
-      </ProfileGroup>
-
-      <ProfileGroup title="Segurança">
-        <ProfileLink icon={<ShieldCheck />} title="Segurança da conta" detail="Palavra-passe e verificações" onClick={() => onAction('security')} />
-        <ProfileLink icon={<MonitorSmartphone />} title="Sessões ativas" detail="Dispositivos com sessão iniciada" onClick={() => onAction('sessions')} />
-        <ProfileLink icon={<Lock />} title="Controlos da conta" detail="Privacidade e preferências" onClick={() => onAction('account-controls')} />
+      <ProfileGroup title="Preferências">
+        <ProfileLink icon={<Bell />} title="Notificações" detail="Pedidos, segurança e promoções" onClick={() => onAction('notifications')} />
+        <ProfileLink
+          icon={<MonitorSmartphone />}
+          title="Aparência"
+          detail={appearanceLabels[appearance] ?? 'Automático'}
+          onClick={() => onAction('appearance')}
+        />
       </ProfileGroup>
 
       <ProfileGroup title="Informação">
-        <ProfileLink icon={<ScrollText />} title="Termos de uso" onClick={() => onAction('terms')} />
         <ProfileLink icon={<Scale />} title="Política de privacidade" onClick={() => onAction('privacy')} />
+        <ProfileLink icon={<ScrollText />} title="Termos de utilização" onClick={() => onAction('terms')} />
+        <ProfileLink icon={<SlidersHorizontal />} title="Permissões" detail="Acesso do dispositivo" onClick={() => onAction('permissions')} />
+        <ProfileLink icon={<Sparkles />} title="Partilhar e ganhar" detail="Convida amigas e amigos" onClick={() => onAction('share-and-earn')} />
+        <ProfileLink icon={<MessageCircle />} title="Contactar-nos" detail="Fala connosco pelo WhatsApp" onClick={() => onAction('support')} />
       </ProfileGroup>
-
-      <button className="support-link" onClick={() => onAction('support')}>
-        <MessageCircle size={18} /> Precisas de ajuda? Fala connosco <ChevronRight size={17} />
-      </button>
-
-      <button className="share-app" onClick={() => onAction('share-app')}>
-        <Sparkles size={18} /> Partilhar o Pedejá com alguém <ChevronRight size={17} />
-      </button>
 
       <button className="logout-button" onClick={() => onAction('logout')}>
         Terminar sessão
       </button>
 
       <p className="profile-footer">
-        Pedejá · A promessa que se move
+        Pedejá.: A promessa que se move
         <br />
         Versão 1.0.0
       </p>
@@ -143,7 +171,7 @@ function ProfileLink({
         <strong>{title}</strong>
         {detail && <small>{detail}</small>}
       </span>
-      {badge && <span className="profile-badge">{badge}</span>}
+      {badge && <span className="chip chip-purple">{badge}</span>}
       <ChevronRight size={17} />
     </button>
   );

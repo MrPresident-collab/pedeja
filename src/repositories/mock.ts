@@ -13,8 +13,14 @@ import {
   mockStoreProducts,
   mockVehicles,
 } from '@/data/mock';
-import type { CreateOrderInput, CreateParcelInput, Repositories } from './types';
-import type { CartLine, Order } from '@/types';
+import type {
+  AppearanceMode,
+  CreateOrderInput,
+  CreateParcelInput,
+  NotificationPreferences,
+  Repositories,
+} from './types';
+import type { CartLine, Order, PaymentMethod } from '@/types';
 import type {
   Delivery,
   DeliveryAssignment,
@@ -46,6 +52,20 @@ const paymentOverrides = new Map<string, PaymentState>();
 const notifications: Notification[] = [];
 const supportTickets: SupportTicket[] = [];
 const parcels: Parcel[] = [];
+
+let mutableProfile = { ...mockProfile };
+let trustedPhone = mockProfile.phone;
+let pendingPhone: string | null = null;
+let otpRequestedAt = 0;
+let otpAttempts = 0;
+const OTP_EXPIRES_MS = 5 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 3;
+const DEMO_OTP_CODE = '1234';
+
+let preferredPayment: PaymentMethod = 'cash';
+let notificationPrefs: NotificationPreferences = { orders: true, security: true, promotions: false };
+let appearanceMode: AppearanceMode = 'auto';
+let deletionState: { state: 'none' | 'pending'; requestedAt?: string } = { state: 'none' };
 
 function timeToIso(time: string): string {
   const match = /(\d{2}):(\d{2})/.exec(time);
@@ -185,8 +205,52 @@ export function createMockRepositories(): Repositories {
       signOut: noOp,
     },
     profile: {
-      getProfile: () => mockProfile,
+      getProfile: () => mutableProfile,
       getIdentity: () => mockIdentity,
+      updateName: (name) => {
+        const trimmed = name.trim();
+        if (trimmed) mutableProfile = { ...mutableProfile, name: trimmed };
+        return mutableProfile;
+      },
+      isPhoneVerified: () => trustedPhone === mutableProfile.phone,
+      requestPhoneChange: (phone) => {
+        pendingPhone = phone;
+        otpRequestedAt = Date.now();
+        otpAttempts = 0;
+        return { success: true };
+      },
+      verifyPhoneChange: (phone, code) => {
+        if (pendingPhone !== phone) {
+          return { success: false, error: 'O número mudou. Pede um novo código.' };
+        }
+        const expired = Date.now() - otpRequestedAt > OTP_EXPIRES_MS;
+        if (expired) {
+          pendingPhone = null;
+          return { success: false, error: 'Código expirado. Pede um novo código.' };
+        }
+        if (code.trim() !== DEMO_OTP_CODE) {
+          otpAttempts += 1;
+          if (otpAttempts >= OTP_MAX_ATTEMPTS) {
+            pendingPhone = null;
+            return { success: false, error: 'Código expirado por demasiadas tentativas. Pede um novo código.' };
+          }
+          return { success: false, error: 'Código incorreto. No modo demo usa o código 1234.' };
+        }
+        mutableProfile = { ...mutableProfile, phone };
+        trustedPhone = phone;
+        pendingPhone = null;
+        return { success: true };
+      },
+      setEmail: (email) => {
+        const trimmed = email.trim();
+        if (trimmed) mutableProfile = { ...mutableProfile, email: trimmed };
+        return mutableProfile;
+      },
+      getDeletionRequest: () => ({ ...deletionState }),
+      requestAccountDeletion: () => {
+        deletionState = { state: 'pending', requestedAt: new Date().toISOString() };
+        return { success: true };
+      },
     },
     location: {
       listAddresses: () => mockAddresses,
@@ -397,6 +461,10 @@ export function createMockRepositories(): Repositories {
     },
     payment: {
       listMethods: () => mockPaymentMethods,
+      getDefaultMethod: () => preferredPayment,
+      setDefaultMethod: (method) => {
+        if (mockPaymentMethods.some((m) => m.id === method && m.available)) preferredPayment = method;
+      },
       getOrderPayment: (orderId): Payment | null => {
         const order = mockOrders.find((o) => o.id === orderId);
         if (!order) return null;
@@ -451,6 +519,10 @@ export function createMockRepositories(): Repositories {
           n.read = true;
         });
       },
+      getPreferences: () => ({ ...notificationPrefs }),
+      setPromotionsEnabled: (enabled) => {
+        notificationPrefs = { ...notificationPrefs, promotions: enabled };
+      },
     },
     support: {
       listTickets(): SupportTicket[] {
@@ -500,6 +572,12 @@ export function createMockRepositories(): Repositories {
         } else {
           mockRatings.push({ orderId, score, comment, createdAt: new Date().toISOString() });
         }
+      },
+    },
+    settings: {
+      getAppearance: () => appearanceMode,
+      setAppearance: (mode) => {
+        appearanceMode = mode;
       },
     },
   };

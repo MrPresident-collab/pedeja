@@ -24,8 +24,9 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
   const lines = cart.getLines();
   const [tip, setTip] = useState<number>(() => cart.getTip());
   const methods = repositories.payment.listMethods();
+  const defaultPayment: PaymentMethod = repositories.payment.getDefaultMethod();
   const [method, setMethod] = useState<PaymentMethod>(() =>
-    methods.find((m) => m.id === 'cash')?.id ?? 'cash'
+    methods.some((m) => m.id === defaultPayment && m.available) ? defaultPayment : 'cash'
   );
   const [submitting, setSubmitting] = useState(false);
   const [addressError, setAddressError] = useState(false);

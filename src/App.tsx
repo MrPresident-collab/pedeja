@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { BottomNav, type Tab } from '@/components/BottomNav';
 import { BottomSheet } from '@/components/BottomSheet';
 import { AddressSheet } from '@/components/address/AddressSheet';
-import { PersonalInfoSheet } from '@/components/address/PersonalInfoSheet';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { PersonalDataSheet } from '@/components/account/PersonalDataSheet';
+import { PaymentsSheet } from '@/components/account/PaymentsSheet';
+import { NotificationsSheet } from '@/components/account/NotificationsSheet';
+import { AppearanceSheet } from '@/components/account/AppearanceSheet';
+import { PermissionsSheet } from '@/components/account/PermissionsSheet';
+import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
 import { RiderBottomNav, type RiderTab } from '@/components/RiderBottomNav';
 import { ToastHost } from '@/components/Toast';
 import { showToast } from '@/components/toastStore';
@@ -10,6 +16,7 @@ import { SignInSheet } from '@/components/SignInSheet';
 import { repositories } from '@/repositories';
 import { useAuth } from '@/auth/useAuth';
 import { SessionGate } from '@/auth/SessionGate';
+import { useResolvedDark } from '@/hooks/useAppearance';
 import { createMockRiderRepository } from '@/repositories/riderMock';
 import type { RiderRepository } from '@/repositories/riderTypes';
 import { HomeView } from '@/views/customer/HomeView';
@@ -92,8 +99,27 @@ function CustomerApp() {
   const [showAddress, setShowAddress] = useState(false);
   const [showAddressMode, setShowAddressMode] = useState<'picker' | 'manage'>('picker');
   const [showPersonal, setShowPersonal] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showAppearance, setShowAppearance] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [profileTick, setProfileTick] = useState(0);
+  const [, bumpAppearance] = useState(0);
   const defaultAddress = repositories.location.getDefaultAddress();
+
+  const appearanceMode = repositories.settings.getAppearance();
+  const resolvedDark = useResolvedDark(appearanceMode);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.appearance = resolvedDark ? 'dark' : 'light';
+    return () => {
+      delete root.dataset.appearance;
+    };
+  }, [resolvedDark]);
 
   function navigateToApp() {
     setScreen({ name: 'app' });
@@ -137,39 +163,64 @@ function CustomerApp() {
     setScreen({ name: 'content', topicKey });
   }
 
+  function confirmLogout() {
+    setShowLogoutConfirm(false);
+    void auth.signOut();
+    setScreen({ name: 'welcome' });
+    showToast('Sessão terminada.');
+  }
+
   function handleAction(label: string) {
-    if (label === 'logout') {
-      void auth.signOut();
-      setScreen({ name: 'welcome' });
-      showToast('Sessão terminada.');
-      return;
+    switch (label) {
+      case 'logout':
+        setShowLogoutConfirm(true);
+        return;
+      case 'support':
+        openWhatsApp('Olá Pedejá! Preciso de ajuda.');
+        return;
+      case 'track':
+        showToast('Encontra o mapa com a localização por cima. O estafeta está a caminho.');
+        return;
+      case 'addresses':
+        setShowAddressMode('manage');
+        setShowAddress(true);
+        return;
+      case 'personal':
+        setShowPersonal(true);
+        return;
+      case 'payments':
+        setShowPayments(true);
+        return;
+      case 'notifications':
+        setShowNotifications(true);
+        return;
+      case 'appearance':
+        setShowAppearance(true);
+        return;
+      case 'permissions':
+        setShowPermissions(true);
+        return;
+      case 'privacy':
+        setScreen({ name: 'content', topicKey: 'Política de Privacidade' });
+        return;
+      case 'terms':
+        setScreen({ name: 'content', topicKey: 'Termos de Uso' });
+        return;
+      case 'delete-account':
+        setShowDelete(true);
+        return;
+      case 'share-and-earn':
+      case 'share-app':
+        if (navigator.share) {
+          navigator.share({ title: 'Pedejá', text: 'A promessa que se move — pede e recebe com o Pedejá.' }).catch(() => {});
+        } else {
+          showToast('O Pedejá está disponível no teu navegador.');
+        }
+        return;
+      default:
+        showToast('Estamos a preparar isso. Em breve!');
+        return;
     }
-    if (label === 'support') {
-      openWhatsApp('Olá Pedejá! Preciso de ajuda.');
-      return;
-    }
-    if (label === 'track') {
-      showToast('Encontra o mapa com a localização por cima. O estafeta está a caminho.');
-      return;
-    }
-    if (label === 'addresses') {
-      setShowAddressMode('manage');
-      setShowAddress(true);
-      return;
-    }
-    if (label === 'personal') {
-      setShowPersonal(true);
-      return;
-    }
-    if (label === 'share-app') {
-      if (navigator.share) {
-        navigator.share({ title: 'Pedejá', text: 'A promessa que se move — pede e recebe com o Pedejá.' }).catch(() => {});
-      } else {
-        showToast('O Pedejá está disponível no teu navegador.');
-      }
-      return;
-    }
-    showToast('Estamos a preparar isso. Em breve!');
   }
 
   if (screen.name === 'splash') {
@@ -336,7 +387,7 @@ function CustomerApp() {
         )}
         {tab === 'explore' && <ExploreView onOpen={handleContent} />}
         {tab === 'orders' && <OrdersView onAction={handleAction} />}
-        {tab === 'profile' && <ProfileView onAction={handleAction} />}
+        {tab === 'profile' && <ProfileView key={profileTick} onAction={handleAction} />}
       </div>
       <BottomNav tab={tab} onChange={setTab} badge={1} />
       <AddressSheet
@@ -346,10 +397,25 @@ function CustomerApp() {
         closeOnSelect={showAddressMode === 'picker'}
         confirmLabel={showAddressMode === 'picker' ? 'Confirmar localização' : 'Fechar'}
       />
-      <PersonalInfoSheet
+      <PersonalDataSheet
         open={showPersonal}
         onClose={() => setShowPersonal(false)}
+        onChanged={() => setProfileTick((t) => t + 1)}
         onSupport={() => openWhatsApp('Olá Pedejá! Quero atualizar os meus dados pessoais.')}
+      />
+      <PaymentsSheet open={showPayments} onClose={() => setShowPayments(false)} />
+      <NotificationsSheet open={showNotifications} onClose={() => setShowNotifications(false)} />
+      <AppearanceSheet open={showAppearance} onClose={() => setShowAppearance(false)} onChanged={() => bumpAppearance((t) => t + 1)} />
+      <PermissionsSheet open={showPermissions} onClose={() => setShowPermissions(false)} />
+      <DeleteAccountDialog open={showDelete} onClose={() => setShowDelete(false)} />
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="Terminar sessão?"
+        message="Vais voltar ao início. Tens a certeza?"
+        confirmLabel="Terminar sessão"
+        tone="primary"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
       />
       <ToastHost />
     </div>
