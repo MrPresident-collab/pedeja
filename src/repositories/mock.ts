@@ -147,6 +147,7 @@ function buildOrder(input: CreateOrderInput): Order {
     merchant: input.merchant,
     type: input.type,
     date: `Hoje, ${time}`,
+    createdAt: now.toISOString(),
     total,
     status: 'novo',
     items: input.lines.reduce((sum, l) => sum + l.quantity, 0),
@@ -244,13 +245,19 @@ export function createMockRepositories(): Repositories {
       getTip: () => cartTip,
       getDeliveryFee: () => cartDeliveryFee,
       setBusiness: (business, deliveryFee) => {
+        if (business) {
+          if (cartBusiness && cartBusiness !== business.id && cartLines.length > 0) {
+            cartLines = [];
+            cartTip = 0;
+          }
+        }
         cartBusiness = business ? business.id : null;
         cartDeliveryFee = deliveryFee;
       },
       addProduct: (product) => {
         const line = cartLines.find((l) => l.productId === product.id);
         if (line) {
-          line.quantity += 1;
+          line.quantity = Math.min(line.quantity + 1, 99);
         } else {
           cartLines.push({ productId: product.id, name: product.name, unitPrice: product.price, quantity: 1 });
         }
@@ -258,10 +265,11 @@ export function createMockRepositories(): Repositories {
       setQuantity: (productId, quantity) => {
         const existing = cartLines.find((l) => l.productId === productId);
         if (!existing) return;
-        if (quantity <= 0) {
+        const next = Number.isFinite(quantity) ? Math.max(0, Math.floor(quantity)) : 0;
+        if (next === 0) {
           cartLines = cartLines.filter((l) => l.productId !== productId);
         } else {
-          existing.quantity = quantity;
+          existing.quantity = Math.min(next, 99);
         }
       },
       removeProduct: (productId) => {

@@ -55,6 +55,7 @@ export type Order = {
   merchant: string;
   type: string;
   date: string;
+  createdAt?: string;
   total: number;
   status: OrderStatus;
   items: number;
