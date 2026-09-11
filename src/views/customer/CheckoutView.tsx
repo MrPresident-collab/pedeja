@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { ArrowLeft, Banknote, CreditCard, MapPin, ShoppingBag } from 'lucide-react';
 import { repositories } from '@/repositories';
+import { computePricing } from '@/services/ordering/pricing';
+import { placeOrder } from '@/services/ordering/placeOrder';
 import { showToast } from '@/components/toastStore';
+import { EmptyState } from '@/components/EmptyState';
 import { formatKz } from '@/utils/format';
 import type { Address } from '@/types';
 import type { PaymentMethod } from '@/types/common';
@@ -15,10 +18,6 @@ type Props = {
 
 const tipOptions = [0, 200, 500, 1000];
 
-function promoDiscount(subtotal: number): number {
-  return Math.round(subtotal * 0.1);
-}
-
 export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Props) {
   const cart = repositories.cart;
   const business = cart.getBusiness();
@@ -28,38 +27,55 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
   const [method, setMethod] = useState<PaymentMethod>(() =>
     methods.find((m) => m.id === 'cash')?.id ?? 'cash'
   );
+  const [submitting, setSubmitting] = useState(false);
+  const [addressError, setAddressError] = useState(false);
+  const [creationError, setCreationError] = useState(false);
 
-  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
-  const discount = business?.promo ? promoDiscount(subtotal) : 0;
-  const deliveryFee = cart.getDeliveryFee();
-  const total = subtotal - discount + deliveryFee + tip;
-  const count = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const pricing = computePricing(lines, business?.promo === true, cart.getDeliveryFee(), tip);
 
-  function placeOrder() {
-    if (!business || lines.length === 0) return;
-    if (!address) {
-      showToast('Adiciona um endereço para fazeres o pedido.');
-      onChangeAddress();
+  if (!business || lines.length === 0) {
+    return (
+      <main className="page inner-page checkout-page">
+        <header className="category-header">
+          <button className="icon-button back-button" onClick={onBack}>
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <p className="eyebrow">CHECKOUT</p>
+            <h1>Confirmar pedido</h1>
+          </div>
+        </header>
+        <EmptyState
+          icon={<ShoppingBag size={28} />}
+          title="O teu cesto está vazio"
+          message="Adiciona itens a um negócio para continuares."
+          action={
+            <button className="btn-primary" onClick={onBack}>
+              Voltar
+            </button>
+          }
+        />
+      </main>
+    );
+  }
+
+  async function submit() {
+    if (submitting) return;
+    setSubmitting(true);
+    setCreationError(false);
+    const outcome = await placeOrder({ paymentMethod: method, tip });
+    if (outcome.ok) {
+      onPlaced(outcome.order.id);
       return;
     }
-    cart.setTip(tip);
-    const order = repositories.order.create({
-      merchant: business.name,
-      merchantId: business.id,
-      type: business.type,
-      icon: business.icon,
-      lines,
-      subtotal,
-      discounts: discount,
-      deliveryFee,
-      tip,
-      total,
-      paymentMethod: method,
-      deliveryTo: address.line,
-      deliveryAddressId: address.id,
-    });
-    cart.clear();
-    onPlaced(order.id);
+    setSubmitting(false);
+    if (outcome.reason === 'no-address') {
+      setAddressError(true);
+      onChangeAddress();
+    } else {
+      showToast(outcome.message);
+      if (outcome.reason !== 'empty-cart') setCreationError(true);
+    }
   }
 
   return (
@@ -91,7 +107,7 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
           </button>
         </section>
       ) : (
-        <div className="checkout-note">
+        <div className={`checkout-note ${addressError ? 'error' : ''}`}>
           <MapPin size={16} />
           <span>Define o teu endereço principal para receberes com precisão.</span>
           <button className="link-button" onClick={onChangeAddress}>
@@ -102,8 +118,8 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
 
       <section className="checkout-block">
         <div className="checkout-title-row">
-          <p className="eyebrow">RESUMO · {count} {count === 1 ? 'ITEM' : 'ITENS'}</p>
-          <strong>{business?.name}</strong>
+          <p className="eyebrow">RESUMO · {pricing.count} {pricing.count === 1 ? 'ITEM' : 'ITENS'}</p>
+          <strong>{business.name}</strong>
         </div>
         <div className="checkout-lines">
           {lines.map((l) => (
@@ -121,17 +137,17 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
         <div className="checkout-rows">
           <div className="checkout-row">
             <span>Subtotal</span>
-            <strong>{formatKz(subtotal)}</strong>
+            <strong>{formatKz(pricing.subtotal)}</strong>
           </div>
-          {discount > 0 && (
+          {pricing.discount > 0 && (
             <div className="checkout-row promo">
               <span>Promoção primeiro pedido <small>(−10%)</small></span>
-              <strong>−{formatKz(discount)}</strong>
+              <strong>−{formatKz(pricing.discount)}</strong>
             </div>
           )}
           <div className="checkout-row">
             <span>Entrega</span>
-            <strong>{formatKz(deliveryFee)}</strong>
+            <strong>{formatKz(pricing.deliveryFee)}</strong>
           </div>
           <div className="checkout-row">
             <span>Gorjeta</span>
@@ -139,7 +155,7 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
           </div>
           <div className="checkout-row total">
             <span>Total</span>
-            <strong>{formatKz(total)}</strong>
+            <strong>{formatKz(pricing.total)}</strong>
           </div>
         </div>
       </section>
@@ -185,8 +201,18 @@ export function CheckoutView({ onBack, onPlaced, address, onChangeAddress }: Pro
           : 'O Multicaixa será processado na confirmação do pagamento.'}
       </p>
 
-      <button className="btn-primary checkout-submit" onClick={placeOrder}>
-        Fazer pedido · {formatKz(total)}
+      {creationError && (
+        <p className="checkout-error" role="alert">
+          Não conseguimos criar o pedido. Verifica a ligação e tenta de novo.
+        </p>
+      )}
+
+      <button
+        className="btn-primary checkout-submit"
+        disabled={submitting}
+        onClick={() => void submit()}
+      >
+        {submitting ? 'A criar pedido…' : `Fazer pedido · ${formatKz(pricing.total)}`}
       </button>
     </main>
   );

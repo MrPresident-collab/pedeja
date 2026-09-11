@@ -21,6 +21,7 @@ import { SplashView } from '@/views/customer/SplashView';
 import { WelcomeView } from '@/views/customer/WelcomeView';
 import { ContentView } from '@/views/customer/ContentView';
 import { BusinessView } from '@/views/customer/BusinessView';
+import { CartView } from '@/views/customer/CartView';
 import { CheckoutView } from '@/views/customer/CheckoutView';
 import { CategoryView } from '@/views/customer/categories/CategoryView';
 import { EnviarFlow } from '@/views/customer/categories/EnviarFlow';
@@ -60,6 +61,7 @@ type CustomerScreen =
   | { name: 'category'; category: Category }
   | { name: 'enviar-flow' }
   | { name: 'business'; business: Business }
+  | { name: 'cart' }
   | { name: 'checkout' }
   | { name: 'content'; topicKey: string };
 
@@ -248,7 +250,25 @@ function CustomerApp() {
         <BusinessView
           business={screen.business}
           onBack={() => setScreen({ name: 'app' })}
-          onCart={openCheckout}
+          onCart={() => setScreen({ name: 'cart' })}
+        />
+        <ToastHost />
+      </>
+    );
+  }
+
+  if (screen.name === 'cart') {
+    const cartBusiness = repositories.cart.getBusiness();
+    return (
+      <>
+        <CartView
+          business={cartBusiness}
+          onBack={() =>
+            cartBusiness
+              ? setScreen({ name: 'business', business: cartBusiness })
+              : setScreen({ name: 'app' })
+          }
+          onCheckout={openCheckout}
         />
         <ToastHost />
       </>

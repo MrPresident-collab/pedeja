@@ -11,6 +11,7 @@ import {
   Utensils,
 } from 'lucide-react';
 import { repositories } from '@/repositories';
+import { showToast } from '@/components/toastStore';
 import { formatKz } from '@/utils/format';
 import type { Business, Product } from '@/types';
 
@@ -43,6 +44,10 @@ export function BusinessView({ business, onBack, onCart }: Props) {
   }
 
   function add(product: Product) {
+    const current = cart.getBusiness();
+    if (current && current.id !== business.id && cart.getLines().length > 0) {
+      showToast(`Cesto iniciado de novo para ${business.name}.`);
+    }
     cart.setBusiness(business, deliveryFeeFor(business));
     cart.addProduct(product);
     refresh();
