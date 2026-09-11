@@ -31,7 +31,9 @@ import { BusinessView } from '@/views/customer/BusinessView';
 import { CartView } from '@/views/customer/CartView';
 import { CheckoutView } from '@/views/customer/CheckoutView';
 import { CategoryView } from '@/views/customer/categories/CategoryView';
-import { EnviarFlow } from '@/views/customer/categories/EnviarFlow';
+import { EnviarView } from '@/views/customer/enviar/EnviarView';
+import { ParcelCreatedView } from '@/views/customer/enviar/ParcelCreatedView';
+import { ParcelTrackingView } from '@/views/customer/enviar/ParcelTrackingView';
 import { DevSwitcherView } from '@/views/dev/DevSwitcherView';
 import { OperationsLayout, type OpsSection } from '@/views/operations/OperationsLayout';
 import { OpsOverview } from '@/views/operations/OpsOverview';
@@ -66,7 +68,9 @@ type CustomerScreen =
   | { name: 'app' }
   | { name: 'marketplace' }
   | { name: 'category'; category: Category }
-  | { name: 'enviar-flow' }
+  | { name: 'enviar' }
+  | { name: 'parcel-success'; orderId: string }
+  | { name: 'parcel-tracking'; orderId: string }
   | { name: 'business'; business: Business }
   | { name: 'cart' }
   | { name: 'checkout' }
@@ -136,7 +140,7 @@ function CustomerApp() {
 
   function handleCategory(cat: Category) {
     if (cat === 'enviar') {
-      setScreen({ name: 'enviar-flow' });
+      setScreen({ name: 'enviar' });
     } else {
       setScreen({ name: 'category', category: cat });
     }
@@ -170,7 +174,7 @@ function CustomerApp() {
     showToast('Sessão terminada.');
   }
 
-  function handleAction(label: string) {
+  function handleAction(label: string, orderId?: string) {
     switch (label) {
       case 'logout':
         setShowLogoutConfirm(true);
@@ -180,6 +184,11 @@ function CustomerApp() {
         return;
       case 'track':
         showToast('Encontra o mapa com a localização por cima. O estafeta está a caminho.');
+        return;
+      case 'trackParcel':
+        if (orderId) {
+          setScreen({ name: 'parcel-tracking', orderId });
+        }
         return;
       case 'addresses':
         setShowAddressMode('manage');
@@ -273,21 +282,51 @@ function CustomerApp() {
           category={screen.category}
           onBack={() => setScreen({ name: 'app' })}
           onBusiness={handleBusiness}
-          onSend={() => setScreen({ name: 'enviar-flow' })}
         />
         <ToastHost />
       </>
     );
   }
 
-  if (screen.name === 'enviar-flow') {
+  if (screen.name === 'enviar') {
     return (
       <>
-        <EnviarFlow
+        <EnviarView
           onBack={() => setScreen({ name: 'app' })}
-          onComplete={() => {
+          onComplete={(orderId) => setScreen({ name: 'parcel-success', orderId })}
+        />
+        <ToastHost />
+      </>
+    );
+  }
+
+  if (screen.name === 'parcel-success') {
+    return (
+      <>
+        <ParcelCreatedView
+          orderId={screen.orderId}
+          onTrack={() => setScreen({ name: 'parcel-tracking', orderId: screen.orderId })}
+          onDone={() => {
             setScreen({ name: 'app' });
             setTab('orders');
+          }}
+        />
+        <ToastHost />
+      </>
+    );
+  }
+
+  if (screen.name === 'parcel-tracking') {
+    return (
+      <>
+        <ParcelTrackingView
+          orderId={screen.orderId}
+          onBack={() => {
+            setScreen({ name: 'app' });
+            setTab('orders');
+          }}
+          onCancelled={(orderId) => {
+            setScreen({ name: 'parcel-tracking', orderId });
           }}
         />
         <ToastHost />

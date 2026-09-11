@@ -20,16 +20,15 @@ type Props = {
   category: Category;
   onBack: () => void;
   onBusiness: (b: Business) => void;
-  onSend: () => void;
 };
 
-export function CategoryView({ category, onBack, onBusiness, onSend }: Props) {
+export function CategoryView({ category, onBack, onBusiness }: Props) {
   const config = categoryConfig[category];
   const [selectedFilter, setSelectedFilter] = useState(config.filters[0] ?? '');
   const businesses = repositories.merchant.listByCategory(category);
 
   if (category === 'enviar') {
-    return <EnviarLanding onBack={onBack} onSend={onSend} />;
+    return null;
   }
 
   return (
@@ -93,58 +92,6 @@ export function CategoryView({ category, onBack, onBusiness, onSend }: Props) {
           message="Tenta mudar a tua localização ou voltar mais tarde."
         />
       )}
-    </main>
-  );
-}
-
-function EnviarLanding({ onBack, onSend }: { onBack: () => void; onSend: () => void }) {
-  return (
-    <main className="page inner-page">
-      <header className="category-header">
-        <button className="icon-button back-button" onClick={onBack}>
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <p className="eyebrow">ENVIAR</p>
-          <h1>Enviar</h1>
-        </div>
-      </header>
-
-      <div className="send-hero">
-        <div className="send-hero-art">
-          <Send size={42} strokeWidth={1.5} />
-        </div>
-        <h2>Envia algo para alguém.</h2>
-        <p>Documentos, encomendas ou o que precisares. Escolhe o veículo certo e nós levamos.</p>
-      </div>
-
-      <div className="send-steps">
-        <div className="send-step">
-          <span className="send-step-num">1</span>
-          <div>
-            <strong>Origem e destino</strong>
-            <small>Onde recolher e onde entregar.</small>
-          </div>
-        </div>
-        <div className="send-step">
-          <span className="send-step-num">2</span>
-          <div>
-            <strong>O que envias?</strong>
-            <small>Tamanho e tipo de encomenda.</small>
-          </div>
-        </div>
-        <div className="send-step">
-          <span className="send-step-num">3</span>
-          <div>
-            <strong>Como entregar?</strong>
-            <small>Veículo e instruções.</small>
-          </div>
-        </div>
-      </div>
-
-      <button className="btn-primary send-cta" onClick={onSend}>
-        Começar envio
-      </button>
     </main>
   );
 }

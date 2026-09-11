@@ -1,5 +1,7 @@
 import type { Category, GeoPoint, ID, PaymentMethod, VehicleType } from './common';
+import type { ParcelOrder } from './parcel';
 export * from './common';
+export * from './parcel';
 
 export type OrderStatus =
   | 'novo'
@@ -9,6 +11,8 @@ export type OrderStatus =
   | 'recolhido'
   | 'entregue'
   | 'cancelado';
+
+export type OrderKind = 'marketplace' | 'parcel';
 
 export type OrderEvent = {
   status: OrderStatus;
@@ -52,6 +56,7 @@ export type CartLine = {
 
 export type Order = {
   id: ID;
+  kind?: OrderKind;
   merchant: string;
   type: string;
   date: string;
@@ -75,6 +80,7 @@ export type Order = {
   paymentMethod?: PaymentMethod;
   deliveryTo?: string;
   deliveryAddressId?: ID;
+  parcel?: ParcelOrder;
 };
 
 export type Address = {

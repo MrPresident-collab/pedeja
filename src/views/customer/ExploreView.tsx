@@ -1,4 +1,4 @@
-import { ChevronRight, Facebook, Instagram, Linkedin, MessageCircle, Star } from 'lucide-react';
+import { ChevronRight, Facebook, Instagram, Linkedin, Star } from 'lucide-react';
 import { repositories } from '@/repositories';
 
 type Props = { onOpen: (topicKey: string) => void };
@@ -39,12 +39,9 @@ export function ExploreView({ onOpen }: Props) {
           <button onClick={() => window.open('https://linkedin.com', '_blank')}>
             <Linkedin size={18} /> LinkedIn
           </button>
-          <button onClick={() => onOpen('Contactar suporte')}>
-            <MessageCircle size={18} /> WhatsApp
-          </button>
         </div>
         <button className="feedback-button" onClick={() => onOpen('feedback')}>
-          <Star size={17} /> Dar feedback sobre o Pedejá <ChevronRight size={16} />
+          <Star size={17} /> Dar feedback sobre o Pedejá <ChevronRight size={8} />
         </button>
       </section>
     </main>

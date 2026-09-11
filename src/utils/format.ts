@@ -8,3 +8,8 @@ export function formatKzShort(value: number): string {
   }
   return `${value} Kz`;
 }
+
+export function formatAngolaKz(value: number): string {
+  const digits = Math.round(value).toLocaleString('en-US').replace(/,/g, '.');
+  return `${digits} Kz`;
+}

@@ -5,6 +5,7 @@ import {
   MapPin,
   MessageCircle,
   Navigation,
+  Package,
   Phone,
   Receipt,
   Repeat,
@@ -20,6 +21,8 @@ import { EmptyState } from '@/components/EmptyState';
 import { BottomSheet } from '@/components/BottomSheet';
 import { ChatSheet } from '@/components/ChatSheet';
 import { showToast } from '@/components/toastStore';
+import { CancelParcelSheet } from '@/views/customer/enviar/CancelParcelSheet';
+import { parcelStatusLabel } from '@/services/parcel/labels';
 import type { Order } from '@/types';
 
 const iconMap = { utensils: Utensils, store: Store, 'shopping-bag': ShoppingBag, send: Send };
@@ -34,13 +37,14 @@ const statusLabel: Record<string, string> = {
   cancelado: 'Cancelado',
 };
 
-type Props = { onAction: (label: string) => void };
+type Props = { onAction: (label: string, orderId?: string) => void };
 
 export function OrdersView({ onAction }: Props) {
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
   const [chatOrder, setChatOrder] = useState<Order | null>(null);
+  const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
   const [, setTick] = useState(0);
   const activeOrders = repositories.order.listActive();
   const historyOrders = repositories.order.listHistory();
@@ -52,6 +56,18 @@ export function OrdersView({ onAction }: Props) {
     if (!created) return;
     setTab('active');
     showToast('Pedido enviado de novo.');
+  }
+
+  function confirmCancel(reason: string) {
+    if (!cancelOrder) return;
+    const result = repositories.parcel.cancelParcelOrder(cancelOrder.id, reason);
+    setCancelOrder(null);
+    if (result.ok) {
+      showToast('Envio cancelado.');
+      refresh();
+    } else {
+      showToast(result.message);
+    }
   }
 
   return (
@@ -79,6 +95,8 @@ export function OrdersView({ onAction }: Props) {
               order={o}
               onReceipt={() => setReceiptOrder(o)}
               onChat={() => setChatOrder(o)}
+              onTrack={() => onAction('trackParcel', o.id)}
+              onCancel={() => setCancelOrder(o)}
             />
           ))
         ) : (
@@ -104,7 +122,7 @@ export function OrdersView({ onAction }: Props) {
                     {o.type} · {o.date}
                   </small>
                   <small className="history-status">
-                    <span /> Entregue · {formatKz(o.total)}
+                    <span /> {o.kind === 'parcel' ? parcelStatusLabel(o.parcel?.status ?? 'cancelado') : 'Entregue'} · {formatKz(o.total)}
                   </small>
                 </div>
                 <ChevronRight size={17} />
@@ -135,7 +153,7 @@ export function OrdersView({ onAction }: Props) {
           <ReceiptContent
             order={receiptOrder}
             onTrack={() => {
-              onAction('track');
+              onAction(receiptOrder.kind === 'parcel' ? 'trackParcel' : 'track', receiptOrder.id);
               setReceiptOrder(null);
             }}
             onRepeat={() => {
@@ -146,6 +164,7 @@ export function OrdersView({ onAction }: Props) {
               setRatingOrder(receiptOrder);
               setReceiptOrder(null);
             }}
+            onCancel={() => setCancelOrder(receiptOrder)}
           />
         )}
       </BottomSheet>
@@ -176,6 +195,13 @@ export function OrdersView({ onAction }: Props) {
         />
       )}
 
+      <CancelParcelSheet
+        open={cancelOrder !== null}
+        orderId={cancelOrder?.id ?? ''}
+        onClose={() => setCancelOrder(null)}
+        onConfirm={confirmCancel}
+      />
+
       <div className="bottom-space" />
     </main>
   );
@@ -185,11 +211,20 @@ function ActiveOrder({
   order,
   onReceipt,
   onChat,
+  onTrack,
+  onCancel,
 }: {
   order: Order;
   onReceipt: () => void;
   onChat: () => void;
+  onTrack: () => void;
+  onCancel: () => void;
 }) {
+  if (order.kind === 'parcel' && order.parcel) {
+    return (
+      <ParcelActiveCard order={order} onReceipt={onReceipt} onTrack={onTrack} onCancel={onCancel} />
+    );
+  }
   const label = statusLabel[order.status] ?? 'A preparar';
   const hasRider = Boolean(order.rider && order.riderPhone);
 
@@ -338,17 +373,135 @@ function ActiveOrder({
   );
 }
 
+function ParcelActiveCard({
+  order,
+  onReceipt,
+  onTrack,
+  onCancel,
+}: {
+  order: Order;
+  onReceipt: () => void;
+  onTrack: () => void;
+  onCancel: () => void;
+}) {
+  const parcel = order.parcel!;
+  const cancelled = parcel.status === 'cancelado';
+  const cancellable = ['criado', 'a_procurar_estafeta', 'estafeta_atribuido', 'a_caminho_recolha', 'chegou_recolha'].includes(parcel.status);
+
+  return (
+    <section className="order-section parcel-card">
+      <div className="order-map">
+        <div className="map-grid" />
+        <div className="route-line" />
+        <span className="map-point point-start">
+          <Package size={13} />
+        </span>
+        <span className="map-point point-end">
+          <MapPin size={13} fill="currentColor" />
+        </span>
+        <span className="map-pill">
+          <Clock3 size={14} /> ~{parcel.estimate.durationMinutes} min
+        </span>
+        <span className="map-pill map-pill-distance">
+          <Navigation size={13} /> {parcel.estimate.distanceKm.toFixed(1)} km
+        </span>
+      </div>
+
+      <button className="order-status" onClick={onReceipt}>
+        <div>
+          <span className={`status-dot ${!cancelled ? 'live' : ''}`} /> {cancelled ? 'Cancelado' : 'A procura de estafeta'}
+        </div>
+        <strong>{parcelStatusLabel(parcel.status)}</strong>
+      </button>
+
+      <div className="order-merchant" onClick={onReceipt}>
+        <span className="merchant-mini">
+          <Package size={20} />
+        </span>
+        <span>
+          <strong>{order.merchant}</strong>
+          <small>
+            Envio #{order.id} · {parcel.package.description}
+          </small>
+        </span>
+        <ChevronRight size={18} />
+      </div>
+
+      <div className="parcel-route">
+        <div className="route-block-top">
+          <span className="route-pin">A</span>
+          <div className="route-block-main">
+            <small>Recolha</small>
+            <strong>{parcel.pickup.label}</strong>
+          </div>
+        </div>
+        <div className="route-block-top">
+          <span className="route-pin route-pin-b">B</span>
+          <div className="route-block-main">
+            <small>Destino</small>
+            <strong>{parcel.destination.label}</strong>
+          </div>
+        </div>
+      </div>
+
+      {!cancelled ? (
+        <div className="order-total parcel-total">
+          <span>Entrega</span>
+          <strong>{parcel.vehicle.configurationLabel}</strong>
+          <span>Total estimado</span>
+          <strong className="total-value">{formatKz(parcel.estimate.total)}</strong>
+        </div>
+      ) : (
+        <div className="order-total parcel-total">
+          <span>Estado</span>
+          <strong>Cancelado</strong>
+        </div>
+      )}
+
+      {cancellable && (
+        <div className="order-actions">
+          <button className="btn-primary" onClick={onTrack}>
+            <Navigation size={17} /> Acompanhar envio
+          </button>
+          <button className="text-action cancel-send-action" onClick={onCancel}>
+            Cancelar envio
+          </button>
+        </div>
+      )}
+      {!cancellable && !cancelled && (
+        <div className="order-actions">
+          <button className="btn-primary" onClick={onTrack}>
+            <Navigation size={17} /> Acompanhar envio
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ReceiptContent({
   order,
   onTrack,
   onRepeat,
   onRating,
+  onCancel,
 }: {
   order: Order;
   onTrack: () => void;
   onRepeat: () => void;
   onRating: () => void;
+  onCancel: () => void;
 }) {
+  if (order.kind === 'parcel' && order.parcel) {
+    return (
+      <ParcelReceipt
+        order={order}
+        onTrack={onTrack}
+        onCancel={onCancel}
+      />
+    );
+  }
+
   return (
     <div className="receipt-content">
       <div className="receipt-header">
@@ -429,6 +582,91 @@ function ReceiptContent({
             <Star size={16} /> Avaliar entrega
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ParcelReceipt({
+  order,
+  onTrack,
+  onCancel,
+}: {
+  order: Order;
+  onTrack: () => void;
+  onCancel: () => void;
+}) {
+  const parcel = order.parcel!;
+  const cancellable = ['criado', 'a_procurar_estafeta', 'estafeta_atribuido', 'a_caminho_recolha', 'chegou_recolha'].includes(parcel.status);
+
+  return (
+    <div className="receipt-content">
+      <div className="receipt-header">
+        <strong>{order.merchant}</strong>
+        <small>
+          {order.type} · {order.date}
+        </small>
+      </div>
+
+      <div className="checkout-rows">
+        <div className="checkout-row">
+          <span>Recolha</span>
+          <strong>{parcel.pickup.label} · {parcel.pickup.line}</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Destino</span>
+          <strong>{parcel.destination.label} · {parcel.destination.line}</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Quem recebe</span>
+          <strong>{parcel.recipient.name} · {parcel.recipient.phone}</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Conteúdo</span>
+          <strong>{parcel.package.description}</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Entrega</span>
+          <strong>{parcel.vehicle.configurationLabel}</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Distância</span>
+          <strong>{parcel.estimate.distanceKm.toFixed(1)} km</strong>
+        </div>
+        <div className="checkout-row">
+          <span>Duração estimada</span>
+          <strong>~{parcel.estimate.durationMinutes} min</strong>
+        </div>
+        <div className="checkout-row total">
+          <span>Total estimado</span>
+          <strong>{formatKz(parcel.estimate.total)}</strong>
+        </div>
+        {parcel.paymentMethod && (
+          <div className="checkout-row">
+            <span>Método de pagamento</span>
+            <strong>{parcel.paymentMethod === 'cash' ? 'Dinheiro' : 'Multicaixa'}</strong>
+          </div>
+        )}
+        <div className="checkout-row">
+          <span>Estado</span>
+          <strong>{parcelStatusLabel(parcel.status)}</strong>
+        </div>
+      </div>
+
+      {order.active ? (
+        <button className="btn-secondary receipt-btn" onClick={onTrack}>
+          Acompanhar envio <Navigation size={16} />
+        </button>
+      ) : null}
+
+      {order.active && cancellable && (
+        <button
+          className="text-action receipt-cancel-action"
+          onClick={onCancel}
+          disabled={!cancellable}
+        >
+          Cancelar envio
+        </button>
       )}
     </div>
   );

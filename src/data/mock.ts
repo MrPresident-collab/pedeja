@@ -3,11 +3,13 @@ import type {
   Business,
   DeliveryInstruction,
   Order,
+  ParcelVehicleClass,
   PaymentMethod,
   Product,
   Profile,
   Vehicle,
 } from '@/types';
+import type { EstafetaVehicle } from '@/types';
 import type { Identity } from '@/types/domain';
 
 export const mockProfile: Profile = {
@@ -212,4 +214,134 @@ export const mockPaymentMethods: { id: PaymentMethod; label: string; available: 
   { id: 'cash', label: 'Dinheiro', available: true },
   { id: 'multicaixa', label: 'Multicaixa', available: true },
   { id: 'future', label: 'Mais métodos em breve', available: false },
+];
+
+export const mockParcelVehicleCatalog: ParcelVehicleClass[] = [
+  {
+    type: 'motorcycle',
+    label: 'Moto',
+    configs: [
+      {
+        configurationId: 'mc-standard',
+        label: 'Moto Padrão',
+        volumeClass: 'S',
+        cargoCapacityL: 40,
+        maxWeightKg: 15,
+        enclosed: false,
+        openCargo: true,
+        fragileCapable: true,
+        oversizedCapable: false,
+        multiPackage: false,
+      },
+    ],
+  },
+  {
+    type: 'three_wheeler',
+    label: 'Triciclo',
+    configs: [
+      {
+        configurationId: 'tw-standard',
+        label: 'Triciclo Padrão',
+        volumeClass: 'M',
+        cargoCapacityL: 300,
+        maxWeightKg: 120,
+        enclosed: false,
+        openCargo: true,
+        fragileCapable: false,
+        oversizedCapable: false,
+        multiPackage: true,
+      },
+      {
+        configurationId: 'tw-open',
+        label: 'Triciclo Cabine Aberta',
+        volumeClass: 'M',
+        cargoCapacityL: 300,
+        maxWeightKg: 120,
+        enclosed: false,
+        openCargo: true,
+        fragileCapable: false,
+        oversizedCapable: false,
+        multiPackage: true,
+      },
+      {
+        configurationId: 'tw-enclosed',
+        label: 'Triciclo Cabine Fechada',
+        volumeClass: 'M',
+        cargoCapacityL: 280,
+        maxWeightKg: 120,
+        enclosed: true,
+        openCargo: false,
+        fragileCapable: true,
+        oversizedCapable: false,
+        multiPackage: true,
+      },
+    ],
+  },
+  {
+    type: 'car',
+    label: 'Carro',
+    configs: [
+      {
+        configurationId: 'car-standard',
+        label: 'Carro Padrão',
+        volumeClass: 'L',
+        cargoCapacityL: 600,
+        maxWeightKg: 200,
+        enclosed: true,
+        openCargo: false,
+        fragileCapable: true,
+        oversizedCapable: true,
+        multiPackage: true,
+      },
+    ],
+  },
+  {
+    type: 'van',
+    label: 'Carrinha',
+    configs: [
+      {
+        configurationId: 'van-standard',
+        label: 'Carrinha Padrão',
+        volumeClass: 'XL',
+        cargoCapacityL: 1800,
+        maxWeightKg: 500,
+        enclosed: true,
+        openCargo: false,
+        fragileCapable: true,
+        oversizedCapable: true,
+        multiPackage: true,
+      },
+    ],
+  },
+];
+
+export const mockEstafetaVehicles: EstafetaVehicle[] = [
+  {
+    id: 'ev-1',
+    estafetaId: 'id-nelson',
+    type: 'motorcycle',
+    configurationId: 'mc-standard',
+    make: 'Honda',
+    model: 'CB 150',
+    plate: 'NG-21-40-NS',
+    color: 'Vermelho',
+    verificationStatus: 'verified',
+    verificationRefs: ['licenca-conducao', 'livrete'],
+    state: 'approved',
+    active: true,
+  },
+  {
+    id: 'ev-2',
+    estafetaId: 'id-maria',
+    type: 'car',
+    configurationId: 'car-standard',
+    make: 'Toyota',
+    model: 'Corolla',
+    plate: 'LD-33-75-MR',
+    color: 'Branco',
+    verificationStatus: 'verified',
+    verificationRefs: ['licenca-conducao', 'livrete', 'seguro'],
+    state: 'approved',
+    active: true,
+  },
 ];

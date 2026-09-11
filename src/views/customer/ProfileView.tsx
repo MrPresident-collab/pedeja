@@ -10,8 +10,6 @@ import {
   MessageCircle,
   MonitorSmartphone,
   Plus,
-  Scale,
-  ScrollText,
   ShoppingBag,
   SlidersHorizontal,
   Sparkles,
@@ -116,8 +114,6 @@ export function ProfileView({ onAction }: Props) {
       </ProfileGroup>
 
       <ProfileGroup title="Informação">
-        <ProfileLink icon={<Scale />} title="Política de privacidade" onClick={() => onAction('privacy')} />
-        <ProfileLink icon={<ScrollText />} title="Termos de utilização" onClick={() => onAction('terms')} />
         <ProfileLink icon={<SlidersHorizontal />} title="Permissões" detail="Acesso do dispositivo" onClick={() => onAction('permissions')} />
         <ProfileLink icon={<Sparkles />} title="Partilhar e ganhar" detail="Convida amigas e amigos" onClick={() => onAction('share-and-earn')} />
         <ProfileLink icon={<MessageCircle />} title="Contactar-nos" detail="Fala connosco pelo WhatsApp" onClick={() => onAction('support')} />

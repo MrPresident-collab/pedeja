@@ -3,24 +3,25 @@ import type {
   Business,
   CartLine,
   Category,
-  DeliveryInstruction,
   ID,
   Order,
   PaymentMethod,
   Product,
   Profile,
-  Vehicle,
 } from '@/types';
-import type { ParcelSize, VehicleType } from '@/types/common';
 import type {
-  AddressRef,
+  ParcelCancellationResult,
+  ParcelOrder,
+  ParcelStatus,
+  ParcelVehicleClass,
+  EstafetaVehicle,
+} from '@/types';
+import type {
   Delivery,
   DeliveryAssignment,
   Identity,
   Notification,
   OrderEvent,
-  Parcel,
-  ParcelEstimate,
   Payment,
   PaymentState,
   Rating,
@@ -63,24 +64,11 @@ export type PhoneVerifyOutcome = {
   error?: string;
 };
 
-export type ParcelEstimateInput = {
-  size: 'pequeno' | 'medio' | 'grande';
-  vehicle: 'mota' | 'carro' | 'van';
-  distanceMeters: number;
-  factors: string[];
-};
-
-export type CreateParcelInput = {
-  content: string;
-  size: ParcelSize;
-  vehicle: VehicleType;
-  pickup: AddressRef;
-  dropoff: AddressRef;
-  distanceMeters: number;
-  factors: string[];
-};
-
 export type SupportMessageAuthor = SupportMessage['author'];
+
+export type CreateParcelOrderInput = {
+  parcel: ParcelOrder;
+};
 
 export type CreateOrderInput = {
   merchant: string;
@@ -181,11 +169,13 @@ export interface PaymentRepository {
 }
 
 export interface ParcelRepository {
-  listVehicles(): Vehicle[];
-  listInstructions(): DeliveryInstruction[];
-  estimate(input: ParcelEstimateInput): ParcelEstimate;
-  createParcel(input: CreateParcelInput): Parcel;
-  getParcel(id: string): Parcel | null;
+  getVehicleCatalog(): ParcelVehicleClass[];
+  getEstafetaVehicles(): EstafetaVehicle[];
+  estimateDistanceKm(pickup: Address, destination: Address): number;
+  createParcelOrder(input: CreateParcelOrderInput): Order;
+  getParcelOrder(orderId: string): Order | null;
+  cancelParcelOrder(orderId: string, reason: string): ParcelCancellationResult;
+  advanceParcelStatus(orderId: string, next: ParcelStatus): boolean;
 }
 
 export interface ExploreRepository {

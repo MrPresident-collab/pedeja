@@ -12,6 +12,8 @@ type Props = {
   title?: string;
   confirmLabel?: string;
   closeOnSelect?: boolean;
+  selectMode?: boolean;
+  onSelect?: (address: Address) => void;
   onClose: () => void;
   onChanged: () => void;
 };
@@ -32,6 +34,8 @@ export function AddressSheet({
   title = 'Escolhe o teu lugar',
   confirmLabel = 'Confirmar localização',
   closeOnSelect = true,
+  selectMode = false,
+  onSelect,
   onClose,
   onChanged,
 }: Props) {
@@ -72,6 +76,12 @@ export function AddressSheet({
   }
 
   function handleSelect(address: Address) {
+    if (selectMode) {
+      showToast(`Destino: ${address.label}.`);
+      onSelect?.(address);
+      if (closeOnSelect) onClose();
+      return;
+    }
     if (!address.current) {
       repositories.location.setDefault(address.id);
       onChanged();
@@ -173,13 +183,15 @@ export function AddressSheet({
               <Plus size={18} /> Adicionar endereço
             </button>
 
-            <div className="location-note">
-              <MapPin size={18} />
-              <span>
-                <strong>Por que pedimos isto?</strong>
-                <small>Para encontrar o caminho certo e entregar sem atrasos.</small>
-              </span>
-            </div>
+            {selectMode ? null : (
+              <div className="location-note">
+                <MapPin size={18} />
+                <span>
+                  <strong>Por que pedimos isto?</strong>
+                  <small>Para encontrar o caminho certo e entregar sem atrasos.</small>
+                </span>
+              </div>
+            )}
 
             <button className="btn-primary" onClick={onClose}>
               {confirmLabel}

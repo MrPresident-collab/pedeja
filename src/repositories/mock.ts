@@ -1,26 +1,27 @@
 import {
   mockAddresses,
   mockBusinesses,
-  mockDeliveryInstructions,
+  mockEstafetaVehicles,
   mockExploreGroups,
   mockIdentity,
   mockOrders,
+  mockParcelVehicleCatalog,
   mockPaymentMethods,
   mockProducts,
   mockProfile,
   mockRatings,
   mockShopProducts,
   mockStoreProducts,
-  mockVehicles,
 } from '@/data/mock';
 import type {
   AppearanceMode,
   CreateOrderInput,
-  CreateParcelInput,
+  CreateParcelOrderInput,
   NotificationPreferences,
   Repositories,
 } from './types';
-import type { CartLine, Order, PaymentMethod } from '@/types';
+import type { Address, CartLine, Order, PaymentMethod } from '@/types';
+import type { ParcelOrder, ParcelStatus } from '@/types';
 import type {
   Delivery,
   DeliveryAssignment,
@@ -28,13 +29,12 @@ import type {
   Notification,
   OrderEvent,
   OrderEventType,
-  Parcel,
-  ParcelEstimate,
   Payment,
   PaymentState,
   Rating,
   SupportTicket,
 } from '@/types/domain';
+import { parcelStatusLabel } from '@/services/parcel/labels';
 
 function toMoney(amount: number) {
   return { amount, currency: 'AOA' as const };
@@ -51,7 +51,6 @@ let cartLines: CartLine[] = [];
 const paymentOverrides = new Map<string, PaymentState>();
 const notifications: Notification[] = [];
 const supportTickets: SupportTicket[] = [];
-const parcels: Parcel[] = [];
 
 let mutableProfile = { ...mockProfile };
 let trustedPhone = mockProfile.phone;
@@ -116,6 +115,18 @@ function derivePaymentState(orderId: string): PaymentState {
   if (paymentOverrides.has(orderId)) return paymentOverrides.get(orderId) as PaymentState;
   const order = mockOrders.find((o) => o.id === orderId);
   if (!order) return 'unpaid';
+  if (order.kind === 'parcel' && order.parcel) {
+    switch (order.parcel.status) {
+      case 'entregue':
+        return 'confirmed';
+      case 'cancelado':
+      case 'falhou':
+      case 'devolvido_remetente':
+        return 'refunded';
+      default:
+        return 'pending';
+    }
+  }
   switch (order.status) {
     case 'cancelado':
       return 'refunded';
@@ -128,32 +139,109 @@ function derivePaymentState(orderId: string): PaymentState {
   }
 }
 
-function estimateParcel(input: {
-  size: 'pequeno' | 'medio' | 'grande';
-  vehicle: 'mota' | 'carro' | 'van';
-  distanceMeters: number;
-  factors: string[];
-}): ParcelEstimate {
-  const base = (
-    {
-      pequeno: { predio: 12, kmelta: 80 },
-      medio: { predio: 18, kmelta: 90 },
-      grande: { predio: 25, kmelta: 110 },
-    } as const
-  )[input.size];
-  const trafficMult = input.factors.includes('Trânsito intenso') ? 1.25 : input.factors.includes('Trânsito moderado') ? 1.1 : 1;
-  const rainMult = input.factors.includes('Pluviosidade') ? 1.15 : 1;
-  const roadMult = input.factors.includes('Estrada precária') ? 1.3 : 1;
-  const vehicleMult = input.vehicle === 'mota' ? 1 : input.vehicle === 'carro' ? 1.6 : 2.4;
-  const distanceKm = input.distanceMeters / 1000;
-  const durationMin = Math.round((base.predio + distanceKm * 5) * trafficMult);
-  const price = Math.round((base.kmelta + distanceKm * base.kmelta) * vehicleMult * trafficMult * rainMult * roadMult);
-  return {
-    distanceMeters: input.distanceMeters,
-    durationMin,
-    price: toMoney(price),
-    factors: input.factors,
+const parcelTerminalStatuses: ReadonlyArray<ParcelStatus> = [
+  'entregue',
+  'cancelado',
+  'falhou',
+  'devolvido_remetente',
+];
+
+function haversineKm(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
+  const R = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const sin =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(sin));
+}
+
+function estimateDistanceKm(pickup: Address, destination: Address): number {
+  const p = pickup.coordinates;
+  const d = destination.coordinates;
+  if (p && d) {
+    const km = haversineKm(p.latitude, p.longitude, d.latitude, d.longitude);
+    if (km > 0.05) return km;
+  }
+  return 2.3;
+}
+
+function legacyStatusFor(status: ParcelStatus): Order['status'] {
+  switch (status) {
+    case 'cancelado':
+      return 'cancelado';
+    case 'entregue':
+      return 'entregue';
+    default:
+      return 'novo';
+  }
+}
+
+function isParcelActive(status: ParcelStatus): boolean {
+  return !parcelTerminalStatuses.includes(status);
+}
+
+function clockTime(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function buildParcelOrder(parcel: ParcelOrder): Order {
+  orderCounter += 1;
+  const now = new Date();
+  const time = clockTime();
+  const pickup = parcel.pickup.line || parcel.pickup.label || 'Recolha';
+  const dropoff = parcel.destination.line || parcel.destination.label || 'Destino';
+  const order: Order = {
+    id: `PJD-${2049 + orderCounter}`,
+    kind: 'parcel',
+    merchant: `Enviar · ${pickup} → ${dropoff}`,
+    type: 'Enviar',
+    date: `Hoje, ${time}`,
+    createdAt: now.toISOString(),
+    total: parcel.estimate.total,
+    status: legacyStatusFor(parcel.status),
+    items: 1,
+    distance: `${parcel.estimate.distanceKm.toFixed(1)} km`,
+    duration: `${parcel.estimate.durationMinutes} min`,
+    icon: 'send',
+    active: isParcelActive(parcel.status),
+    paymentMethod: parcel.paymentMethod,
+    parcel,
   };
+  mockOrders.unshift(order);
+  return order;
+}
+
+function cancelParcelInStore(order: Order, reason: string): boolean {
+  const parcel = order.parcel;
+  if (!parcel) return false;
+  const cancellable: ReadonlyArray<ParcelStatus> = [
+    'criado',
+    'a_procurar_estafeta',
+    'estafeta_atribuido',
+    'a_caminho_recolha',
+    'chegou_recolha',
+  ];
+  if (!cancellable.includes(parcel.status)) return false;
+  const at = new Date().toISOString();
+  parcel.cancellation = { reason, at };
+  parcel.status = 'cancelado';
+  parcel.updatedAt = at;
+  parcel.timeline.push({
+    status: 'cancelado',
+    label: 'Envio cancelado pelo cliente',
+    at,
+  });
+  order.status = 'cancelado';
+  order.active = false;
+  return true;
 }
 
 function buildOrder(input: CreateOrderInput): Order {
@@ -484,25 +572,53 @@ export function createMockRepositories(): Repositories {
       },
     },
     parcel: {
-      listVehicles: () => mockVehicles,
-      listInstructions: () => mockDeliveryInstructions,
-      estimate: (input): ParcelEstimate => estimateParcel(input),
-      createParcel: (input: CreateParcelInput): Parcel => {
-        const parcel: Parcel = {
-          id: `par-${Date.now()}`,
-          customerId: mockIdentity.id,
-          content: input.content,
-          size: input.size,
-          pickup: input.pickup,
-          dropoff: input.dropoff,
-          vehicle: input.vehicle,
-          estimate: estimateParcel(input),
-          evidence: [],
+      getVehicleCatalog: () => mockParcelVehicleCatalog,
+      getEstafetaVehicles: () => mockEstafetaVehicles,
+      estimateDistanceKm: (pickup, destination) =>
+        estimateDistanceKm(pickup, destination),
+      createParcelOrder: (input: CreateParcelOrderInput): Order => {
+        const parcel = input.parcel;
+        const now = new Date().toISOString();
+        const updated: ParcelOrder = {
+          ...parcel,
+          updatedAt: now,
         };
-        parcels.unshift(parcel);
-        return parcel;
+        if (updated.timeline.length === 0) {
+          updated.timeline = [
+            { status: updated.status, label: parcelStatusLabel(updated.status), at: now },
+          ];
+        }
+        const state = buildParcelOrder(updated);
+        return state;
       },
-      getParcel: (id) => parcels.find((p) => p.id === id) ?? null,
+      getParcelOrder: (orderId) =>
+        mockOrders.find((o) => o.id === orderId && o.kind === 'parcel') ?? null,
+      cancelParcelOrder: (orderId, reason) => {
+        const order = mockOrders.find((o) => o.id === orderId && o.kind === 'parcel');
+        if (!order?.parcel) {
+          return { ok: false, message: 'Envio não encontrado.' };
+        }
+        const cancelled = cancelParcelInStore(order, reason);
+        return cancelled
+          ? { ok: true }
+          : { ok: false, message: 'Este envio já não pode ser cancelado.' };
+      },
+      advanceParcelStatus: (orderId, next) => {
+        const order = mockOrders.find((o) => o.id === orderId && o.kind === 'parcel');
+        if (!order?.parcel) return false;
+        const parcel = order.parcel;
+        const at = new Date().toISOString();
+        parcel.status = next;
+        parcel.updatedAt = at;
+        parcel.timeline.push({
+          status: next,
+          label: parcelStatusLabel(next),
+          at,
+        });
+        order.status = legacyStatusFor(next);
+        order.active = isParcelActive(next);
+        return true;
+      },
     },
     explore: {
       getGroups: () => mockExploreGroups,
