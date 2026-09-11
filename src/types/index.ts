@@ -72,6 +72,8 @@ export type Order = {
   riderPhone?: string;
   merchantPhone?: string;
   paymentMethod?: PaymentMethod;
+  deliveryTo?: string;
+  deliveryAddressId?: ID;
 };
 
 export type Address = {

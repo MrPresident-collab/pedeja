@@ -159,6 +159,8 @@ function buildOrder(input: CreateOrderInput): Order {
     discount: discount || undefined,
     tip: input.tip || undefined,
     paymentMethod: input.paymentMethod ?? 'cash',
+    deliveryTo: input.deliveryTo,
+    deliveryAddressId: input.deliveryAddressId,
     lines: input.lines,
     timeline: [
       { status: 'novo', label: 'Pedido confirmado', timestamp: time, done: true },
@@ -189,8 +191,30 @@ export function createMockRepositories(): Repositories {
       listAddresses: () => mockAddresses,
       getDefaultAddress: () => mockAddresses.find((a) => a.current) ?? mockAddresses[0] ?? null,
       addAddress: (address) => {
+        if (mockAddresses.length === 0) address.current = true;
         mockAddresses.push(address);
         return address;
+      },
+      updateAddress: (id, changes) => {
+        const address = mockAddresses.find((a) => a.id === id);
+        if (!address) return null;
+        Object.assign(address, changes);
+        return address;
+      },
+      removeAddress: (id) => {
+        const index = mockAddresses.findIndex((a) => a.id === id);
+        if (index === -1) return false;
+        const [removed] = mockAddresses.splice(index, 1);
+        if (removed.current && mockAddresses.length > 0) mockAddresses[0].current = true;
+        return true;
+      },
+      setDefault: (id) => {
+        const target = mockAddresses.find((a) => a.id === id);
+        if (!target) return false;
+        mockAddresses.forEach((a) => {
+          a.current = a.id === id;
+        });
+        return true;
       },
     },
     merchant: {
@@ -273,6 +297,8 @@ export function createMockRepositories(): Repositories {
           deliveryFee: source.deliveryFee ?? 700,
           tip: 0,
           total: 0,
+          deliveryTo: source.deliveryTo,
+          deliveryAddressId: source.deliveryAddressId,
         });
       },
       cancelOrder: (orderId) => {

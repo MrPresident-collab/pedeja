@@ -72,6 +72,8 @@ export type CreateOrderInput = {
   total: number;
   paymentMethod?: PaymentMethod;
   note?: string;
+  deliveryTo?: string;
+  deliveryAddressId?: ID;
 };
 
 export interface AuthRepository {
@@ -90,6 +92,9 @@ export interface LocationRepository {
   listAddresses(): Address[];
   getDefaultAddress(): Address | null;
   addAddress(address: Address): Address;
+  updateAddress(id: ID, changes: Partial<Omit<Address, 'id'>>): Address | null;
+  removeAddress(id: ID): boolean;
+  setDefault(id: ID): boolean;
 }
 
 export interface MerchantRepository {
