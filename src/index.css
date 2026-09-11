@@ -197,7 +197,7 @@ input { font: inherit; }
 /* ===== Explore ===== */
 .explore-links { display: grid; gap: 26px; }
 .link-group > .eyebrow { margin-bottom: 5px; }
-.link-group button { width: 100%; background: none; min-height: 42px; display: flex; justify-content: space-between; align-items: center; text-align: left; padding: 0; border-bottom: 1px solid var(--line); color: #2b2730; font-size: 13px; }
+.link-group button { width: 100%; background: none; min-height: 42px; display: flex; justify-content: space-between; align-items: center; text-align: left; padding: 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; }
 .link-group button svg { color: #b2abb8; }
 .social-section { margin-top: 36px; }
 .social-row { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
@@ -1870,6 +1870,7 @@ input { font: inherit; }
 :root[data-appearance='dark'] .history-item > svg,
 :root[data-appearance='dark'] .profile-link > svg,
 :root[data-appearance='dark'] .order-merchant > svg,
+:root[data-appearance='dark'] .link-group button svg,
 :root[data-appearance='dark'] .filter-chip,
 :root[data-appearance='dark'] .marketplace-pill,
 :root[data-appearance='dark'] .map-pill,
@@ -1911,6 +1912,8 @@ input { font: inherit; }
 :root[data-appearance='dark'] .chip-purple { background: #352646; color: #c9a7f0; }
 :root[data-appearance='dark'] .chip-success { background: rgba(59,184,139,.16); color: #3bb88b; }
 :root[data-appearance='dark'] .chip-warn { background: rgba(224,165,61,.16); color: #e0a53d; }
+:root[data-appearance='dark'] .feedback-button,
+:root[data-appearance='dark'] .share-app { background: rgba(164,91,232,.15); color: #c9a7f0; }
 :root[data-appearance='dark'] .checkout-note.error,
 :root[data-appearance='dark'] .checkout-error {
   background: rgba(211,79,88,.14);

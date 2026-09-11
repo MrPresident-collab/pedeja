@@ -64,7 +64,7 @@ const DEMO_OTP_CODE = '1234';
 
 let preferredPayment: PaymentMethod = 'cash';
 let notificationPrefs: NotificationPreferences = { orders: true, security: true, promotions: false };
-let appearanceMode: AppearanceMode = 'auto';
+let appearanceMode: AppearanceMode = 'light';
 let deletionState: { state: 'none' | 'pending'; requestedAt?: string } = { state: 'none' };
 
 function timeToIso(time: string): string {
