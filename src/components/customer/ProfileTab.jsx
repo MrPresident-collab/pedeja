@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  MapPin, ArrowDownCircle, Wallet, MessageSquare,
+  MapPin, ArrowDownCircle, carteira, MessageSquare,
   ChevronRight, Repeat, LogOut, Settings, Save,
   Camera, Crosshair, Bike, ChefHat, Plus, Trash2,
   Check, Edit,
@@ -13,7 +13,7 @@ export default function ProfileTab() {
   const {
     userProfile,
     profileSubView, setProfileSubView,
-    userRoles, userWallet, walletHistory,
+    userRoles, usercarteira, walletHistory,
     userAddresses,
     tempProfile, setTempProfile,
     withdrawMode, setWithdrawMode,
@@ -54,7 +54,7 @@ export default function ProfileTab() {
     navigator.geolocation.getCurrentPosition(
       pos => {
         setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        notifySystem('สำเร็จ', 'Localização GPS encontrada', 'success');
+        notifySystem('concluído', 'Localização GPS encontrada', 'success');
       },
       () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
       { enableHighAccuracy: true, timeout: 8000 },
@@ -132,7 +132,7 @@ export default function ProfileTab() {
               onClick={() => setProfileSubView('wallet')}
               className="flex-1 bg-gradient-to-r from-green-600 to-green-500 p-4 rounded-2xl shadow-lg text-white flex justify-between items-center"
             >
-              <div className="flex items-center"><Wallet className="mr-2" /><span className="font-bold text-sm">Kz {userWallet.toFixed(2)}</span></div>
+              <div className="flex items-center"><carteira className="mr-2" /><span className="font-bold text-sm">Kz {usercarteira.toFixed(2)}</span></div>
             </button>
             <button
               onClick={() => openChatWindow('support-' + userProfile.id, 'Suporte (Admin)', 'customer')}
@@ -215,7 +215,7 @@ export default function ProfileTab() {
         <div className="p-4 pt-0 bg-white min-h-[50vh]">
           <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl shadow-lg text-white mb-6 text-center">
             <p className="text-green-100 mb-2">Saldo actual</p>
-            <h1 className="text-4xl font-bold mb-6">Kz {userWallet.toFixed(2)}</h1>
+            <h1 className="text-4xl font-bold mb-6">Kz {usercarteira.toFixed(2)}</h1>
             {!withdrawMode ? (
               <div className="grid grid-cols-3 gap-4">
                 {[100, 500, 1000].map(amount => (
@@ -249,7 +249,7 @@ export default function ProfileTab() {
                     }}
                     className="flex-1 bg-white text-green-600 py-2 rounded font-bold"
                   >
-                    ยืนยันถอน
+                    confirmarถอน
                   </button>
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function ProfileTab() {
               <MapPin size={18} className="text-blue-500" /> A minha localização actual
             </h3>
             <p className="text-xs text-gray-500 mb-3">
-              ตำแหน่งนี้ใช้คำนวณระยะทางComercianteใกล้บ้าน และเป็นที่อยู่เริ่มต้นสำหรับสั่งอาหาร
+              localizaçãoนี้ใช้คำนวณระยะทางComercianteใกล้บ้าน และเป็นmoradaเริ่มต้นสำหrecolhaสั่งcomida
             </p>
             <div className="text-xs mb-3 space-y-0.5">
               <div className="text-gray-500">
@@ -305,7 +305,7 @@ export default function ProfileTab() {
               </div>
               {userPinLoc && (
                 <div className="text-blue-600 font-bold">
-                  🔵 เลือกใหม่: {userPinLoc.lat.toFixed(4)}, {userPinLoc.lng.toFixed(4)}
+                  🔵 seleccionarnovo: {userPinLoc.lat.toFixed(4)}, {userPinLoc.lng.toFixed(4)}
                 </div>
               )}
             </div>
@@ -353,7 +353,7 @@ export default function ProfileTab() {
             </button>
           </div>
 
-          {/* ควบรวมที่อยู่ของฉันไว้ในหน้าเดียวกัน */}
+          {/* ควบtotalmoradaของฉันไว้ในหน้าเดียวกัน */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
@@ -421,7 +421,7 @@ export default function ProfileTab() {
                         </div>
                         {editAddrPinLoc && (
                           <p className="text-xs text-blue-600 font-bold mb-2 text-center">
-                            🔵 เลือกแล้ว: {editAddrPinLoc.lat.toFixed(4)}, {editAddrPinLoc.lng.toFixed(4)}
+                            🔵 seleccionarconcluído: {editAddrPinLoc.lat.toFixed(4)}, {editAddrPinLoc.lng.toFixed(4)}
                           </p>
                         )}
                         <div className="flex gap-2">
@@ -491,7 +491,7 @@ export default function ProfileTab() {
                 </button>
                 {newAddr.location && (
                   <p className="text-xs text-green-600 font-bold text-center mb-2">
-                    ✅ ปักหมุดแล้ว: {newAddr.location.lat.toFixed(4)}, {newAddr.location.lng.toFixed(4)}
+                    ✅ ปักหมุดconcluído: {newAddr.location.lat.toFixed(4)}, {newAddr.location.lng.toFixed(4)}
                   </p>
                 )}
                 <label htmlFor="new-addr-label-input" className="sr-only">Nome do local</label>
@@ -517,8 +517,8 @@ export default function ProfileTab() {
                 />
                 <button
                   onClick={() => {
-                    if (!newAddr.label) return notifySystem('ผิดพลาด', 'Indique o nome do local', 'error');
-                    if (!newAddr.location) return notifySystem('ผิดพลาด', 'Marque primeiro a localização no mapa', 'error');
+                    if (!newAddr.label) return notifySystem('erro', 'Indique o nome do local', 'error');
+                    if (!newAddr.location) return notifySystem('erro', 'Marque primeiro a localização no mapa', 'error');
                     const addrText = newAddr.fullAddr || `${newAddr.location.lat.toFixed(5)}, ${newAddr.location.lng.toFixed(5)}`;
                     handleAddAddress({ ...newAddr, fullAddr: addrText });
                     setNewAddr({ label: '', fullAddr: '', location: null });
@@ -576,11 +576,11 @@ export default function ProfileTab() {
             <h2 className="text-xl font-bold text-orange-700">ลงทะเบียนComerciante (KYC)</h2>
           </div>
           <div className="space-y-4">
-            <div><label htmlFor="merchant-reg-shopname" className="font-bold mb-1 block">ชื่อComerciante</label><input id="merchant-reg-shopname" name="shopName" value={merchantRegForm.shopName} onChange={e => setMerchantRegForm({ ...merchantRegForm, shopName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+            <div><label htmlFor="merchant-reg-shopname" className="font-bold mb-1 block">nomeComerciante</label><input id="merchant-reg-shopname" name="shopName" value={merchantRegForm.shopName} onChange={e => setMerchantRegForm({ ...merchantRegForm, shopName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
             <div className="mb-4">
-              <label htmlFor="merchant-reg-shopimage" className="text-sm mb-1 block">รูปหน้าร้าน (Shop Image)</label>
+              <label htmlFor="merchant-reg-shopimage" className="text-sm mb-1 block">รูปหน้าestabelecimento (Shop Image)</label>
               <label htmlFor="merchant-reg-shopimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${merchantRegForm.shopImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                {merchantRegForm.shopImage ? <><Check className="inline mr-1" /> เลือกแล้ว</> : <><Camera className="inline mr-1" /> ถ่ายรูป/เลือกรูป</>}
+                {merchantRegForm.shopImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
                 <input id="merchant-reg-shopimage" name="shopImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setMerchantRegForm, 'shopImage')} />
               </label>
               {merchantRegForm.shopImage && <img src={merchantRegForm.shopImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="shop" />}
@@ -591,18 +591,18 @@ export default function ProfileTab() {
               </select>
             </div>
             <div className="pt-2 border-t mt-2">
-              <h4 className="font-bold text-gray-700 mb-2">ข้อมูลเจ้าของร้าน (ยืนยันตัวตน)</h4>
+              <h4 className="font-bold text-gray-700 mb-2">dadosเจ้าของestabelecimento (confirmarตัวตน)</h4>
               <div><label htmlFor="merchant-reg-realname" className="text-sm mb-1 block">Nome completo</label><input id="merchant-reg-realname" name="realName" value={merchantRegForm.realName} onChange={e => setMerchantRegForm({ ...merchantRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="name" /></div>
               <div><label htmlFor="merchant-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="merchant-reg-idcard" name="idCard" value={merchantRegForm.idCard} onChange={e => setMerchantRegForm({ ...merchantRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
               <div><label htmlFor="merchant-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="merchant-reg-phone" name="phone" value={merchantRegForm.phone} onChange={e => setMerchantRegForm({ ...merchantRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
               <div className="grid grid-cols-2 gap-2 mb-2">
-                <div><label htmlFor="merchant-reg-bankname" className="text-sm mb-1 block">ธนาคาร</label><input id="merchant-reg-bankname" name="bankName" value={merchantRegForm.bankName} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
+                <div><label htmlFor="merchant-reg-bankname" className="text-sm mb-1 block">banco</label><input id="merchant-reg-bankname" name="bankName" value={merchantRegForm.bankName} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
                 <div><label htmlFor="merchant-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="merchant-reg-bankaccount" name="bankAccount" value={merchantRegForm.bankAccount} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               </div>
               <div className="mb-4">
                 <label htmlFor="merchant-reg-idcardimage" className="text-sm mb-1 block">รูปถ่ายบัตรประชาชน</label>
                 <label htmlFor="merchant-reg-idcardimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${merchantRegForm.idCardImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {merchantRegForm.idCardImage ? <><Check className="inline mr-1" /> เลือกแล้ว</> : <><Camera className="inline mr-1" /> ถ่ายรูป/เลือกรูป</>}
+                  {merchantRegForm.idCardImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
                   <input id="merchant-reg-idcardimage" name="idCardImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setMerchantRegForm, 'idCardImage')} />
                 </label>
                 {merchantRegForm.idCardImage && <img src={merchantRegForm.idCardImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="id" />}
@@ -622,8 +622,8 @@ export default function ProfileTab() {
               className="w-full bg-orange-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               {merchantSubmitting
-                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> กำลังส่งข้อมูล...</>
-                : 'ส่งใบสมัครComerciante'}
+                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Aentregadados...</>
+                : 'entregaใบregistarComerciante'}
             </button>
           </div>
         </div>
@@ -642,25 +642,25 @@ export default function ProfileTab() {
               </select>
             </div>
             <div className="pt-2 border-t mt-2">
-              <h4 className="font-bold text-gray-700 mb-2">ข้อมูลยืนยันตัวตน</h4>
+              <h4 className="font-bold text-gray-700 mb-2">dadosconfirmarตัวตน</h4>
               <div><label htmlFor="rider-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="rider-reg-idcard" name="idCard" value={riderRegForm.idCard} onChange={e => setRiderRegForm({ ...riderRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
               <div><label htmlFor="rider-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="rider-reg-phone" name="phone" value={riderRegForm.phone} onChange={e => setRiderRegForm({ ...riderRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
               <div className="grid grid-cols-2 gap-2 mb-2">
-                <div><label htmlFor="rider-reg-bankname" className="text-sm mb-1 block">ธนาคาร</label><input id="rider-reg-bankname" name="bankName" value={riderRegForm.bankName} onChange={e => setRiderRegForm({ ...riderRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
+                <div><label htmlFor="rider-reg-bankname" className="text-sm mb-1 block">banco</label><input id="rider-reg-bankname" name="bankName" value={riderRegForm.bankName} onChange={e => setRiderRegForm({ ...riderRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
                 <div><label htmlFor="rider-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="rider-reg-bankaccount" name="bankAccount" value={riderRegForm.bankAccount} onChange={e => setRiderRegForm({ ...riderRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               </div>
               <div className="mb-2">
                 <label htmlFor="rider-reg-idcardimage" className="text-sm mb-1 block">รูปถ่ายบัตรประชาชน <span className="text-red-500">*</span></label>
                 <label htmlFor="rider-reg-idcardimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${riderRegForm.idCardImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {riderRegForm.idCardImage ? <><Check className="inline mr-1" /> เลือกแล้ว</> : <><Camera className="inline mr-1" /> ถ่ายรูป/เลือกรูป</>}
+                  {riderRegForm.idCardImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
                   <input id="rider-reg-idcardimage" name="idCardImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setRiderRegForm, 'idCardImage')} />
                 </label>
                 {riderRegForm.idCardImage && <img src={riderRegForm.idCardImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="id" />}
               </div>
               <div className="mb-4">
-                <label htmlFor="rider-reg-profileimage" className="text-sm mb-1 block">รูปโปรไฟล์ไรเดอร์ (opcional)</label>
+                <label htmlFor="rider-reg-profileimage" className="text-sm mb-1 block">รูปโปรไฟล์estafeta (opcional)</label>
                 <label htmlFor="rider-reg-profileimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${riderRegForm.profileImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {riderRegForm.profileImage ? <><Check className="inline mr-1" /> เลือกแล้ว</> : <><Camera className="inline mr-1" /> ถ่ายรูป/เลือกรูป</>}
+                  {riderRegForm.profileImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
                   <input id="rider-reg-profileimage" name="profileImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setRiderRegForm, 'profileImage')} />
                 </label>
                 {riderRegForm.profileImage && <img src={riderRegForm.profileImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="profile" />}
@@ -680,8 +680,8 @@ export default function ProfileTab() {
               className="w-full bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               {riderSubmitting
-                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> กำลังส่งข้อมูล...</>
-                : 'ส่งใบสมัครไรเดอร์'}
+                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Aentregadados...</>
+                : 'entregaใบregistarestafeta'}
             </button>
           </div>
         </div>
