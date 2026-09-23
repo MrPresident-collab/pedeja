@@ -42,7 +42,7 @@ export default function ActivityTab() {
   const [cancelReqOrderId, setCancelReqOrderId] = useState(null);
   const [cancelReqReason, setCancelReqReason] = useState('');
 
-  // Derive rider locations from order.riderLocation (updated by local simulation in AppContext)
+  // Derive live rider locations already attached to the order state.
   const riderLocations = Object.fromEntries(
     orders
       .filter(o => TRACKING_STATUSES.includes(o.status) && o.riderLocation)
@@ -174,7 +174,7 @@ export default function ActivityTab() {
                           }}
                           className="w-full text-center text-xs text-red-500 font-semibold hover:text-white py-2 hover:bg-red-500 rounded-xl transition-all border border-red-200 hover:border-red-500"
                         >
-                          ✕ cancelarpedidoทันที
+                          ✕ Cancelar pedido
                         </button>
                       ) : (
                         <button
@@ -447,7 +447,7 @@ export default function ActivityTab() {
               <h3 className="font-bold text-gray-800 text-base">Pedir cancelamento do pedido</h3>
             </div>
             <p className="text-xs text-gray-500 mb-4 pl-1">
-              pedidoจะentregaไปยัง Admin เพื่อverificar
+              O pedido de cancelamento será enviado ao Admin para verificação
               {cancelReqOrderId && (() => {
                 const o = orders.find(x => x.id === cancelReqOrderId);
                 return o?.paymentMethod === 'wallet'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   MapPin, ArrowDownCircle, Wallet, MessageSquare,
   ChevronRight, Repeat, LogOut, Settings, Save,
@@ -24,8 +24,8 @@ export default function ProfileTab() {
     merchantRegForm, setMerchantRegForm,
     riderRegForm, setRiderRegForm,
     newAddr, setNewAddr,
-    handleMapLocationSelect, getCurrentLocationForForm,
-    handleAddAddress, handleUpdateAddress, handleDeleteAddress,
+    getCurrentLocationForForm,
+    handleAddAddress, handleDeleteAddress,
     handleProfilePhotoChange,
     handleRegistrationPhotoSelect,
     handleSaveProfile, profileUploading,
@@ -33,16 +33,10 @@ export default function ProfileTab() {
     openChatWindow, handleLogout,
     isPending, syncRoles,
     setActiveRole,
-    handleUpdateUserLocation,
     notifySystem,
   } = useApp();
 
-  const [editingAddrId, setEditingAddrId] = useState(null);
-  const [editAddrPinLoc, setEditAddrPinLoc] = useState(null);
-  const [editAddrSaving, setEditAddrSaving] = useState(false);
   const [newAddrMode, setNewAddrMode] = useState(false);
-  const [userPinLoc, setUserPinLoc] = useState(null);
-  const [userPinSaving, setUserPinSaving] = useState(false);
   const [merchantSubmitting, setMerchantSubmitting] = useState(false);
   const [riderSubmitting, setRiderSubmitting] = useState(false);
 
@@ -161,7 +155,7 @@ export default function ProfileTab() {
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button
-              onClick={() => { setProfileSubView('pin_location'); setUserPinLoc(null); }}
+              onClick={() => setProfileSubView('pin_location')}
               className="w-full p-4 flex items-center justify-between hover:bg-blue-50 border-b"
             >
               <div className="flex items-center">

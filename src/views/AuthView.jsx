@@ -109,7 +109,7 @@ export default function AuthView() {
         try {
           await finishRegistration(pending);
           notifySystem('Concluído', 'Conta criada e morada guardada.', 'success');
-        } catch (addressError) {
+        } catch {
           notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
         }
       } else {
@@ -179,7 +179,7 @@ export default function AuthView() {
         try {
           await finishRegistration(registration);
           notifySystem('Concluído', 'Conta criada e morada guardada.', 'success');
-        } catch (addressError) {
+        } catch {
           notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
         }
         return;

@@ -1,10 +1,20 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  Utensils, Package, Car, Wrench, Search, ArrowLeft, Star, Clock,
-  MapPin, Navigation, Plus, Minus, X, Tag, CheckCircle,
-  ChefHat, Crosshair, Banknote, Sparkles, SlidersHorizontal, Calendar, FileText,
+  Utensils,
+  ShoppingBag,
+  Package,
+  ArrowLeft,
+  Star,
+  Clock,
+  MapPin,
+  Navigation,
+  Plus,
+  Minus,
+  X,
+  Banknote,
+  Crosshair,
+  CheckCircle,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
 import { DEFAULT_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
@@ -12,408 +22,217 @@ import { filterPedejaMarketplaceBusinesses } from '../../domain/pedejaMarketplac
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 
-export default function HomeTab({ searchQuery, setSearchQuery }) {
-  const { t } = useTranslation();
+const SERVICE_OPTIONS = [
+  { id: PEDEJA_SERVICE_TYPES.FOME, label: 'Fome', description: 'Comida e restaurantes', icon: Utensils },
+  { id: PEDEJA_SERVICE_TYPES.COMPRAS, label: 'Compras', description: 'Lojas, mercados e compras', icon: ShoppingBag },
+  { id: PEDEJA_SERVICE_TYPES.ENVIAR, label: 'Enviar', description: 'Entregas e encomendas', icon: Package },
+];
+
+export default function HomeTab() {
   const {
     serviceType, setServiceType,
     restaurants, menuItems, appConfig,
     userProfile, userAddresses,
     cart, setCart,
     parcelDetails, setParcelDetails,
-    paymentMethod, setPaymentMethod,
+    setPaymentMethod,
     parcelMapTarget, setParcelMapTarget,
     parcelDistance, parcelEstimate,
-    placeOrder, placeParcelOrder, placeRideOrder, placeServiceOrder,
-    addToCart, calculateFoodTotal, calculateDeliveryFee, calculateRideFee,
-    handleParcelMapSelect,
-    getCurrentLocationForParcel,
-    notifySystem,
-    selectedRestaurant, setSelectedRestaurant,
-    isDataLoading,
+    placeOrder, placeParcelOrder,
+    addToCart, calculateFoodTotal, calculateDeliveryFee,
+    handleParcelMapSelect, getCurrentLocationForParcel,
+    notifySystem, selectedRestaurant, setSelectedRestaurant,
   } = useApp();
 
-  // Auto-GPS: pull current pickup location when parcel tab opens (only if not already set)
-  useEffect(() => {
-    if (serviceType !== PEDEJA_SERVICE_TYPES.ENVIAR || parcelDetails.pickupLocation) return;
-    getCurrentLocationForParcel('pickup');
-  }, [serviceType, parcelDetails.pickupLocation, getCurrentLocationForParcel]);
-
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [orderNotes, setOrderNotes]   = useState('');
-  const [promoInput, setPromoInput]   = useState('');
-  const [promoResult, setPromoResult] = useState(null);
-  const [showPromoField, setShowPromoField] = useState(false);
-
-  // Local state for Ride & Service tabs
-  const [rideDetails, setRideDetails] = useState({
-    pickup: '', dropoff: '', pickupLocation: null, dropoffLocation: null, vehicleType: 'Motorcycle', note: ''
-  });
-  const [rideMapTarget, setRideMapTarget] = useState('pickup');
-  const [serviceDetails, setServiceDetails] = useState({
-    serviceCategory: 'Limpeza doméstica', address: '', location: null, note: '', preferredDate: '', preferredTime: '10:00', price: 350
-  });
-
-  const rideDistance = (isValidCoordinate(rideDetails.pickupLocation) && isValidCoordinate(rideDetails.dropoffLocation))
-    ? (getDistanceFromLatLonInKm(
-        rideDetails.pickupLocation.lat, rideDetails.pickupLocation.lng,
-        rideDetails.dropoffLocation.lat, rideDetails.dropoffLocation.lng
-      ) || 0)
-    : 0;
-
-  const rideEstimate = rideDistance > 0
-    ? (calculateRideFee ? calculateRideFee(rideDistance) : ((appConfig.rideBaseFee ?? appConfig.baseFee) + Math.ceil(rideDistance) * (appConfig.ridePerKmFee ?? appConfig.perKmFee)))
-    : 0;
-
-  const handleRideMapSelect = async (loc, addressText) => {
-    if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
-    const cleanLoc = { lat: loc.lat, lng: loc.lng };
-    const formattedCoords = `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
-    const addr = addressText || loc.address || formattedCoords;
-    const currentTarget = rideMapTarget;
-    if (currentTarget === 'pickup') {
-      setRideDetails(prev => ({ ...prev, pickup: addr, pickupLocation: cleanLoc }));
-    } else {
-      setRideDetails(prev => ({ ...prev, dropoff: addr, dropoffLocation: cleanLoc }));
-    }
-  };
-
-  const handleServiceMapSelect = async (loc, addressText) => {
-    if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
-    const cleanLoc = { lat: loc.lat, lng: loc.lng };
-    const formattedCoords = `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
-    const addr = addressText || loc.address || formattedCoords;
-    setServiceDetails(prev => ({ ...prev, address: addr, location: cleanLoc }));
-  };
-
-  const getCurrentLocationForService = () => {
-    if (!navigator.geolocation) return notifySystem('Erro', 'O navegador não suporta GPS', 'error');
-    notifySystem('A obter localização', 'A procurar a sua localização...', 'info');
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json&accept-language=pt`,
-          { headers: { 'Accept-Language': 'pt' } },
-        );
-        const data = await res.json();
-        const addr = data.display_name || `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
-        setServiceDetails(prev => ({ ...prev, address: addr, location: loc }));
-      } catch {
-        setServiceDetails(prev => ({ ...prev, address: `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`, location: loc }));
-      }
-      notifySystem('Concluído', 'Ponto de recolha definido para a localização actual', 'success');
-    }, () => notifySystem('Erro', 'Não foi possível obter a localização. Permita o acesso ao GPS.', 'error'), { enableHighAccuracy: true, timeout: 10000 });
-  };
-
-  // Modal for selecting item options / toppings
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
-  const [selectedOptions, setSelectedOptions]   = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [orderNotes, setOrderNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCartQty = (itemId, delta) => {
-    setCart(prev =>
-      prev.map(c => c.id === itemId ? { ...c, qty: c.qty + delta } : c).filter(c => c.qty > 0),
-    );
-  };
-
-  const handleApplyPromo = () => {
-    notifySystem('Descontos indisponíveis', 'O checkout live ainda não aceita códigos promocionais. O total será calculado pelo servidor.', 'info');
-  };
-
-  const promoDiscount = 0;
-  const hasSavedDeliveryAddress = userAddresses?.some(address =>
-    typeof address.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(address.id) &&
-    isValidCoordinate(address.location),
+  const primaryAddress = useMemo(
+    () => userAddresses?.find(address => address.isDefault) || userAddresses?.[0] || null,
+    [userAddresses],
   );
 
-  const categories = useMemo(() => {
-    const catsInShops = restaurants.filter(r => r.category).map(r => r.category);
-    const combined = [...new Set([...DEFAULT_CATEGORIES, ...catsInShops])].sort();
-    return ['Todos', ...combined];
-  }, [restaurants]);
+  const businessesWithDistance = useMemo(() => restaurants.map(business => ({
+    ...business,
+    distance: isValidCoordinate(userProfile?.location) && isValidCoordinate(business.location)
+      ? Number(getDistanceFromLatLonInKm(
+          userProfile.location.lat, userProfile.location.lng,
+          business.location.lat, business.location.lng,
+        ).toFixed(1))
+      : null,
+  })), [restaurants, userProfile?.location]);
 
-  const handleOpenOptionModal = (item) => {
-    if (item.options && item.options.length > 0) {
+  const visibleBusinesses = useMemo(() => {
+    let list = filterPedejaMarketplaceBusinesses(businessesWithDistance, serviceType)
+      .filter(business => business.status === 'open');
+
+    if (serviceType === PEDEJA_SERVICE_TYPES.FOME && selectedCategory !== 'Todos') {
+      list = list.filter(business => business.category === selectedCategory);
+    }
+
+    return list;
+  }, [businessesWithDistance, serviceType, selectedCategory]);
+
+  const categories = useMemo(() => {
+    if (serviceType !== PEDEJA_SERVICE_TYPES.FOME) return ['Todos'];
+    const shopCategories = restaurants.filter(b => b.category).map(b => b.category);
+    return ['Todos', ...new Set([...DEFAULT_CATEGORIES, ...shopCategories])];
+  }, [restaurants, serviceType]);
+
+  const handleOpenItem = (item) => {
+    if (item.options?.length) {
       setSelectedMenuItem(item);
       setSelectedOptions([]);
-    } else {
-      addToCart(item, selectedRestaurant.id, selectedRestaurant.name, selectedRestaurant.distance);
+      return;
     }
+    addToCart(item, selectedRestaurant.id, selectedRestaurant.name, selectedRestaurant.distance ?? 0);
   };
 
-  const toggleOption = (opt) => {
-    setSelectedOptions(prev => {
-      const exists = prev.some(o => o.name === opt.name);
-      if (exists) return prev.filter(o => o.name !== opt.name);
-      return [...prev, opt];
-    });
-  };
-
-  const handleConfirmAddToCart = () => {
-    if (!selectedMenuItem) return;
-    const extraPrice = selectedOptions.reduce((sum, o) => sum + (o.price || 0), 0);
-    addToCart(selectedMenuItem, selectedRestaurant.id, selectedRestaurant.name, selectedRestaurant.distance, selectedOptions, extraPrice);
+  const handleConfirmAdd = () => {
+    if (!selectedMenuItem || !selectedRestaurant) return;
+    const extraPrice = selectedOptions.reduce((sum, option) => sum + Number(option.price || 0), 0);
+    addToCart(
+      selectedMenuItem,
+      selectedRestaurant.id,
+      selectedRestaurant.name,
+      selectedRestaurant.distance ?? 0,
+      selectedOptions,
+      extraPrice,
+    );
     setSelectedMenuItem(null);
     setSelectedOptions([]);
   };
 
-  const restaurantsWithDistance = useMemo(() => restaurants.map(r => ({
-    ...r,
-    distance: getDistanceFromLatLonInKm(
-      userProfile.location.lat, userProfile.location.lng,
-      r.location.lat, r.location.lng,
-    ),
-  })), [restaurants, userProfile.location]);
+  const handleCartQty = (itemId, delta) => {
+    setCart(previous => previous
+      .map(item => item.id === itemId ? { ...item, qty: item.qty + delta } : item)
+      .filter(item => item.qty > 0));
+  };
 
-  const visibleRestaurants = useMemo(() => {
-    let list = restaurantsWithDistance.filter(r => r.status === 'open');
-    list = filterPedejaMarketplaceBusinesses(list, serviceType);
-    if (selectedCategory !== 'Todos') list = list.filter(r => r.category === selectedCategory);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(r => {
-        if (r.name?.toLowerCase().includes(q)) return true;
-        if (r.category?.toLowerCase().includes(q)) return true;
-        return (menuItems[r.id] || []).some(m =>
-          m.name?.toLowerCase().includes(q) || m.desc?.toLowerCase().includes(q),
-        );
-      });
+  const usePrimaryAddress = () => {
+    if (!primaryAddress) {
+      notifySystem('Morada necessária', 'Adicione primeiro uma morada no seu perfil.', 'error');
+      return;
     }
-    return list;
-  }, [restaurantsWithDistance, selectedCategory, searchQuery, menuItems, serviceType]);
 
-  // ── Menu detail view ────────────────────────────────────────────────────────
+    setParcelDetails(previous => ({
+      ...previous,
+      dropoff: [
+        primaryAddress.addressLine1,
+        primaryAddress.addressLine2,
+        primaryAddress.neighborhood,
+        primaryAddress.municipality,
+        primaryAddress.city,
+        primaryAddress.province,
+      ].filter(Boolean).join(', '),
+      dropoffLocation: isValidCoordinate(primaryAddress.location) ? primaryAddress.location : null,
+    }));
+  };
+
+  const handleUseCurrentLocation = async (target) => {
+    setParcelMapTarget(target);
+    await getCurrentLocationForParcel(target);
+  };
+
+  const handleParcelSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await placeParcelOrder();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (selectedRestaurant) {
+    const items = menuItems[selectedRestaurant.id] || [];
+
     return (
-      <div className="min-h-screen bg-gray-50 animate-fade-in">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 animate-fade-in">
         <div className="relative h-52">
-          <img src={selectedRestaurant.image} className="w-full h-full object-cover" alt={selectedRestaurant.name} loading="eager" />
+          <img src={selectedRestaurant.image} className="w-full h-full object-cover bg-gray-200" alt={selectedRestaurant.name} loading="eager" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-          <button
-            onClick={() => setSelectedRestaurant(null)}
-            className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-lg active:scale-90 transition-transform"
-            aria-label="Voltar"
-          >
+          <button onClick={() => setSelectedRestaurant(null)} className="absolute top-4 left-4 bg-white/95 p-2 rounded-full shadow-lg" aria-label="Voltar">
             <ArrowLeft size={20} className="text-gray-800" />
           </button>
-          <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow">
+          <div className="absolute bottom-3 right-3 bg-white/95 px-3 py-1 rounded-full flex items-center gap-1 shadow">
             <Star size={13} className="text-yellow-500 fill-current" />
             <span className="text-sm font-bold">{selectedRestaurant.rating}</span>
           </div>
         </div>
-        <div className="bg-white px-4 pt-4 pb-3 border-b border-gray-100">
-          <h1 className="text-xl font-black text-gray-900 mb-1">{selectedRestaurant.name}</h1>
-          <div className="flex items-center gap-3 text-sm text-gray-500">
+
+        <div className="bg-white dark:bg-gray-800 px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">{selectedRestaurant.name}</h1>
+          <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
             <span className="flex items-center gap-1"><Clock size={13} /> {selectedRestaurant.time}</span>
-            <span className="text-gray-300">•</span>
-            <span>{selectedRestaurant.distance} km</span>
-            <span className="text-gray-300">•</span>
-            <span className="text-orange-600 font-semibold">Taxa de entrega Kz {calculateDeliveryFee(selectedRestaurant.distance)}</span>
+            {selectedRestaurant.distance != null && <><span>•</span><span>{selectedRestaurant.distance} km</span></>}
           </div>
         </div>
+
         <div className="px-4 pt-4 pb-40">
-          <h2 className="font-bold text-lg text-gray-800 mb-3">Todos os itens</h2>
+          <h2 className="font-bold text-lg text-gray-800 dark:text-white mb-3">Produtos</h2>
           <div className="space-y-3">
-            {menuItems[selectedRestaurant.id]?.length > 0 ? (
-              menuItems[selectedRestaurant.id].map(item => (
-                <div key={item.id} className={`bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm ${!item.available ? 'opacity-50' : ''}`}>
-                  {item.image && (
-                    <img src={item.image} className="w-20 h-20 object-cover rounded-xl flex-shrink-0 bg-gray-100" alt={item.name} loading="lazy" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="font-semibold text-gray-900 text-sm leading-tight">{item.name}</h3>
-                          {item.tag && (
-                            <span className="bg-orange-100 text-orange-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                              <Sparkles size={9} /> {item.tag}
-                            </span>
-                          )}
-                          {!item.available && <span className="text-red-500 text-xs font-bold"> (Esgotado)</span>}
-                        </div>
-                        <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{item.desc}</p>
-                        <p className="font-bold text-gray-900 mt-1.5">Kz {item.price}</p>
-                        {item.options && item.options.length > 0 && (
-                          <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-0.5 mt-0.5">
-                            <SlidersHorizontal size={10} /> Opções adicionais ({item.options.length})
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        disabled={!item.available}
-                        onClick={() => handleOpenOptionModal(item)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-all active:scale-90 ${item.available ? 'bg-orange-500 text-white shadow-md shadow-orange-200' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-                        aria-label={`Adicionar ${item.name}`}
-                      >+</button>
-                    </div>
-                  </div>
+            {items.length ? items.map(item => (
+              <div key={item.id} className="bg-white dark:bg-gray-800 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
+                {item.image && <img src={item.image} className="w-20 h-20 object-cover rounded-xl flex-shrink-0 bg-gray-100" alt={item.name} loading="lazy" />}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{item.name}</h3>
+                  {item.description && <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{item.description}</p>}
+                  <p className="font-bold text-gray-900 dark:text-white mt-1.5">Kz {Number(item.price || 0).toLocaleString()}</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-gray-400">
-                <ChefHat size={40} className="mx-auto mb-2 opacity-30" />
-                <p>Ainda não existem itens</p>
+                <button disabled={item.available === false} onClick={() => handleOpenItem(item)} className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-40" aria-label={`Adicionar ${item.name}`}>
+                  <Plus size={18} />
+                </button>
               </div>
+            )) : (
+              <div className="text-center py-12 text-gray-400"><Package size={40} className="mx-auto mb-2 opacity-30" /><p>Ainda não existem produtos disponíveis.</p></div>
             )}
           </div>
         </div>
 
         {cart.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-8px_24px_rgba(0,0,0,0.12)] px-4 pt-3 pb-safe rounded-t-3xl z-50 animate-slide-in-from-bottom">
-            <div className="max-h-32 overflow-y-auto mb-3 space-y-1.5">
+          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] px-4 pt-3 pb-safe rounded-t-3xl z-50">
+            <div className="max-h-28 overflow-y-auto mb-3 space-y-1.5">
               {cart.map(item => (
                 <div key={item.id} className="flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-gray-700 block truncate font-medium">{item.name}</span>
-                    {item.selectedOptions && item.selectedOptions.length > 0 && (
-                      <span className="text-[10px] text-gray-400 block truncate">
-                        + {item.selectedOptions.map(o => o.name).join(', ')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => handleCartQty(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-orange-100 text-gray-600 hover:text-orange-600"><Minus size={14} /></button>
+                  <span className="text-sm text-gray-700 dark:text-gray-200 truncate">{item.name}</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleCartQty(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center"><Minus size={14} /></button>
                     <span className="text-sm font-bold w-5 text-center">{item.qty}</span>
-                    <button onClick={() => handleCartQty(item.id, 1)} className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white hover:bg-orange-600"><Plus size={14} /></button>
-                    <span className="text-xs font-bold text-gray-500 w-14 text-right">Kz {(item.price * item.qty).toLocaleString()}</span>
+                    <button onClick={() => handleCartQty(item.id, 1)} className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center"><Plus size={14} /></button>
                   </div>
                 </div>
               ))}
             </div>
-
-            {!showPromoField ? (
-              <button onClick={() => setShowPromoField(true)} className="text-xs text-orange-500 underline flex items-center gap-1 mb-2">
-                <Tag size={12} /> Usar código de desconto
-              </button>
-            ) : (
-              <div className="flex gap-2 mb-2">
-                <label htmlFor="cart-promo-input" className="sr-only">Código de desconto</label>
-                <input
-                  id="cart-promo-input"
-                  name="promoCode"
-                  value={promoInput}
-                  onChange={e => setPromoInput(e.target.value.toUpperCase())}
-                  placeholder="Introduza o código de desconto"
-                  className="flex-1 border border-orange-200 rounded-lg px-3 py-1.5 text-sm font-mono uppercase focus:outline-none focus:border-orange-400"
-                  maxLength={20}
-                  autoComplete="off"
-                  aria-label="Introduza o código de desconto"
-                />
-                <button onClick={handleApplyPromo} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold">Aplicar</button>
-                <button onClick={() => { setShowPromoField(false); setPromoInput(''); setPromoResult(null); }} className="text-gray-400 hover:text-gray-600 px-2"><X size={16} /></button>
-              </div>
-            )}
-            {promoResult?.valid && (
-              <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 mb-2 flex items-center gap-2 text-sm text-green-700">
-                <CheckCircle size={14} /> desconto <strong>Kz {promoResult.discount}</strong>
-              </div>
-            )}
-
             <label htmlFor="cart-order-notes" className="sr-only">Observação para o comerciante</label>
-            <textarea
-              id="cart-order-notes"
-              name="orderNotes"
-              value={orderNotes}
-              onChange={e => setOrderNotes(e.target.value)}
-              placeholder="Observação para o comerciante (ex.: sem açúcar, sem legumes...)"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none h-16 mb-2 focus:outline-none focus:border-orange-300"
-              maxLength={200}
-              autoComplete="off"
-            />
-
-            <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
-              <span>Subtotal</span><span>Kz {calculateFoodTotal().toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
-              <span>Entrega</span><span>Kz {calculateDeliveryFee(cart[0].distance)}</span>
-            </div>
-            {promoDiscount > 0 && (
-              <div className="flex justify-between items-center mb-2 text-sm text-green-600 font-semibold">
-                <span>Desconto</span><span>-Kz {promoDiscount}</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center mb-3 font-black text-lg">
-              <span>Estimativa</span>
-              <span className="text-orange-600">Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}</span>
-            </div>
-            <p className="text-[11px] text-gray-400 mb-3">
-              O total final, incluindo taxas e descontos aplicáveis, será calculado pelo servidor no checkout.
-            </p>
-
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Banknote size={13} /> Pagamento:</span>
-              <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'wallet' ? 'bg-orange-500 text-white border-orange-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>carteira</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'cash' ? 'bg-blue-500 text-white border-blue-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>Numerário</button>
-            </div>
-            {!hasSavedDeliveryAddress && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-2 text-xs text-amber-800 font-medium text-center">
-                ⚠️ Marque a sua morada de entrega no mapa antes de fazer o pedido
-              </div>
-            )}
-            <button
-              onClick={() => {
-                if (!hasSavedDeliveryAddress) {
-                  notifySystem('Erro', 'Marque a morada de entrega no mapa antes de fazer o pedido', 'error');
-                  return;
-                }
-                placeOrder(promoDiscount, orderNotes);
-                setOrderNotes('');
-              }}
-              disabled={!hasSavedDeliveryAddress}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-xl shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Fazer pedido
-            </button>
+            <textarea id="cart-order-notes" name="orderNotes" value={orderNotes} onChange={event => setOrderNotes(event.target.value)} placeholder="Observação para o comerciante" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none h-14 mb-2 bg-white dark:bg-gray-700" maxLength={200} />
+            <div className="flex justify-between text-sm text-gray-500 mb-1"><span>Subtotal</span><span>Kz {calculateFoodTotal().toLocaleString()}</span></div>
+            <div className="flex justify-between text-sm text-gray-500 mb-2"><span>Entrega</span><span>Kz {calculateDeliveryFee(cart[0].distance || 0).toLocaleString()}</span></div>
+            <div className="flex justify-between font-black text-lg mb-2"><span>Estimativa</span><span className="text-orange-600">Kz {(calculateFoodTotal() + calculateDeliveryFee(cart[0].distance || 0)).toLocaleString()}</span></div>
+            <p className="text-[11px] text-gray-400 mb-3">O total final é calculado pelo servidor no checkout.</p>
+            <div className="flex items-center gap-2 mb-3"><span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Banknote size={13} /> Pagamento</span><button onClick={() => setPaymentMethod('cash')} className="flex-1 py-2 text-sm rounded-xl border bg-blue-500 text-white border-blue-500 font-bold">Numerário</button></div>
+            <button onClick={() => placeOrder(0, orderNotes)} className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">Confirmar pedido</button>
           </div>
         )}
 
-        {/* Option Selection Modal */}
         {selectedMenuItem && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-orange-500 text-white p-4 flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-base leading-tight">{selectedMenuItem.name}</h3>
-                  <p className="text-xs text-orange-100 mt-0.5">Preço inicial Kz {selectedMenuItem.price}</p>
-                </div>
-                <button onClick={() => setSelectedMenuItem(null)} className="text-white/80 hover:text-white p-1">
-                  <X size={20} />
-                </button>
+          <div className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-4"><div><h3 className="font-black text-lg">{selectedMenuItem.name}</h3><p className="text-sm text-gray-500">Escolha as opções</p></div><button onClick={() => setSelectedMenuItem(null)} aria-label="Fechar"><X /></button></div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {(selectedMenuItem.options || []).map(option => {
+                  const selected = selectedOptions.some(item => item.name === option.name);
+                  return (
+                    <button key={option.name} onClick={() => setSelectedOptions(previous => selected ? previous.filter(item => item.name !== option.name) : [...previous, option])} className={`w-full flex items-center justify-between p-3 rounded-xl border ${selected ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}>
+                      <span>{option.name}</span><span className="font-bold">+Kz {Number(option.price || 0).toLocaleString()}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="p-4 max-h-72 overflow-y-auto">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Escolha opções adicionais / extras</p>
-                <div className="space-y-2">
-                  {selectedMenuItem.options?.map((opt, idx) => {
-                    const isSelected = selectedOptions.some(o => o.name === opt.name);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => toggleOption(opt)}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          isSelected ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <span className="text-sm font-medium text-gray-800">{opt.name}</span>
-                        <span className="text-xs font-bold text-orange-600">+Kz {opt.price || 0}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs text-gray-400 block">Total</span>
-                  <span className="text-lg font-black text-orange-600">
-                    Kz {selectedMenuItem.price + selectedOptions.reduce((s, o) => s + (o.price || 0), 0)}
-                  </span>
-                </div>
-                <button
-                  onClick={handleConfirmAddToCart}
-                  className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-orange-600 active:scale-95 transition-all shadow-md shadow-orange-200"
-                >
-                  Adicionar ao carrinho
-                </button>
-              </div>
+              <button onClick={handleConfirmAdd} className="w-full mt-4 bg-orange-500 text-white py-3 rounded-xl font-bold">Adicionar ao pedido</button>
             </div>
           </div>
         )}
@@ -421,408 +240,142 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     );
   }
 
-  // ── Home tab ────────────────────────────────────────────────────────────────
+  if (serviceType === PEDEJA_SERVICE_TYPES.ENVIAR) {
+    const hasPickup = isValidCoordinate(parcelDetails?.pickupLocation);
+    const hasDropoff = isValidCoordinate(parcelDetails?.dropoffLocation);
+
+    return (
+      <div className="p-4 pb-28">
+        <ServiceSwitcher serviceType={serviceType} setServiceType={setServiceType} />
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center"><Package size={22} /></div>
+            <div><h2 className="font-black text-lg">Enviar uma encomenda</h2><p className="text-sm text-gray-500">Use uma morada normal. Coordenadas nunca são digitadas pelo cliente.</p></div>
+          </div>
+
+          <AddressPoint title="Ponto de recolha" value={parcelDetails.pickup || ''} onChange={value => setParcelDetails(previous => ({ ...previous, pickup: value, pickupLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.pickupLocation} active={parcelMapTarget === 'pickup'} onActivate={() => setParcelMapTarget('pickup')} onUseCurrent={() => handleUseCurrentLocation('pickup')} />
+          <AddressPoint title="Ponto de entrega" value={parcelDetails.dropoff || ''} onChange={value => setParcelDetails(previous => ({ ...previous, dropoff: value, dropoffLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.dropoffLocation} active={parcelMapTarget === 'dropoff'} onActivate={() => setParcelMapTarget('dropoff')} onUseCurrent={() => handleUseCurrentLocation('dropoff')} />
+
+          <div className="flex gap-2 mb-4">
+            <button type="button" onClick={usePrimaryAddress} disabled={!primaryAddress} className="flex-1 text-xs font-bold py-2 rounded-xl bg-gray-100 text-gray-700 disabled:opacity-40">Usar minha morada</button>
+            <button type="button" onClick={() => setParcelMapTarget(parcelMapTarget === 'pickup' ? 'dropoff' : 'pickup')} className="flex-1 text-xs font-bold py-2 rounded-xl bg-gray-100 text-gray-700">Ajustar localização</button>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden border border-gray-100">
+            <InteractiveMap mode="select" isParcel activeParcelTarget={parcelMapTarget || 'pickup'} shopLocation={parcelDetails.pickupLocation} userLocation={parcelDetails.dropoffLocation} centerOverride={parcelMapTarget === 'dropoff' ? parcelDetails.dropoffLocation || undefined : parcelDetails.pickupLocation || undefined} onLocationSelect={handleParcelMapSelect} />
+          </div>
+          <p className="text-[11px] text-gray-400 mt-2">O mapa/GPS ajuda o sistema a obter a localização. A morada humana continua a ser a referência operacional.</p>
+
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <Field label="Peso (kg)" value={parcelDetails.weight || '1'} onChange={value => setParcelDetails(previous => ({ ...previous, weight: value }))} type="number" />
+            <Field label="Telefone do destinatário" value={parcelDetails.receiverPhone || ''} onChange={value => setParcelDetails(previous => ({ ...previous, receiverPhone: value }))} type="tel" placeholder="9xx xxx xxx" />
+          </div>
+          <div className="mt-3"><Field label="Nome do destinatário" value={parcelDetails.receiverName || ''} onChange={value => setParcelDetails(previous => ({ ...previous, receiverName: value }))} placeholder="Nome completo" /></div>
+
+          {parcelDistance > 0 && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center mt-4">
+              <p className="text-sm font-bold text-blue-800">{parcelDistance.toFixed(1)} km · Estimativa Kz {Number(parcelEstimate || 0).toLocaleString()}</p>
+              <p className="text-xs text-blue-500 mt-0.5">O preço final será confirmado pelo servidor.</p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 mt-4 p-2 bg-gray-50 rounded-xl"><Banknote size={16} className="text-gray-500" /><span className="text-sm font-bold">Pagamento</span><button onClick={() => setPaymentMethod('cash')} className="flex-1 py-2 text-xs rounded-lg bg-blue-500 text-white font-bold">Numerário</button></div>
+
+          {!hasPickup || !hasDropoff ? (
+            <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">Confirme a localização de recolha e entrega no mapa ou através da localização actual.</div>
+          ) : (
+            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl p-3"><CheckCircle size={14} /> Localização confirmada</div>
+          )}
+
+          <button onClick={handleParcelSubmit} disabled={isSubmitting || !parcelDetails.pickup || !parcelDetails.dropoff || !hasPickup || !hasDropoff} className="w-full mt-4 bg-red-500 text-white py-3.5 rounded-xl font-black disabled:opacity-40">{isSubmitting ? 'A preparar...' : 'Calcular e enviar'}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="px-4 py-3">
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <button
-          onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Utensils size={16} /> {t('service_food')}</button>
-        <button
-          onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.COMPRAS ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Package size={16} /> {t('service_shopping')}</button>
-        <button
-          onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR)}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.ENVIAR ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Package size={16} /> {t('service_parcel')}</button>
+    <div className="p-4 pb-28">
+      <ServiceSwitcher serviceType={serviceType} setServiceType={setServiceType} />
+
+      {serviceType === PEDEJA_SERVICE_TYPES.FOME && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+          {categories.map(category => (
+            <button key={category} onClick={() => setSelectedCategory(category)} className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold ${selectedCategory === category ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}>
+              {category}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mb-4">
+        <h1 className="text-xl font-black text-gray-900 dark:text-white">{serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'Comida perto de si' : 'Compras perto de si'}</h1>
+        <p className="text-sm text-gray-500 mt-1">Escolha um estabelecimento e faça o pedido.</p>
       </div>
 
-      {(serviceType === PEDEJA_SERVICE_TYPES.FOME || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS) ? (
-        <>
-          {!searchQuery && (
-            <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1 scrollbar-hide">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedCategory === cat ? 'bg-orange-500 text-white shadow-md shadow-orange-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'}`}
-                >{cat}</button>
-              ))}
-            </div>
-          )}
-
-          <div className="featured-banner mb-5">
-            <div className="relative z-10">
-              <div className="text-xs font-semibold text-orange-200 uppercase tracking-wider mb-1">Bem-vindo à Pedejá</div>
-              <h2 className="text-xl font-black text-white leading-tight mb-1">Fome, Compras e ENVIAR</h2>
-              <p className="text-orange-100 text-xs mb-3">Comida, compras e entregas em Luanda</p>
-              <button
-                onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR)}
-                className="bg-white text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full"
-              >Enviar agora →</button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">
-              {searchQuery ? `Resultados para "${searchQuery}"` : selectedCategory === 'Todos' ? 'Estabelecimentos perto de si' : selectedCategory}
-            </h2>
-            <span className="text-xs text-orange-500 font-medium">{visibleRestaurants.length} estabelecimentos</span>
-          </div>
-
-          {visibleRestaurants.length === 0 && (
-            isDataLoading && !searchQuery && selectedCategory === 'Todos' ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white rounded-2xl p-3 flex gap-3 shadow-sm animate-pulse">
-                    <div className="w-20 h-20 rounded-xl bg-gray-200 flex-shrink-0" />
-                    <div className="flex-1 space-y-2 py-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 text-gray-400">
-                <Search size={40} className="mx-auto mb-2 opacity-20" />
-                <p className="font-medium">Nenhum estabelecimento encontrado</p>
-                <button
-                  onClick={() => { setSearchQuery(''); setSelectedCategory('Todos'); }}
-                  className="mt-2 text-orange-500 text-sm underline"
-                >Limpar pesquisa</button>
-              </div>
-            )
-          )}
-
-          <div className="stagger">
-            {visibleRestaurants.map(rest => (
-              <div key={rest.id} className="animate-fade-in-up">
-                <RestaurantCard rest={rest} appConfig={appConfig} onSelect={setSelectedRestaurant} userProfile={userProfile} />
-              </div>
-            ))}
-          </div>
-        </>
-      ) : serviceType === PEDEJA_SERVICE_TYPES.ENVIAR ? (
-        /* ── ENVIAR form (legacy parcel implementation, pending backend logistics expansion) ── */
-        <div className="bg-white p-5 rounded-xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-blue-600 flex items-center"><Package className="mr-2" /> Entrega rápida de encomendas</h2>
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500 text-center">Taxa inicial Kz {appConfig.baseFee} + Kz {appConfig.perKmFee}/km</p>
-            <div className="mb-4">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={() => setParcelMapTarget('pickup')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${parcelMapTarget === 'pickup' ? 'bg-green-500 text-white shadow-md shadow-green-200' : 'bg-gray-100 text-gray-600'}`}
-                >📍 Ponto de recolha{isValidCoordinate(parcelDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
-                <button
-                  type="button"
-                  onClick={() => setParcelDetails(prev => ({
-                    ...prev,
-                    pickup: prev.dropoff,
-                    dropoff: prev.pickup,
-                    pickupLocation: prev.dropoffLocation,
-                    dropoffLocation: prev.pickupLocation
-                  }))}
-                  className="px-2 py-1.5 text-xs bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100"
-                  title="Trocar recolha e entrega"
-                >⇅ Trocar</button>
-                <button
-                  type="button"
-                  onClick={() => setParcelMapTarget('dropoff')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${parcelMapTarget === 'dropoff' ? 'bg-red-500 text-white shadow-md shadow-red-200' : 'bg-gray-100 text-gray-600'}`}
-                >🏁 Ponto de entrega{isValidCoordinate(parcelDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
-              </div>
-              <InteractiveMap
-                mode="select"
-                isParcel={true}
-                activeParcelTarget={parcelMapTarget}
-                shopLocation={parcelDetails.pickupLocation}
-                userLocation={parcelDetails.dropoffLocation}
-                centerOverride={
-                  parcelMapTarget === 'pickup'
-                    ? (parcelDetails.pickupLocation || undefined)
-                    : (parcelDetails.dropoffLocation || undefined)
-                }
-                onLocationSelect={handleParcelMapSelect}
-              />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label htmlFor="parcel-pickup-input" className="text-xs text-gray-500 flex items-center gap-1">
-                  Ponto de recolha de {isValidCoordinate(parcelDetails.pickupLocation) ? <span className="text-green-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
-                </label>
-                <button
-                  onClick={() => getCurrentLocationForParcel('pickup')}
-                  className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-green-200 active:scale-95 transition-transform"
-                ><Crosshair size={12} /> Localização actual</button>
-              </div>
-              <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                <MapPin size={18} className="text-green-500 mr-2 flex-shrink-0" />
-                <input id="parcel-pickup-input" name="pickup" value={parcelDetails.pickup} onChange={e => setParcelDetails({ ...parcelDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="Indique o ponto de recolha..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label htmlFor="parcel-dropoff-input" className="text-xs text-gray-500 flex items-center gap-1">
-                  Ponto de entrega de {isValidCoordinate(parcelDetails.dropoffLocation) ? <span className="text-green-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
-                </label>
-                <button
-                  onClick={() => getCurrentLocationForParcel('dropoff')}
-                  className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-red-200 active:scale-95 transition-transform"
-                ><Crosshair size={12} /> Localização actual</button>
-              </div>
-              <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                <Navigation size={18} className="text-red-500 mr-2 flex-shrink-0" />
-                <input id="parcel-dropoff-input" name="dropoff" value={parcelDetails.dropoff} onChange={e => setParcelDetails({ ...parcelDetails, dropoff: e.target.value, dropoffLocation: null })} type="text" placeholder="Indique o ponto de entrega..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="parcel-weight-input" className="text-sm text-gray-500">Peso da encomenda (kg)</label>
-              <input id="parcel-weight-input" name="weight" value={parcelDetails.weight} onChange={e => setParcelDetails({ ...parcelDetails, weight: e.target.value })} type="number" className="border rounded-lg p-2 mt-1 w-full" autoComplete="off" />
-            </div>
-            <div className="bg-blue-50 rounded-xl p-3 space-y-2 border border-blue-100">
-              <p className="text-xs font-bold text-blue-700">📬 Dados do destinatário (para contacto do estafeta)</p>
-              <div>
-                <label htmlFor="parcel-receiver-name-input" className="text-xs text-gray-500">Nome do destinatário</label>
-                <input id="parcel-receiver-name-input" name="receiverName" value={parcelDetails.receiverName || ''} onChange={e => setParcelDetails({ ...parcelDetails, receiverName: e.target.value })} type="text" placeholder="Nome completo do destinatário" className="border rounded-lg p-2 mt-1 w-full text-sm" autoComplete="name" />
-              </div>
-              <div>
-                <label htmlFor="parcel-receiver-phone-input" className="text-xs text-gray-500">Telefone do destinatário</label>
-                <input id="parcel-receiver-phone-input" name="receiverPhone" value={parcelDetails.receiverPhone || ''} onChange={e => setParcelDetails({ ...parcelDetails, receiverPhone: e.target.value })} type="tel" placeholder="0xx-xxx-xxxx" className="border rounded-lg p-2 mt-1 w-full text-sm" autoComplete="tel" />
-              </div>
-            </div>
-            {parcelDistance > 0 && (
-              <div className="bg-blue-50 p-3 rounded-xl text-center my-2 border border-blue-200">
-                <p className="text-sm font-bold text-blue-800">
-                  📏 ระยะทาง {parcelDistance.toFixed(1)} km &nbsp;|&nbsp; Taxa de entrega Kz {parcelEstimate}
-                </p>
-                <p className="text-xs text-blue-500 mt-0.5">Calculado entre o ponto de recolha e o ponto de entrega</p>
-              </div>
-            )}
-            <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
-              <span className="text-sm font-bold">Pagamento:</span>
-              <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white border-gray-300'}`}>carteira</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300'}`}>Numerário</button>
-            </div>
-            <button
-              onClick={placeParcelOrder}
-              disabled={!isValidCoordinate(parcelDetails.pickupLocation) || !isValidCoordinate(parcelDetails.dropoffLocation)}
-              className="w-full bg-green-500 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            >
-              คำนวณpreço & เรียกแมส
-            </button>
-          </div>
+      {visibleBusinesses.length ? visibleBusinesses.map(business => (
+        <RestaurantCard key={business.id} rest={business} appConfig={appConfig} userProfile={userProfile} onSelect={setSelectedRestaurant} />
+      )) : (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center text-gray-400">
+          <ShoppingBag size={38} className="mx-auto mb-3 opacity-30" />
+          <p className="font-semibold">Nenhum estabelecimento disponível.</p>
+          <p className="text-xs mt-1">Tente outra pesquisa ou categoria.</p>
         </div>
-      ) : serviceType === 'ride' ? (
-        /* ── Ride form ── */
-        <div className="bg-white p-5 rounded-xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-purple-600 flex items-center"><Car className="mr-2" /> Serviço de viagem</h2>
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500 text-center">Taxa de viagem inicial {appConfig.rideBaseFee ?? appConfig.baseFee}บ. + {appConfig.ridePerKmFee ?? appConfig.perKmFee}บ./km</p>
-            <div className="mb-4">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={() => setRideMapTarget('pickup')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${rideMapTarget === 'pickup' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-gray-100 text-gray-600'}`}
-                >📍 Ponto de recolha{isValidCoordinate(rideDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
-                <button
-                  type="button"
-                  onClick={() => setRideDetails(prev => ({
-                    ...prev,
-                    pickup: prev.dropoff,
-                    dropoff: prev.pickup,
-                    pickupLocation: prev.dropoffLocation,
-                    dropoffLocation: prev.pickupLocation
-                  }))}
-                  className="px-2 py-1.5 text-xs bg-purple-50 text-purple-600 font-bold rounded-lg hover:bg-purple-100"
-                  title="Trocar recolha e entrega"
-                >⇅ Trocar</button>
-                <button
-                  type="button"
-                  onClick={() => setRideMapTarget('dropoff')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${rideMapTarget === 'dropoff' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-gray-100 text-gray-600'}`}
-                >🏁 Ponto de entrega{isValidCoordinate(rideDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
-              </div>
-              <InteractiveMap
-                mode="select"
-                isParcel={true}
-                activeParcelTarget={rideMapTarget}
-                shopLocation={rideDetails.pickupLocation}
-                userLocation={rideDetails.dropoffLocation}
-                centerOverride={
-                  rideMapTarget === 'pickup'
-                    ? (rideDetails.pickupLocation || undefined)
-                    : (rideDetails.dropoffLocation || undefined)
-                }
-                onLocationSelect={handleRideMapSelect}
-              />
-            </div>
-            <div>
-              <label htmlFor="ride-pickup-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
-                <span>Ponto de recolha do passageiro</span>
-                {isValidCoordinate(rideDetails.pickupLocation) ? <span className="text-purple-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
-              </label>
-              <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                <MapPin size={18} className="text-purple-500 mr-2 flex-shrink-0" />
-                <input id="ride-pickup-input" name="ridePickup" value={rideDetails.pickup} onChange={e => setRideDetails({ ...rideDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="indiquePonto de recolha do passageiro..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="ride-dropoff-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
-                <span>Ponto de entrega (จุดหมาย)</span>
-                {isValidCoordinate(rideDetails.dropoffLocation) ? <span className="text-indigo-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
-              </label>
-              <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                <Navigation size={18} className="text-indigo-500 mr-2 flex-shrink-0" />
-                <input id="ride-dropoff-input" name="rideDropoff" value={rideDetails.dropoff} onChange={e => setRideDetails({ ...rideDetails, dropoff: e.target.value, dropoffLocation: null })} type="text" placeholder="indiqueจุดหมาย..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="ride-vehicle-type" className="text-xs text-gray-500 mb-1 block">ประเภทยานพาหนะ</label>
-              <select id="ride-vehicle-type" name="vehicleType" value={rideDetails.vehicleType} onChange={e => setRideDetails({ ...rideDetails, vehicleType: e.target.value })} className="w-full border rounded-lg p-2 text-sm bg-gray-50">
-                <option value="Motorcycle">มอเตอร์ไซค์ (1 ที่นั่ง)</option>
-                <option value="Car">รถยนต์ Eco (4 ที่นั่ง)</option>
-                <option value="SUV">รถยนต์ SUV / 7 ที่นั่ง</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="ride-note-input" className="text-xs text-gray-500 mb-1 block">หมายเหตุถึงคนขับ</label>
-              <input id="ride-note-input" name="rideNote" value={rideDetails.note} onChange={e => setRideDetails({ ...rideDetails, note: e.target.value })} type="text" placeholder="เช่น aguardarหน้าประตู 1..." className="w-full border rounded-lg p-2 text-sm" autoComplete="off" />
-            </div>
-            {rideDistance > 0 && (
-              <div className="bg-purple-50 p-3 rounded-xl text-center my-2 border border-purple-200">
-                <p className="text-sm font-bold text-purple-900">
-                  📏 ระยะทาง {rideDistance.toFixed(1)} km &nbsp;|&nbsp; ค่าโดยสาร Kz {rideEstimate}
-                </p>
-                <p className="text-xs text-purple-600 mt-0.5">Calculado entre o ponto de recolha e o ponto de entrega</p>
-              </div>
-            )}
-            <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
-              <span className="text-sm font-bold">Pagamento:</span>
-              <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-purple-100 border-purple-500 text-purple-700 font-bold' : 'bg-white border-gray-300'}`}>carteira</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>Numerário</button>
-            </div>
-            <button
-              onClick={() => placeRideOrder ? placeRideOrder(rideDetails) : notifySystem('แจ้งเตือน', 'อยู่ระหว่างประมวลผล', 'info')}
-              disabled={!isValidCoordinate(rideDetails.pickupLocation) || !isValidCoordinate(rideDetails.dropoffLocation)}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            >
-              {rideDistance > 0 ? `เรียกรถrecolhaentrega (Kz ${rideEstimate.toLocaleString()})` : 'เรียกรถrecolhaentregaทันที'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* ── Service form ── */
-        <div className="bg-white p-5 rounded-xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-emerald-600 flex items-center"><Wrench className="mr-2" /> serviçoจองช่าง / งานบ้าน (Service)</h2>
-          <div className="space-y-3">
-            <div>
-              <label htmlFor="service-category-select" className="text-xs text-gray-500 mb-1 block">seleccionarประเภทserviço</label>
-              <select
-                id="service-category-select"
-                name="serviceCategory"
-                value={serviceDetails.serviceCategory}
-                onChange={e => {
-                  const cat = e.target.value;
-                  const serviceList = appConfig.extraServices || [];
-                  const match = serviceList.find(s => s.name === cat);
-                  setServiceDetails(prev => ({ ...prev, serviceCategory: cat, price: match ? match.price : 0 }));
-                }}
-                className="w-full border rounded-lg p-2 text-sm bg-gray-50"
-              >
-                {(appConfig.extraServices || []).map((srv, idx) => (
-                  <option key={idx} value={srv.name}>
-                    🔧 {srv.name} (Kz {srv.price})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold text-emerald-700">
-                  {isValidCoordinate(serviceDetails.location) ? '🔧 พิกัดrecolhaserviço: Confirmado ✓' : '⚠️ Marque no mapalocalizaçãorecolhaserviço'}
-                </span>
-                <button
-                  type="button"
-                  onClick={getCurrentLocationForService}
-                  className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-200 active:scale-95 transition-transform"
-                >
-                  <Crosshair size={12} /> Localização actual
-                </button>
-              </div>
-              <InteractiveMap
-                mode="select"
-                userLocation={serviceDetails.location}
-                centerOverride={serviceDetails.location || undefined}
-                onLocationSelect={handleServiceMapSelect}
-              />
-            </div>
-            <div>
-              <label htmlFor="service-address-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
-                <span>สถานที่recolhaserviço (morada)</span>
-                {isValidCoordinate(serviceDetails.location) ? <span className="text-emerald-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
-              </label>
-              <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                <MapPin size={18} className="text-emerald-500 mr-2 flex-shrink-0" />
-                <input
-                  id="service-address-input"
-                  name="serviceAddress"
-                  value={serviceDetails.address}
-                  onChange={e => setServiceDetails({ ...serviceDetails, address: e.target.value, location: null })}
-                  type="text"
-                  placeholder="indiqueสถานที่/บ้านเลขที่/ซอย..."
-                  className="w-full outline-none bg-transparent text-sm"
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label htmlFor="service-date-input" className="text-xs text-gray-500 mb-1 block">วันที่recolhaserviço</label>
-                <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                  <Calendar size={16} className="text-emerald-500 mr-1.5 flex-shrink-0" />
-                  <input id="service-date-input" name="serviceDate" type="date" value={serviceDetails.preferredDate} onChange={e => setServiceDetails({ ...serviceDetails, preferredDate: e.target.value })} className="w-full bg-transparent outline-none text-xs" />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="service-time-input" className="text-xs text-gray-500 mb-1 block">เวลาโดยประมาณ</label>
-                <div className="flex items-center border rounded-lg p-2 bg-gray-50">
-                  <Clock size={16} className="text-emerald-500 mr-1.5 flex-shrink-0" />
-                  <input id="service-time-input" name="serviceTime" type="time" value={serviceDetails.preferredTime} onChange={e => setServiceDetails({ ...serviceDetails, preferredTime: e.target.value })} className="w-full bg-transparent outline-none text-xs" />
-                </div>
-              </div>
-            </div>
-            <div>
-              <label htmlFor="service-note-textarea" className="text-xs text-gray-500 mb-1 block">descriçãoadicionarเติม</label>
-              <div className="flex items-start border rounded-lg p-2 bg-gray-50">
-                <FileText size={16} className="text-emerald-500 mr-1.5 mt-0.5 flex-shrink-0" />
-                <textarea id="service-note-textarea" name="serviceNote" value={serviceDetails.note} onChange={e => setServiceDetails({ ...serviceDetails, note: e.target.value })} placeholder="indiqueสิ่งที่ต้องให้ทำ..." className="w-full bg-transparent outline-none text-xs h-16 resize-none" />
-              </div>
-            </div>
-            <div className="bg-emerald-50 p-3 rounded-xl text-center border border-emerald-200">
-              <p className="text-sm font-bold text-emerald-800">ค่าserviçoประเมิน: Kz {serviceDetails.price}</p>
-            </div>
-            <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
-              <span className="text-sm font-bold">Pagamento:</span>
-              <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-emerald-100 border-emerald-500 text-emerald-700 font-bold' : 'bg-white border-gray-300'}`}>carteira</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>Numerário</button>
-            </div>
-            <button
-              onClick={() => placeServiceOrder ? placeServiceOrder(serviceDetails) : notifySystem('แจ้งเตือน', 'อยู่ระหว่างประมวลผล', 'info')}
-              disabled={!isValidCoordinate(serviceDetails.location)}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            >
-              confirmarจองserviço
-            </button>
+      )}
+
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] px-4 py-3 z-50">
+          <div className="flex items-center justify-between">
+            <div><p className="text-xs text-gray-400">Carrinho</p><p className="font-black">Kz {calculateFoodTotal().toLocaleString()}</p></div>
+            <button onClick={() => setSelectedRestaurant(restaurants.find(item => item.id === cart[0].restaurantId) || null)} className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold">Rever pedido</button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ServiceSwitcher({ serviceType, setServiceType }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-2 shadow-sm mb-4 grid grid-cols-3 gap-2">
+      {SERVICE_OPTIONS.map(option => {
+        const Icon = option.icon;
+        const active = serviceType === option.id;
+        return (
+          <button key={option.id} onClick={() => setServiceType(option.id)} className={`rounded-xl p-3 text-left transition-all ${active ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-50 text-gray-600'}`}>
+            <Icon size={19} className="mb-2" />
+            <span className="block text-sm font-black">{option.label}</span>
+            <span className={`block text-[10px] mt-0.5 ${active ? 'text-orange-100' : 'text-gray-400'}`}>{option.description}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AddressPoint({ title, value, onChange, placeholder, location, active, onActivate, onUseCurrent }) {
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-bold text-gray-600">{title}</label>
+        <button type="button" onClick={onUseCurrent} className="text-[11px] font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1"><Crosshair size={11} /> Localização actual</button>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center border rounded-xl p-2.5 bg-gray-50">
+          <MapPin size={17} className="text-red-500 mr-2 flex-shrink-0" />
+          <input value={value} onChange={event => onChange(event.target.value)} onFocus={onActivate} type="text" placeholder={placeholder} className="w-full outline-none bg-transparent text-sm" autoComplete="street-address" />
+        </div>
+        <button type="button" onClick={onActivate} className={`p-2.5 rounded-xl border ${active ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-200 text-gray-500'}`} title="Ajustar localização no mapa" aria-label="Ajustar localização no mapa"><Navigation size={17} /></button>
+      </div>
+      {location && <p className="text-[10px] text-green-600 mt-1 font-semibold">Localização interna confirmada.</p>}
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = 'text', placeholder = '' }) {
+  return (
+    <div>
+      <label className="text-xs font-bold text-gray-500">{label}</label>
+      <input type={type} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} className="w-full border rounded-xl p-2.5 mt-1 bg-gray-50 outline-none text-sm" autoComplete="off" />
     </div>
   );
 }
