@@ -33,7 +33,7 @@ const RestaurantCard = ({ rest, appConfig, onSelect, userProfile }) => {
           <div className="restaurant-card-closed-overlay">นอกพื้นที่</div>
         )}
         {isMyShop && (
-          <span className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">ร้านคุณ</span>
+          <span className="absolute top-2 right-2 bg-violet-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">ร้านคุณ</span>
         )}
       </div>
       <div className="p-3">
@@ -49,7 +49,7 @@ const RestaurantCard = ({ rest, appConfig, onSelect, userProfile }) => {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ml-1 ${
             rest.distance <= appConfig.riderRadius
               ? 'bg-green-100 text-green-700'
-              : 'bg-orange-100 text-orange-600'
+              : 'bg-violet-100 text-violet-600'
           }`}>{rest.distance} กม.</span>
         </div>
         <div className="flex items-center gap-2 mt-1.5 text-sm text-gray-500">
