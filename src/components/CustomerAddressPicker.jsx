@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Crosshair, Loader2, MapPin, Search } from 'lucide-react';
-import 'leaflet/dist/leaflet.css';
-
-const LUANDA_CENTER = { lat: -8.8383, lng: 13.2344 };
 
 function normalizeAddress(data) {
   const address = data?.address || {};
@@ -13,111 +10,45 @@ function normalizeAddress(data) {
       .trim(),
     neighborhood: address.neighbourhood || address.suburb || address.quarter || '',
     municipality: address.municipality || '',
-    city: address.city || address.town || address.village || 'Luanda',
-    province: address.state || 'Luanda',
+    city: address.city || address.town || address.village || '',
+    province: address.state || '',
     displayName: data?.display_name || '',
   };
 }
 
-export default function CustomerAddressPicker({ value, onChange }) {
-  const containerRef = useRef(null);
-  const mapRef = useRef(null);
-  const markerRef = useRef(null);
+function hasCoordinates(value) {
+  return Number.isFinite(Number(value?.latitude)) && Number.isFinite(Number(value?.longitude));
+}
+
+export default function CustomerAddressPicker({ value = {}, onChange }) {
   const searchTimerRef = useRef(null);
   const searchAbortRef = useRef(null);
-
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-
-  const emitLocation = (lat, lng, address = {}) => {
-    onChange({
-      ...value,
-      latitude: lat,
-      longitude: lng,
-      ...address,
-    });
-  };
+  const [locationError, setLocationError] = useState('');
 
   useEffect(() => {
-    let cancelled = false;
-
-    import('leaflet').then(({ default: L }) => {
-      if (cancelled || !containerRef.current || mapRef.current) return;
-
-      const map = L.map(containerRef.current, {
-        center: [value.latitude || LUANDA_CENTER.lat, value.longitude || LUANDA_CENTER.lng],
-        zoom: value.latitude && value.longitude ? 16 : 12,
-        zoomControl: true,
-      });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(map);
-
-      map.on('click', async (event) => {
-        const { lat, lng } = event.latlng;
-        if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
-        else markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-        if (!markerRef.current._pedejaBound) {
-          markerRef.current.on('dragend', async (e) => {
-            const p = e.target.getLatLng();
-            emitLocation(p.lat, p.lng);
-          });
-          markerRef.current._pedejaBound = true;
-        }
-
-        emitLocation(lat, lng);
-      });
-
-      if (value.latitude && value.longitude) {
-        markerRef.current = L.marker([value.latitude, value.longitude], { draggable: true }).addTo(map);
-        markerRef.current.on('dragend', (event) => {
-          const p = event.target.getLatLng();
-          emitLocation(p.lat, p.lng);
-        });
-      }
-
-      mapRef.current = map;
-      setMapReady(true);
-      setTimeout(() => map.invalidateSize(), 0);
-    });
-
     return () => {
-      cancelled = true;
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
       if (searchAbortRef.current) searchAbortRef.current.abort();
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
     };
   }, []);
 
-  useEffect(() => {
-    if (!mapRef.current || !value.latitude || !value.longitude) return;
-    const L = window.L;
-    if (markerRef.current) {
-      markerRef.current.setLatLng([value.latitude, value.longitude]);
-    } else if (L) {
-      markerRef.current = L.marker([value.latitude, value.longitude], { draggable: true }).addTo(mapRef.current);
-    }
-    mapRef.current.panTo([value.latitude, value.longitude]);
-  }, [value.latitude, value.longitude]);
+  const update = (patch) => onChange({ ...value, ...patch });
 
   const searchAddress = (text) => {
     const trimmed = text.trim();
-    if (!trimmed) {
-      setResults([]);
-      return;
-    }
 
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     if (searchAbortRef.current) searchAbortRef.current.abort();
+
+    if (!trimmed) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
 
     setSearching(true);
     searchTimerRef.current = setTimeout(async () => {
@@ -140,11 +71,12 @@ export default function CustomerAddressPicker({ value, onChange }) {
         );
 
         if (!response.ok) throw new Error('Geocoding failed');
-        setResults(await response.json());
+        const data = await response.json();
+        if (!controller.signal.aborted) setResults(Array.isArray(data) ? data : []);
       } catch (error) {
         if (error.name !== 'AbortError') setResults([]);
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 450);
   };
@@ -156,62 +88,63 @@ export default function CustomerAddressPicker({ value, onChange }) {
 
     setQuery(normalized.displayName);
     setResults([]);
+    setLocationError('');
 
-    if (mapRef.current) {
-      mapRef.current.setView([lat, lng], 17, { animate: true });
-      if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
-      else {
-        import('leaflet').then(({ default: L }) => {
-          markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-          markerRef.current.on('dragend', (event) => {
-            const p = event.target.getLatLng();
-            emitLocation(p.lat, p.lng);
-          });
-        });
-      }
-    }
-
-    emitLocation(lat, lng, normalized);
+    update({
+      ...normalized,
+      latitude: Number.isFinite(lat) ? lat : null,
+      longitude: Number.isFinite(lng) ? lng : null,
+      locationResolutionStatus: Number.isFinite(lat) && Number.isFinite(lng)
+        ? 'resolved'
+        : 'unresolved',
+      locationSource: Number.isFinite(lat) && Number.isFinite(lng) ? 'geocoder' : null,
+    });
   };
 
   const useDeviceLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setLocationError('O dispositivo não disponibiliza localização.');
+      return;
+    }
+
+    setLocationError('');
     setLocating(true);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+      ({ coords }) => {
+        const lat = Number(coords.latitude);
+        const lng = Number(coords.longitude);
         setLocating(false);
 
-        if (mapRef.current) mapRef.current.setView([lat, lng], 17, { animate: true });
-        if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
-        else {
-          import('leaflet').then(({ default: L }) => {
-            markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-            markerRef.current.on('dragend', (event) => {
-              const p = event.target.getLatLng();
-              emitLocation(p.lat, p.lng);
-            });
-          });
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          setLocationError('Não foi possível obter uma localização válida.');
+          return;
         }
 
-        emitLocation(lat, lng);
+        update({
+          latitude: lat,
+          longitude: lng,
+          locationResolutionStatus: 'resolved',
+          locationSource: 'device',
+        });
       },
-      () => setLocating(false),
+      () => {
+        setLocating(false);
+        setLocationError('Não foi possível obter a localização. Pode continuar a preencher a morada manualmente.');
+      },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   };
 
-  const hasCoordinates = Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
+  const resolved = hasCoordinates(value);
 
   return (
     <div className="space-y-3">
       <div>
         <label className="block text-xs font-bold text-gray-500 mb-1.5">Morada</label>
         <input
-          value={value.addressLine1}
-          onChange={(e) => onChange({ ...value, addressLine1: e.target.value })}
+          value={value.addressLine1 || ''}
+          onChange={(e) => update({ addressLine1: e.target.value, locationResolutionStatus: 'unresolved' })}
           className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
           placeholder="Rua / Avenida e nº da casa"
           autoComplete="street-address"
@@ -220,15 +153,15 @@ export default function CustomerAddressPicker({ value, onChange }) {
 
       <div className="grid grid-cols-2 gap-3">
         <input
-          value={value.neighborhood}
-          onChange={(e) => onChange({ ...value, neighborhood: e.target.value })}
+          value={value.neighborhood || ''}
+          onChange={(e) => update({ neighborhood: e.target.value })}
           className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
           placeholder="Bairro"
           autoComplete="address-level3"
         />
         <input
-          value={value.municipality}
-          onChange={(e) => onChange({ ...value, municipality: e.target.value })}
+          value={value.municipality || ''}
+          onChange={(e) => update({ municipality: e.target.value })}
           className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
           placeholder="Município"
           autoComplete="address-level2"
@@ -237,8 +170,8 @@ export default function CustomerAddressPicker({ value, onChange }) {
 
       <div>
         <input
-          value={value.reference}
-          onChange={(e) => onChange({ ...value, reference: e.target.value })}
+          value={value.reference || ''}
+          onChange={(e) => update({ reference: e.target.value })}
           className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
           placeholder="Referência (ex.: perto do mercado...)"
         />
@@ -253,12 +186,13 @@ export default function CustomerAddressPicker({ value, onChange }) {
             searchAddress(e.target.value);
           }}
           className="input-field pl-9 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-          placeholder="Pesquisar a morada no mapa"
+          placeholder="Pesquisar esta morada (opcional)"
+          aria-label="Pesquisar morada"
         />
         {searching && <Loader2 size={16} className="absolute right-3 top-3 animate-spin text-violet-600" />}
 
         {results.length > 0 && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-[2000] bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             {results.map((result) => (
               <button
                 key={result.place_id}
@@ -266,7 +200,9 @@ export default function CustomerAddressPicker({ value, onChange }) {
                 onClick={() => selectResult(result)}
                 className="w-full text-left px-3 py-2.5 hover:bg-violet-50 dark:hover:bg-gray-800 border-b last:border-b-0 border-gray-100 dark:border-gray-800"
               >
-                <div className="text-xs font-semibold text-gray-900 dark:text-white">{result.display_name.split(',')[0]}</div>
+                <div className="text-xs font-semibold text-gray-900 dark:text-white">
+                  {result.display_name?.split(',')[0] || 'Morada encontrada'}
+                </div>
                 <div className="text-[11px] text-gray-500 truncate">{result.display_name}</div>
               </button>
             ))}
@@ -274,30 +210,30 @@ export default function CustomerAddressPicker({ value, onChange }) {
         )}
       </div>
 
-      <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 relative">
-        <div ref={containerRef} className="h-52 w-full" />
-        {!mapReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-            <Loader2 className="animate-spin text-violet-600" />
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={useDeviceLocation}
-          disabled={locating}
-          className="absolute bottom-3 right-3 z-[1000] bg-white dark:bg-gray-900 shadow-lg rounded-xl px-3 py-2 text-xs font-bold text-violet-700 disabled:opacity-60"
-        >
-          <Crosshair size={14} className="inline mr-1" />
-          {locating ? 'A localizar…' : 'Usar localização actual'}
-        </button>
+      <button
+        type="button"
+        onClick={useDeviceLocation}
+        disabled={locating}
+        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-3 py-2.5 text-xs font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-gray-800 disabled:opacity-60"
+      >
+        <Crosshair size={14} className="inline mr-1" />
+        {locating ? 'A localizar…' : 'Usar localização actual (opcional)'}
+      </button>
+
+      <div className={`rounded-xl px-3 py-2 text-xs ${
+        resolved
+          ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300'
+          : 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+      }`}>
+        <MapPin size={14} className="inline mr-1" />
+        {resolved
+          ? 'Localização encontrada. A morada continua a ser a informação principal para a entrega.'
+          : 'Pode guardar a morada mesmo sem localização automática. A nossa equipa pode resolver o resto.'}
       </div>
 
-      <div className={`rounded-xl px-3 py-2 text-xs ${hasCoordinates ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'}`}>
-        <MapPin size={14} className="inline mr-1" />
-        {hasCoordinates
-          ? 'Localização confirmada. Pode ajustar o pin no mapa.'
-          : 'Confirme a localização no mapa para permitir entregas precisas.'}
-      </div>
+      {locationError && (
+        <p className="text-xs text-amber-700 dark:text-amber-300">{locationError}</p>
+      )}
     </div>
   );
 }
