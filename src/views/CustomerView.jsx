@@ -40,7 +40,7 @@ export default function CustomerView() {
         <div className="bg-white dark:bg-gray-800 px-4 pt-4 pb-3 shadow-sm sticky top-12 z-40 border-b border-transparent dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-200">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-400 to-violet-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-200">
                 <span className="text-white text-lg">🛵</span>
               </div>
               <span className="font-black text-xl tracking-tight gradient-text">Pedejá</span>
