@@ -24,7 +24,7 @@ function ZungueiraIllustration() {
 export default function AuthView() {
   const {
     authMode, setAuthMode,
-    authLoading, setAuthLoading,
+    authLoading,
     toasts, removeToast,
     setLoginForm, setRegisterForm,
     registerForm,
@@ -38,6 +38,7 @@ export default function AuthView() {
   const [otpStage, setOtpStage] = useState(false);
   const [otpPhone, setOtpPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [localAuthLoading, setLocalAuthLoading] = useState(false);
 
   const resetLogin = () => {
     setIdentifier('');
@@ -58,14 +59,14 @@ export default function AuthView() {
     if (!email.includes('@')) return notifySystem('Erro', 'Indique um e-mail válido', 'error');
     if (!password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
 
-    setAuthLoading(true);
+    setLocalAuthLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return notifySystem('Erro', error.message, 'error');
       setLoginForm({ phone: '', email: '', password: '' });
       notifySystem('Concluído', 'Sessão iniciada.', 'success');
     } finally {
-      setAuthLoading(false);
+      setLocalAuthLoading(false);
     }
   };
 
@@ -73,7 +74,7 @@ export default function AuthView() {
     const phone = identifier.trim();
     if (!phone) return notifySystem('Erro', 'Indique o número de telefone', 'error');
 
-    setAuthLoading(true);
+    setLocalAuthLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone,
@@ -84,7 +85,7 @@ export default function AuthView() {
       setOtpStage(true);
       notifySystem('Código enviado', 'Introduza o código recebido por SMS.', 'success');
     } finally {
-      setAuthLoading(false);
+      setLocalAuthLoading(false);
     }
   };
 
@@ -92,7 +93,7 @@ export default function AuthView() {
     const token = otp.trim();
     if (!/^\d{6}$/.test(token)) return notifySystem('Erro', 'Introduza o código de 6 dígitos', 'error');
 
-    setAuthLoading(true);
+    setLocalAuthLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
         phone: otpPhone,
@@ -103,7 +104,7 @@ export default function AuthView() {
       resetLogin();
       notifySystem('Concluído', 'Sessão iniciada.', 'success');
     } finally {
-      setAuthLoading(false);
+      setLocalAuthLoading(false);
     }
   };
 
@@ -119,7 +120,7 @@ export default function AuthView() {
     if (registerForm.password.length < 6) return notifySystem('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
     if (registerForm.password !== registerForm.confirmPassword) return notifySystem('Erro', 'As palavras-passe não coincidem', 'error');
 
-    setAuthLoading(true);
+    setLocalAuthLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         phone,
@@ -152,7 +153,7 @@ export default function AuthView() {
       setAuthMode('login');
       notifySystem('Verifique o seu telefone', 'Introduza o código recebido por SMS para concluir o registo.', 'success');
     } finally {
-      setAuthLoading(false);
+      setLocalAuthLoading(false);
     }
   };
 
