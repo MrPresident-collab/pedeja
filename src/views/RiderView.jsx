@@ -89,6 +89,7 @@ function mapJob(job, order, shipment, business) {
     paymentMethod: String(order?.payment_method || (shipment ? 'PREPAID' : '')).toUpperCase(),
     totalAmount: Number(order?.total_amount ?? shipment?.total_amount ?? 0),
     riderPay: Number(job?.rider_total_pay_aoa ?? 0),
+    tipAmount: Number(order?.tip_amount ?? shipment?.tip_amount ?? 0),
     pickupKm: Number(job?.pickup_distance_km ?? 0),
     deliveryKm: Number(job?.delivery_distance_km ?? 0),
   };
@@ -145,7 +146,7 @@ export default function RiderView() {
     if (job.order_id) {
       const orderResult = await supabase
         .from('orders')
-        .select('id,business_id,payment_method,payment_status,total_amount,delivery_instructions,customer_note,recipient_name,recipient_phone,order_reference')
+        .select('id,business_id,payment_method,payment_status,total_amount,tip_amount,delivery_instructions,customer_note,recipient_name,recipient_phone,order_reference')
         .eq('id', job.order_id)
         .maybeSingle();
       if (orderResult.error) throw orderResult.error;
@@ -519,7 +520,7 @@ export default function RiderView() {
     const job = offer.job;
     const TypeIcon = getOrderTypeIcon(job.kind);
     const cash = ['CASH', 'NUMERARIO', 'CASH_ON_DELIVERY'].includes(job.paymentMethod);
-    const tip = Number(job.order?.tip_amount || job.shipment?.tip_amount || 0);
+    const tip = Number(job.tipAmount || 0);
 
     return (
       <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end justify-center">
