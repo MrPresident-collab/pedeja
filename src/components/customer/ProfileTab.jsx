@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  MapPin, ArrowDownCircle, carteira, MessageSquare,
+  MapPin, ArrowDownCircle, Wallet, MessageSquare,
   ChevronRight, Repeat, LogOut, Settings, Save,
   Camera, Crosshair, Bike, ChefHat, Plus, Trash2,
   Check, Edit,
@@ -13,7 +13,7 @@ export default function ProfileTab() {
   const {
     userProfile,
     profileSubView, setProfileSubView,
-    userRoles, usercarteira, walletHistory,
+    userRoles, userWallet, walletHistory,
     userAddresses,
     tempProfile, setTempProfile,
     withdrawMode, setWithdrawMode,
@@ -132,7 +132,7 @@ export default function ProfileTab() {
               onClick={() => setProfileSubView('wallet')}
               className="flex-1 bg-gradient-to-r from-green-600 to-green-500 p-4 rounded-2xl shadow-lg text-white flex justify-between items-center"
             >
-              <div className="flex items-center"><carteira className="mr-2" /><span className="font-bold text-sm">Kz {usercarteira.toFixed(2)}</span></div>
+              <div className="flex items-center"><carteira className="mr-2" /><span className="font-bold text-sm">Kz {userWallet.toFixed(2)}</span></div>
             </button>
             <button
               onClick={() => openChatWindow('support-' + userProfile.id, 'Suporte (Admin)', 'customer')}
@@ -215,7 +215,7 @@ export default function ProfileTab() {
         <div className="p-4 pt-0 bg-white min-h-[50vh]">
           <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl shadow-lg text-white mb-6 text-center">
             <p className="text-green-100 mb-2">Saldo actual</p>
-            <h1 className="text-4xl font-bold mb-6">Kz {usercarteira.toFixed(2)}</h1>
+            <h1 className="text-4xl font-bold mb-6">Kz {userWallet.toFixed(2)}</h1>
             {!withdrawMode ? (
               <div className="grid grid-cols-3 gap-4">
                 {[100, 500, 1000].map(amount => (
