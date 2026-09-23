@@ -7,7 +7,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
-import { DEFAULT_CATEGORIES } from '../../constants';
+import { DEFAULT_CATEGORIES, PEDEJA_BUSINESS_CATEGORIES } from '../../constants';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 
@@ -171,6 +171,10 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
   const visibleRestaurants = useMemo(() => {
     let list = restaurantsWithDistance.filter(r => r.status === 'open');
+    if (serviceType !== 'food' && serviceType !== 'parcel') {
+      const allowed = PEDEJA_BUSINESS_CATEGORIES[serviceType] || [];
+      list = list.filter(r => allowed.includes(String(r.category || '').toLowerCase().trim()));
+    }
     if (selectedCategory !== 'Todos') list = list.filter(r => r.category === selectedCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -428,24 +432,24 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     <div className="px-4 py-3">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <button
-          onClick={() => setServiceType('food')}
+          onClick={() => { setServiceType('food'); setSelectedCategory('Todos'); }}
           className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'food' ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Utensils size={16} /> {t('service_food')}</button>
         <button
+          onClick={() => { setServiceType('shopping'); setSelectedCategory('Todos'); }}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'shopping' ? 'bg-blue-500 text-white shadow-lg shadow-blue-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+        ><Package size={16} /> Compras</button>
+        <button
+          onClick={() => { setServiceType('stores'); setSelectedCategory('Todos'); }}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'stores' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+        ><ChefHat size={16} /> Lojas</button>
+        <button
           onClick={() => setServiceType('parcel')}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'parcel' ? 'bg-blue-500 text-white shadow-lg shadow-blue-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'parcel' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Package size={16} /> {t('service_parcel')}</button>
-        <button
-          onClick={() => setServiceType('ride')}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'ride' ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Car size={16} /> {t('service_ride')}</button>
-        <button
-          onClick={() => setServiceType('service')}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'service' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Wrench size={16} /> {t('service_service')}</button>
       </div>
 
-      {serviceType === 'food' ? (
+      {(serviceType === 'food' || serviceType === 'shopping' || serviceType === 'stores') ? (
         <>
           {!searchQuery && (
             <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1 scrollbar-hide">
