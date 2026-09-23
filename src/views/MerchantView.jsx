@@ -131,9 +131,9 @@ export default function MerchantView() {
       <p className="text-xs text-gray-400 mb-2">ID: {userProfile.id || currentUser?.id}</p>
       <p className="text-xs text-gray-400 mb-6">Permissões: {userRoles.join(', ')}</p>
       <button
-        onClick={() => { syncRoles(); notifySystem("A verificar", "โหลดข้อมูลล่าสุดแล้ว", "info"); }}
+        onClick={() => { syncRoles(); notifySystem("A verificar", "Dados actualizados", "info"); }}
         className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-      >🔄 ตรวจสอบEstadoอีกครั้ง</button>
+      >🔄 Verificar estado</button>
       <button
         onClick={() => { setActiveRole('customer'); setProfileSubView('reg_merchant'); setActiveTab('profile'); }}
         className="bg-violet-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
@@ -176,7 +176,7 @@ export default function MerchantView() {
                 <button
                   onClick={() => { setMerchantNotifSound(null); setCustomSoundName(null); notifySystem('Som removido', 'Usar som predefinido', 'info'); }}
                   className="text-red-400 hover:text-red-600 font-bold"
-                >ลบ</button>
+                >Eliminar</button>
               )}
             </div>
             <div className="flex gap-2">
@@ -187,7 +187,7 @@ export default function MerchantView() {
               <button
                 onClick={() => { playOrderNotificationSound(); notifySystem('🔊 Testar som', 'A reproduzir...', 'info'); }}
                 className="px-3 py-2 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 active:scale-95 transition-all text-xs font-bold"
-              >🔊 ทดสอบ</button>
+              >🔊 Testar</button>
             </div>
             <p className="text-[10px] text-gray-400 mt-1.5">Aceita .mp3, .wav e .ogg até 2 MB • Guardado apenas neste dispositivo</p>
           </div>
@@ -220,7 +220,7 @@ export default function MerchantView() {
             onClick={() => handleToggleShopStatus(myShop.id)}
             className={`px-4 py-2 rounded-lg font-bold text-white text-sm flex items-center ${myShop.status === 'open' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
           >
-            {myShop.status === 'open' ? <><ToggleRight className="mr-1" size={16} /> Fechar estabelecimento</> : <><ToggleLeft className="mr-1" size={16} /> เFechar estabelecimento</>}
+            {myShop.status === 'open' ? <><ToggleRight className="mr-1" size={16} /> Fechar estabelecimento</> : <><ToggleLeft className="mr-1" size={16} /> Abrir estabelecimento</>}
           </button>
         </div>
 
@@ -309,7 +309,7 @@ export default function MerchantView() {
               <div className="text-center text-gray-400 mt-16 py-8">
                 <Bell size={44} className="mx-auto mb-3 opacity-20" />
                 <p className="font-bold text-gray-500">ไม่มีNovos pedidos</p>
-                <p className="text-xs text-gray-400 mt-1">Novos pedidosจะแสดงที่นี่พร้อมเสียงแจ้งเตือน</p>
+                <p className="text-xs text-gray-400 mt-1">Novos pedidos aparecerão aqui com som de notificação</p>
               </div>
             )
           ) : (
@@ -370,7 +370,7 @@ export default function MerchantView() {
                       </div>
                       <div className="text-right">
                         <span className={`text-xs font-bold ${isDone ? 'text-green-600' : inTransit ? 'text-blue-500' : 'text-red-400'}`}>
-                          {isDone ? `+Kz ${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 กำลังส่ง' : 'Cancelar'}
+                          {isDone ? `+Kz ${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 Em entrega' : 'Cancelar'}
                         </span>
                       </div>
                     </div>
@@ -391,7 +391,7 @@ export default function MerchantView() {
                 onClick={() => openEditMenu(null)}
                 className="w-full bg-green-100 text-green-700 py-3 rounded-xl font-bold mb-4 border-2 border-green-200 flex items-center justify-center"
               >
-                <Plus className="mr-2" /> เพิ่มMenuใหม่
+                <Plus className="mr-2" /> Adicionar novo menu
               </button>
               <div className="space-y-4">
                 {(menuItems[myShop.id] || []).map(item => (
@@ -419,13 +419,13 @@ export default function MerchantView() {
                   </div>
                 ))}
                 {(menuItems[myShop.id] || []).length === 0 && (
-                  <p className="text-gray-400 text-center py-8 text-sm">ยังไม่มีMenu กดปุ่มด้านบนเพื่อเพิ่ม</p>
+                  <p className="text-gray-400 text-center py-8 text-sm">Ainda não existem itens. Use o botão acima para adicionar.</p>
                 )}
               </div>
             </>
           ) : (
             <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h3 className="font-bold text-lg mb-4">{isEditingMenu === 'new' ? 'เพิ่มMenuใหม่' : 'แก้ไขMenu'}</h3>
+              <h3 className="font-bold text-lg mb-4">{isEditingMenu === 'new' ? 'Adicionar novo menu' : 'Editar menu'}</h3>
               <div className="space-y-3">
                 <label htmlFor="merchant-menu-name-input" className="sr-only">Nome do prato</label>
                 <input id="merchant-menu-name-input" name="name" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Nome do prato" className="w-full border p-2 rounded" autoComplete="off" aria-label="Nome do prato" />
@@ -532,7 +532,7 @@ export default function MerchantView() {
         <div className="px-4">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-blue-100 mb-4">
             <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
-              <MapPin size={16} className="text-blue-500" /> Localizaçãoร้านค้าของคุณ
+              <MapPin size={16} className="text-blue-500" /> Localização do estabelecimento
             </h3>
             <p className="text-xs text-gray-500 mb-3">
               ตำแหน่งนี้ใช้แสดงระยะทางให้Cliente และส่งงานให้Estafetaในรัศมี {appConfig?.riderRadius || 5} กม. — <strong>A localização deve estar correcta</strong>
@@ -541,7 +541,7 @@ export default function MerchantView() {
             {/* ตำแหน่งปัจจุบัน */}
             <div className="text-xs text-gray-500 mb-3 space-y-0.5">
               <div>
-                📍 Localizaçãoร้านตอนนี้:{' '}
+                📍 Localização actual:{' '}
                 {myShop.location
                   ? `${myShop.location.lat.toFixed(4)}, ${myShop.location.lng.toFixed(4)}`
                   : <span className="text-red-400 font-bold">Ainda não definida</span>}
@@ -562,7 +562,7 @@ export default function MerchantView() {
                 className="h-64"
               />
             </div>
-            <p className="text-[10px] text-gray-400 mb-3 text-center">แตะบนแผนที่เพื่อปักหมุดLocalizaçãoร้านค้า</p>
+            <p className="text-[10px] text-gray-400 mb-3 text-center">Toque no mapa para marcar a localização do estabelecimento</p>
 
             {/* GPS อัตโนมัติ */}
             <button
@@ -576,7 +576,7 @@ export default function MerchantView() {
               }}
               className="w-full py-2 rounded-lg bg-gray-100 text-gray-600 text-sm font-bold mb-2 hover:bg-gray-200 active:scale-95 transition-all"
             >
-              📡 ใช้ GPS ปัจจุบันเป็นLocalizaçãoร้าน
+              📡 Usar GPS actual como localização do estabelecimento
             </button>
 
             {/* Guardar */}
@@ -596,9 +596,9 @@ export default function MerchantView() {
               }`}
             >
               {savingShopLocation ? (
-                <><Loader size={16} className="animate-spin" /> กำลังGuardar...</>
+                <><Loader size={16} className="animate-spin" /> A guardar...</>
               ) : (
-                <><MapPin size={16} /> GuardarLocalizaçãoร้าน</>
+                <><MapPin size={16} /> Guardar localização do estabelecimento</>
               )}
             </button>
           </div>
