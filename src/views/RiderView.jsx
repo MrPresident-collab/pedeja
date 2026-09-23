@@ -426,7 +426,7 @@ export default function RiderView() {
             </div>
           )}
           {gpsStatus === 'unavailable' && (
-            <div className="flex items-center gap-1.5 text-xs text-orange-400 bg-orange-900/30 rounded-lg px-2 py-1">
+            <div className="flex items-center gap-1.5 text-xs text-violet-400 bg-orange-900/30 rounded-lg px-2 py-1">
               <AlertCircle size={12} /> GPS ไม่พร้อมใช้งาน — ระบบจ่ายงานอัตโนมัติจะไม่ทำงาน
             </div>
           )}
@@ -1132,7 +1132,7 @@ export default function RiderView() {
               </div>
               {pendingWithdrawTotal > 0 && (
                 <div className="flex flex-col items-center gap-0.5 mb-1">
-                  <span className="text-[11px] text-orange-400">⏳ รอถอน −฿{pendingWithdrawTotal.toLocaleString()}</span>
+                  <span className="text-[11px] text-violet-400">⏳ รอถอน −฿{pendingWithdrawTotal.toLocaleString()}</span>
                   <span className="text-xs font-bold text-white">คงเหลือถอนได้ ฿{effectiveBalance.toLocaleString()}</span>
                 </div>
               )}
@@ -1149,7 +1149,7 @@ export default function RiderView() {
                 <button
                   onClick={() => { setWalletAction(walletAction === 'withdraw' ? null : 'withdraw'); setWalletAmount(''); }}
                   className={`flex-1 text-xs py-2.5 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
-                    walletAction === 'withdraw' ? 'bg-orange-500 text-white' : 'bg-orange-700/30 text-orange-300 hover:bg-orange-700/50'
+                    walletAction === 'withdraw' ? 'bg-violet-500 text-white' : 'bg-orange-700/30 text-orange-300 hover:bg-orange-700/50'
                   }`}
                 >
                   <ArrowDownCircle size={13} /> ถอนเงิน
