@@ -1,4 +1,4 @@
--- BoomRider Database Schema
+-- Pedejá Database Schema
 -- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/mlkbrnvvdcicadvvzmev/sql
 
 -- ── Drop existing policies (safe to re-run) ───────────────────────────────────
@@ -346,7 +346,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'INVALID_COORDINATES_OUT_OF_BOUNDS');
   END IF;
 
-  -- Reject default Bangkok fallback coordinates for quote creation
+  -- Reject known legacy fallback coordinates from the inherited marketplace baseline
   IF (ABS(v_plat - 13.7563) < 0.0001 AND ABS(v_plng - 100.5018) < 0.0001) OR
      (ABS(v_dlat - 13.7563) < 0.0001 AND ABS(v_dlng - 100.5018) < 0.0001) THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'DEFAULT_FALLBACK_COORDINATES_REJECTED');
