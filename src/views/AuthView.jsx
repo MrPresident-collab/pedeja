@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
 import { supabase } from '../lib/supabase';
+import CustomerAddressPicker from '../components/CustomerAddressPicker';
 
 function ZungueiraIllustration() {
   return (
@@ -37,7 +38,9 @@ export default function AuthView() {
   const [otp, setOtp] = useState('');
   const [otpStage, setOtpStage] = useState(false);
   const [otpPhone, setOtpPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const emptyAddress = { addressLine1: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null };
+  const [address, setAddress] = useState(emptyAddress);
+  const pendingRegistrationRef = useRef(null);
   const [localAuthLoading, setLocalAuthLoading] = useState(false);
 
   const resetLogin = () => {
@@ -101,11 +104,43 @@ export default function AuthView() {
         type: 'sms',
       });
       if (error) return notifySystem('Erro', error.message, 'error');
+      const pending = pendingRegistrationRef.current;
+      if (pending) {
+        try {
+          await finishRegistration(pending);
+          notifySystem('Concluído', 'Conta criada e morada confirmada.', 'success');
+        } catch (addressError) {
+          notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
+        }
+      } else {
+        notifySystem('Concluído', 'Sessão iniciada.', 'success');
+      }
       resetLogin();
-      notifySystem('Concluído', 'Sessão iniciada.', 'success');
     } finally {
       setLocalAuthLoading(false);
     }
+  };
+
+  const createCustomerAddress = async (addressValue) => {
+    const { error } = await supabase.rpc('create_customer_address', {
+      p_label: 'Casa',
+      p_address_line_1: addressValue.addressLine1.trim(),
+      p_neighborhood: addressValue.neighborhood.trim(),
+      p_municipality: addressValue.municipality.trim(),
+      p_city: addressValue.city.trim(),
+      p_province: addressValue.province.trim(),
+      p_latitude: addressValue.latitude,
+      p_longitude: addressValue.longitude,
+      p_delivery_instructions: addressValue.reference.trim() || null,
+    });
+    if (error) throw error;
+  };
+
+  const finishRegistration = async (registration) => {
+    await createCustomerAddress(registration.address);
+    pendingRegistrationRef.current = null;
+    setRegisterForm({ phone: '', email: '', password: '', confirmPassword: '', name: '' });
+    setAddress(emptyAddress);
   };
 
   const handleRegister = async () => {
@@ -114,12 +149,17 @@ export default function AuthView() {
     const email = registerForm.email.trim().toLowerCase();
 
     if (!name) return notifySystem('Erro', 'Indique o nome completo', 'error');
-    if (!address.trim()) return notifySystem('Erro', 'Indique a morada', 'error');
+    if (!address.addressLine1.trim()) return notifySystem('Erro', 'Indique a rua/avenida e o número da casa', 'error');
+    if (!address.neighborhood.trim()) return notifySystem('Erro', 'Indique o bairro', 'error');
+    if (!address.municipality.trim()) return notifySystem('Erro', 'Indique o município', 'error');
+    if (!Number.isFinite(address.latitude) || !Number.isFinite(address.longitude)) return notifySystem('Erro', 'Confirme a localização no mapa antes de continuar', 'error');
     if (!phone) return notifySystem('Erro', 'Indique o telefone', 'error');
     if (!registerForm.password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
     if (registerForm.password.length < 6) return notifySystem('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
     if (registerForm.password !== registerForm.confirmPassword) return notifySystem('Erro', 'As palavras-passe não coincidem', 'error');
 
+    const registration = { name, phone, email: email || null, address: { ...address } };
+    pendingRegistrationRef.current = registration;
     setLocalAuthLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -130,7 +170,6 @@ export default function AuthView() {
             name,
             phone,
             email: email || null,
-            address: address.trim(),
           },
         },
       });
@@ -138,11 +177,13 @@ export default function AuthView() {
       if (error) return notifySystem('Erro', error.message, 'error');
       if (!data.user) return notifySystem('Erro', 'Não foi possível criar a conta. Tente novamente.', 'error');
 
-      setRegisterForm({ phone: '', email: '', password: '', confirmPassword: '', name: '' });
-      setAddress('');
-
       if (data.session) {
-        notifySystem('Concluído', 'Conta criada. Bem-vindo à Pedejá.', 'success');
+        try {
+          await finishRegistration(registration);
+          notifySystem('Concluído', 'Conta criada e morada confirmada.', 'success');
+        } catch (addressError) {
+          notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
+        }
         return;
       }
 
@@ -282,14 +323,7 @@ export default function AuthView() {
               <h1 className="text-2xl font-bold tracking-tight text-center mb-7">Criar a sua conta</h1>
 
               <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 space-y-3">
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                  placeholder="Address"
-                  autoComplete="street-address"
-                />
+                <CustomerAddressPicker value={address} onChange={setAddress} />
                 <input
                   type="text"
                   value={registerForm.name}
