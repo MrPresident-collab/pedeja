@@ -3,7 +3,7 @@ import {
   ChefHat, LogOut, Camera, ToggleRight, ToggleLeft,
   Plus, Edit, Trash2,
   Image as ImageIcon, MapPin, Loader, Bell,
-  Clock, CheckCircle, History, X, XCircle, carteira,
+  Clock, CheckCircle, History, X, XCircle, Wallet,
   TrendingUp, BarChart2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
