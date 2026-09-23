@@ -1,6 +1,6 @@
 /**
- * สร้างไอคอน Pedejá จาก SVG → PNG ทุกขนาด (ใช้ sharp)
- * รัน: node scripts/generate-icons.cjs
+ * Generate Pedejá icons from SVG → PNG in all required sizes (sharp)
+ * Run: node scripts/generate-icons.cjs
  */
 const sharp = require('sharp');
 const fs    = require('fs');
@@ -9,7 +9,7 @@ const path  = require('path');
 const DIR = path.join(__dirname, '..', 'public', 'icons');
 fs.mkdirSync(DIR, { recursive: true });
 
-// ── SVG โลโก้ Pedejá (เหมือนหน้าเว็บ: gradient ส้ม + มอเตอร์ไซค์ + ข้อความ) ──
+// ── Pedejá SVG logo ──
 function makeSVG(size) {
   const r = Math.round(size * 0.20);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
@@ -18,7 +18,7 @@ function makeSVG(size) {
   <circle cx="256" cy="432" r="28" fill="#A78BFA"/>
 </svg>`;
 }
-// ── list ของไอคอนที่ต้องสร้าง ─────────────────────────────────────────────────
+// ── Icon sizes to generate ─────────────────────────────────────────────────
 const ICONS = [
   { name: 'icon-16.png',          size: 16  },
   { name: 'icon-32.png',          size: 32  },
