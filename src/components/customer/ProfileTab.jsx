@@ -294,7 +294,7 @@ export default function ProfileTab() {
               <MapPin size={18} className="text-blue-500" /> A minha localização actual
             </h3>
             <p className="text-xs text-gray-500 mb-3">
-              ตำแหน่งนี้ใช้คำนวณระยะทางร้านค้าใกล้บ้าน และเป็นที่อยู่เริ่มต้นสำหรับสั่งอาหาร
+              ตำแหน่งนี้ใช้คำนวณระยะทางComercianteใกล้บ้าน และเป็นที่อยู่เริ่มต้นสำหรับสั่งอาหาร
             </p>
             <div className="text-xs mb-3 space-y-0.5">
               <div className="text-gray-500">
@@ -429,7 +429,7 @@ export default function ProfileTab() {
                             onClick={() => {
                               navigator.geolocation?.getCurrentPosition(
                                 pos => setEditAddrPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                                () => notifySystem('GPS indisponível', 'กรุณาแตะแผนที่แทน', 'error'),
+                                () => notifySystem('GPS indisponível', 'Toque no mapa em alternativa', 'error'),
                                 { enableHighAccuracy: true, timeout: 8000 },
                               );
                             }}
@@ -454,7 +454,7 @@ export default function ProfileTab() {
                             }`}
                           >
                             {editAddrSaving
-                              ? <><Save size={13} className="animate-spin" /> บันทึก...</>
+                              ? <><Save size={13} className="animate-spin" /> A guardar...</>
                               : <><Save size={13} /> Guardar marcador</>}
                           </button>
                         </div>
@@ -466,14 +466,14 @@ export default function ProfileTab() {
               {userAddresses.length === 0 && !newAddrMode && (
                 <div className="text-center py-6 text-gray-400">
                   <MapPin size={32} className="mx-auto mb-1 opacity-30" />
-                  <p className="text-xs">ยังไม่มีที่อยู่บันทึกไว้ กดปุ่ม "Adicionar morada" ด้านบนเพื่อเพิ่ม</p>
+                  <p className="text-xs">Ainda não existem moradas guardadas. Use o botão "Adicionar morada" acima.</p>
                 </div>
               )}
             </div>
 
             {newAddrMode && (
               <div className="bg-gray-50 border-2 border-green-200 p-3 rounded-2xl mt-2">
-                <h4 className="font-bold text-green-700 mb-2 flex items-center gap-1 text-sm"><MapPin size={14} /> Adicionar moradaใหม่</h4>
+                <h4 className="font-bold text-green-700 mb-2 flex items-center gap-1 text-sm"><MapPin size={14} /> Adicionar nova morada</h4>
                 <div className="rounded-xl overflow-hidden border-2 border-green-300 mb-2">
                   <InteractiveMap
                     mode="select"
@@ -500,7 +500,7 @@ export default function ProfileTab() {
                   name="label"
                   value={newAddr.label}
                   onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
-                  placeholder="Nome do local เช่น บ้าน, ที่ทำงาน"
+                  placeholder="Nome do local (ex.: casa, trabalho)"
                   className="w-full p-2 border rounded-lg mb-2 text-xs"
                   autoComplete="off"
                 />
@@ -510,15 +510,15 @@ export default function ProfileTab() {
                   name="fullAddr"
                   value={newAddr.fullAddr}
                   onChange={e => setNewAddr({ ...newAddr, fullAddr: e.target.value })}
-                  placeholder="Detalhes adicionais / จุดสังเกต (opcional)"
+                  placeholder="Detalhes adicionais / ponto de referência (opcional)"
                   rows={2}
                   className="w-full p-2 border rounded-lg mb-2 text-xs resize-none"
                   autoComplete="off"
                 />
                 <button
                   onClick={() => {
-                    if (!newAddr.label) return notifySystem('ผิดพลาด', 'กรุณาใส่Nome do local', 'error');
-                    if (!newAddr.location) return notifySystem('ผิดพลาด', 'กรุณาปักหมุดบนแผนที่ก่อน', 'error');
+                    if (!newAddr.label) return notifySystem('ผิดพลาด', 'Indique o nome do local', 'error');
+                    if (!newAddr.location) return notifySystem('ผิดพลาด', 'Marque primeiro a localização no mapa', 'error');
                     const addrText = newAddr.fullAddr || `${newAddr.location.lat.toFixed(5)}, ${newAddr.location.lng.toFixed(5)}`;
                     handleAddAddress({ ...newAddr, fullAddr: addrText });
                     setNewAddr({ label: '', fullAddr: '', location: null });
@@ -526,17 +526,17 @@ export default function ProfileTab() {
                   }}
                   className="w-full bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-green-500 active:scale-95 transition-all"
                 >
-                  <Save size={15} /> บันทึกที่อยู่
+                  <Save size={15} /> Guardar morada
                 </button>
               </div>
             )}
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-bold">📋 A minha localizaçãoมีผลต่อ:</p>
-            <p>• <strong>ร้านค้า</strong> — เรียงตามระยะทางจากตำแหน่งของคุณ</p>
-            <p>• <strong>ค่าส่ง</strong> — คำนวณจากตำแหน่งร้านถึงตำแหน่งของคุณ</p>
-            <p>• <strong>ส่งพัสดุ</strong> — ใช้เป็นตำแหน่งเริ่มต้นของจุดรับ</p>
+            <p className="font-bold">📋 A minha localização afecta:</p>
+            <p>• <strong>Comerciante</strong> — ordenados pela distância da sua localização</p>
+            <p>• <strong>Taxa de entrega</strong> — calculada entre o estabelecimento e a sua localização</p>
+            <p>• <strong>Entrega de encomenda</strong> — usada como localização inicial do ponto de recolha</p>
           </div>
         </div>
 
@@ -556,15 +556,15 @@ export default function ProfileTab() {
             </label>
           </div>
           <div className="space-y-4">
-            <div><label htmlFor="edit-profile-name-input" className="text-sm text-gray-500">ชื่อ-นามสกุล</label><input id="edit-profile-name-input" name="name" value={tempProfile.name} onChange={e => setTempProfile({ ...tempProfile, name: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="name" /></div>
-            <div><label htmlFor="edit-profile-phone-input" className="text-sm text-gray-500">เบอร์โทรศัพท์</label><input id="edit-profile-phone-input" name="phone" value={tempProfile.phone} onChange={e => setTempProfile({ ...tempProfile, phone: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="tel" /></div>
-            <div><label htmlFor="edit-profile-email-input" className="text-sm text-gray-500">อีเมล</label><input id="edit-profile-email-input" name="email" value={tempProfile.email} onChange={e => setTempProfile({ ...tempProfile, email: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="email" /></div>
+            <div><label htmlFor="edit-profile-name-input" className="text-sm text-gray-500">Nome completo</label><input id="edit-profile-name-input" name="name" value={tempProfile.name} onChange={e => setTempProfile({ ...tempProfile, name: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="name" /></div>
+            <div><label htmlFor="edit-profile-phone-input" className="text-sm text-gray-500">Telefone</label><input id="edit-profile-phone-input" name="phone" value={tempProfile.phone} onChange={e => setTempProfile({ ...tempProfile, phone: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="tel" /></div>
+            <div><label htmlFor="edit-profile-email-input" className="text-sm text-gray-500">E-mail</label><input id="edit-profile-email-input" name="email" value={tempProfile.email} onChange={e => setTempProfile({ ...tempProfile, email: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="email" /></div>
             <button
               onClick={handleSaveProfile}
               disabled={profileUploading}
               className={`w-full bg-green-600 text-white py-3 rounded-lg font-bold mt-8 transition-opacity ${profileUploading ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              {profileUploading ? 'กำลังอัปโหลดรูป...' : 'บันทึกการเปลี่ยนแปลง'}
+              {profileUploading ? 'A carregar imagem...' : 'Guardar alterações'}
             </button>
           </div>
         </div>
@@ -573,10 +573,10 @@ export default function ProfileTab() {
         <div className="p-4 pt-0">
           <div className="bg-orange-50 p-4 rounded-xl mb-6 text-center">
             <ChefHat size={48} className="text-orange-500 mx-auto mb-2" />
-            <h2 className="text-xl font-bold text-orange-700">ลงทะเบียนร้านค้า (KYC)</h2>
+            <h2 className="text-xl font-bold text-orange-700">ลงทะเบียนComerciante (KYC)</h2>
           </div>
           <div className="space-y-4">
-            <div><label htmlFor="merchant-reg-shopname" className="font-bold mb-1 block">ชื่อร้านค้า</label><input id="merchant-reg-shopname" name="shopName" value={merchantRegForm.shopName} onChange={e => setMerchantRegForm({ ...merchantRegForm, shopName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+            <div><label htmlFor="merchant-reg-shopname" className="font-bold mb-1 block">ชื่อComerciante</label><input id="merchant-reg-shopname" name="shopName" value={merchantRegForm.shopName} onChange={e => setMerchantRegForm({ ...merchantRegForm, shopName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
             <div className="mb-4">
               <label htmlFor="merchant-reg-shopimage" className="text-sm mb-1 block">รูปหน้าร้าน (Shop Image)</label>
               <label htmlFor="merchant-reg-shopimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${merchantRegForm.shopImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
@@ -592,9 +592,9 @@ export default function ProfileTab() {
             </div>
             <div className="pt-2 border-t mt-2">
               <h4 className="font-bold text-gray-700 mb-2">ข้อมูลเจ้าของร้าน (ยืนยันตัวตน)</h4>
-              <div><label htmlFor="merchant-reg-realname" className="text-sm mb-1 block">ชื่อ-นามสกุล</label><input id="merchant-reg-realname" name="realName" value={merchantRegForm.realName} onChange={e => setMerchantRegForm({ ...merchantRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="name" /></div>
+              <div><label htmlFor="merchant-reg-realname" className="text-sm mb-1 block">Nome completo</label><input id="merchant-reg-realname" name="realName" value={merchantRegForm.realName} onChange={e => setMerchantRegForm({ ...merchantRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="name" /></div>
               <div><label htmlFor="merchant-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="merchant-reg-idcard" name="idCard" value={merchantRegForm.idCard} onChange={e => setMerchantRegForm({ ...merchantRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
-              <div><label htmlFor="merchant-reg-phone" className="text-sm mb-1 block">เบอร์โทรศัพท์</label><input id="merchant-reg-phone" name="phone" value={merchantRegForm.phone} onChange={e => setMerchantRegForm({ ...merchantRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
+              <div><label htmlFor="merchant-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="merchant-reg-phone" name="phone" value={merchantRegForm.phone} onChange={e => setMerchantRegForm({ ...merchantRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div><label htmlFor="merchant-reg-bankname" className="text-sm mb-1 block">ธนาคาร</label><input id="merchant-reg-bankname" name="bankName" value={merchantRegForm.bankName} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
                 <div><label htmlFor="merchant-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="merchant-reg-bankaccount" name="bankAccount" value={merchantRegForm.bankAccount} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
@@ -623,7 +623,7 @@ export default function ProfileTab() {
             >
               {merchantSubmitting
                 ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> กำลังส่งข้อมูล...</>
-                : 'ส่งใบสมัครร้านค้า'}
+                : 'ส่งใบสมัครComerciante'}
             </button>
           </div>
         </div>
@@ -635,7 +635,7 @@ export default function ProfileTab() {
             <h2 className="text-xl font-bold text-blue-700">Registar como estafeta (KYC)</h2>
           </div>
           <div className="space-y-4">
-            <div><label htmlFor="rider-reg-realname" className="font-bold mb-1 block">ชื่อ-นามสกุล (ผู้ขับขี่)</label><input id="rider-reg-realname" name="realName" value={riderRegForm.realName} onChange={e => setRiderRegForm({ ...riderRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="name" /></div>
+            <div><label htmlFor="rider-reg-realname" className="font-bold mb-1 block">Nome completo (ผู้ขับขี่)</label><input id="rider-reg-realname" name="realName" value={riderRegForm.realName} onChange={e => setRiderRegForm({ ...riderRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="name" /></div>
             <div><label htmlFor="rider-reg-vehicle" className="font-bold mb-1 block">ประเภทพาหนะ</label>
               <select id="rider-reg-vehicle" name="vehicle" value={riderRegForm.vehicle} onChange={e => setRiderRegForm({ ...riderRegForm, vehicle: e.target.value })} className="w-full border p-2 rounded-lg">
                 <option value="Motorcycle">รถจักรยานยนต์</option><option value="Car">รถยนต์</option>
@@ -644,7 +644,7 @@ export default function ProfileTab() {
             <div className="pt-2 border-t mt-2">
               <h4 className="font-bold text-gray-700 mb-2">ข้อมูลยืนยันตัวตน</h4>
               <div><label htmlFor="rider-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="rider-reg-idcard" name="idCard" value={riderRegForm.idCard} onChange={e => setRiderRegForm({ ...riderRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
-              <div><label htmlFor="rider-reg-phone" className="text-sm mb-1 block">เบอร์โทรศัพท์</label><input id="rider-reg-phone" name="phone" value={riderRegForm.phone} onChange={e => setRiderRegForm({ ...riderRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
+              <div><label htmlFor="rider-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="rider-reg-phone" name="phone" value={riderRegForm.phone} onChange={e => setRiderRegForm({ ...riderRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div><label htmlFor="rider-reg-bankname" className="text-sm mb-1 block">ธนาคาร</label><input id="rider-reg-bankname" name="bankName" value={riderRegForm.bankName} onChange={e => setRiderRegForm({ ...riderRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
                 <div><label htmlFor="rider-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="rider-reg-bankaccount" name="bankAccount" value={riderRegForm.bankAccount} onChange={e => setRiderRegForm({ ...riderRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
