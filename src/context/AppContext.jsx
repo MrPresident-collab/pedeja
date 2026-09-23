@@ -86,7 +86,7 @@ export function AppProvider({ children }) {
   });
   const [userRoles, setUserRoles] = useState(['customer']);
   const [userAddresses, setUserAddresses] = useState([
-    { id: 1, label: 'Casa', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION },
+    { id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION },
   ]);
   const [userWallet, setUserWallet] = useState(0);
   const [walletAllEntries, setWalletAllEntries] = useState([]);
@@ -237,7 +237,7 @@ export function AppProvider({ children }) {
       if (currentUser?.id === userId || userProfile?.id === userId) {
         setUserRoles(prev => prev.filter(r => r !== role));
       }
-      notifySystem('ไม่สำเร็จ', 'ไม่มีสิทธิ์เปลี่ยนบทบาทผู้ใช้', 'error');
+      notifySystem('Não foi possível', 'Sem permissão para alterar o papel do utilizador', 'error');
       return false;
     }
     return true;
@@ -265,7 +265,7 @@ export function AppProvider({ children }) {
       if (currentUser?.id === userId || userProfile?.id === userId) {
         setUserRoles(prev => prev.includes(role) ? prev : [...prev, role]);
       }
-      notifySystem('ไม่สำเร็จ', 'ไม่มีสิทธิ์เปลี่ยนบทบาทผู้ใช้', 'error');
+      notifySystem('Não foi possível', 'Sem permissão para alterar o papel do utilizador', 'error');
       return false;
     }
     return true;
@@ -647,7 +647,7 @@ export function AppProvider({ children }) {
           image: profile.avatar || null,
         };
 
-        const addresses = profile.addresses || [{ id: 1, label: 'Casa', address: 'กรุณาเพิ่มที่อยู่', location: USER_LOCATION }];
+        const addresses = profile.addresses || [{ id: 1, label: 'Casa', address: 'Adicione uma morada', location: USER_LOCATION }];
         persistedProfileRef.current = profileResult.error || !profileResult.data ? null : {
           userId: authUser.id,
           signature: JSON.stringify({
@@ -1002,7 +1002,7 @@ export function AppProvider({ children }) {
         setUserProfile(prev => ({ ...prev, location: loc }));
         setUserAddresses(prev => {
           if (!prev || prev.length === 0) {
-            return [{ id: 1, label: 'Casa', address: 'ที่อยู่ปัจจุบัน', location: loc }];
+            return [{ id: 1, label: 'Casa', address: 'Morada actual', location: loc }];
           }
           return prev.map((a, idx) => idx === 0 ? { ...a, location: loc } : a);
         });
@@ -1014,9 +1014,9 @@ export function AppProvider({ children }) {
           const d = await r.json();
           const parts = [d.address?.road, d.address?.neighbourhood || d.address?.suburb, d.address?.city || d.address?.town].filter(Boolean);
           const addr = parts.join(', ') || d.display_name?.split(',').slice(0, 3).join(',') || `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`;
-          notifySystem('📍 บันทึกตำแหน่งแล้ว', addr.substring(0, 60), 'success');
+          notifySystem('📍 Localização guardada', addr.substring(0, 60), 'success');
         } catch {
-          notifySystem('📍 บันทึกตำแหน่งแล้ว', `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`, 'success');
+          notifySystem('📍 Localização guardada', `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`, 'success');
         }
       },
       (err) => {
@@ -1057,7 +1057,7 @@ export function AppProvider({ children }) {
       if (newMerchantOrders.length > 0) {
         setMerchantTab('orders');
         playOrderNotificationSound();
-        notifySystem('🛎️ ออเดอร์ใหม่เข้าร้าน!', `Order เข้า ${newMerchantOrders.length} ครั้ง`, 'warning');
+        notifySystem('🛎️ Novo pedido recebido!', `Order เข้า ${newMerchantOrders.length} ครั้ง`, 'warning');
       }
     }
 
@@ -1084,23 +1084,23 @@ export function AppProvider({ children }) {
       if (o.customerId === uid) {
         switch (o.status) {
           case 'preparing':
-            notifySystem('👨‍🍳 ร้านกำลังเตรียมอาหาร', `ออเดอร์ #${o.id.slice(-6)} กำลังเตรียม`, 'info'); break;
+            notifySystem('👨‍🍳 ร้านA preparar o pedido', `ออเดอร์ #${o.id.slice(-6)} กำลังเตรียม`, 'info'); break;
           case 'ready_to_pickup':
-            notifySystem('✅ อาหารพร้อมแล้ว!', `กำลังหาไรเดอร์ ออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
+            notifySystem('✅ Pedido pronto!', `กำลังหาไรเดอร์ ออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
           case 'rider_accepted':
-            notifySystem('🛵 ไรเดอร์รับงานแล้ว!', `${o.riderName || 'Estafeta'} กำลังเดินทางไปรับสินค้า/อาหาร`, 'info'); break;
+            notifySystem('🛵 O estafeta aceitou o pedido!', `${o.riderName || 'Estafeta'} กำลังเดินทางไปรับสินค้า/อาหาร`, 'info'); break;
           case 'picking_up':
-            notifySystem('🏪 ไรเดอร์ถึงจุดรับแล้ว!', `${o.riderName || 'Estafeta'} ถึงจุดรับ/กำลังรอรับสินค้า`, 'info'); break;
+            notifySystem('🏪 O estafeta chegou ao ponto de recolha!', `${o.riderName || 'Estafeta'} ถึงจุดรับ/กำลังรอรับสินค้า`, 'info'); break;
           case 'delivering':
-            notifySystem('🚀 ไรเดอร์รับสินค้าเรียบร้อย!', `ออเดอร์ #${o.id.slice(-6)} กำลังเดินทางไปส่งคุณ`, 'info'); break;
+            notifySystem('🚀 O estafeta recolheu o pedido!', `ออเดอร์ #${o.id.slice(-6)} กำลังเดินทางไปส่งคุณ`, 'info'); break;
           case 'delivered':
             playNotificationSound('order');
-            notifySystem('📬 ถึงแล้ว! กรุณายืนยันรับสินค้า', `ออเดอร์ #${o.id.slice(-6)} — กด "ยืนยันรับอาหาร" เพื่อเสร็จสิ้น`, 'warning'); break;
+            notifySystem('📬 Chegou! Confirme a recepção', `ออเดอร์ #${o.id.slice(-6)} — กด "ยืนยันรับอาหาร" เพื่อเสร็จสิ้น`, 'warning'); break;
           case 'completed':
             playNotificationSound('success');
-            notifySystem(`✅ จัดส่ง${o.type === 'parcel' ? 'พัสดุ' : 'อาหาร'}สำเร็จ!`, `ออเดอร์ #${o.id.slice(-8)} ถึงมือคุณแล้ว 🎉`, 'success'); break;
+            notifySystem(`✅ Entrega${o.type === 'parcel' ? 'พัสดุ' : 'อาหาร'}Concluído!`, `ออเดอร์ #${o.id.slice(-8)} ถึงมือคุณแล้ว 🎉`, 'success'); break;
           case 'cancelled':
-            notifySystem('❌ ออเดอร์ถูกยกเลิก', `#${o.id.slice(-8)}${o.cancelReason ? `: ${o.cancelReason}` : ''}`, 'error'); break;
+            notifySystem('❌ Pedido cancelado', `#${o.id.slice(-8)}${o.cancelReason ? `: ${o.cancelReason}` : ''}`, 'error'); break;
           default: break;
         }
       }
@@ -1113,7 +1113,7 @@ export function AppProvider({ children }) {
           case 'picking_up':
             notifySystem('✅ ไรเดอร์รับอาหารออกจากร้านแล้ว', `ออเดอร์ #${o.id.slice(-6)} ออกจากหน้าจอทำงานของคุณแล้ว`, 'success'); break;
           case 'completed':
-            notifySystem('💰 ออเดอร์สำเร็จ!', `ออเดอร์ #${o.id.slice(-6)} จัดส่งสำเร็จ — รายได้เข้ากระเป๋าแล้ว`, 'success'); break;
+            notifySystem('💰 ออเดอร์Concluído!', `ออเดอร์ #${o.id.slice(-6)} EntregaConcluído — รายได้เข้ากระเป๋าแล้ว`, 'success'); break;
           default: break;
         }
       }
@@ -1306,19 +1306,19 @@ export function AppProvider({ children }) {
 
   const getCurrentLocationForForm = () => {
     if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'O navegador não suporta GPS', 'error');
-    notifySystem('กำลังดึงพิกัด', 'รอสักครู่...', 'info');
+    notifySystem('A obter localização', 'Aguarde...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
       setNewAddr(prev => ({ ...prev, location: loc }));
       const addr = await reverseGeocode(loc.lat, loc.lng);
       setNewAddr(prev => ({ ...prev, location: loc, fullAddr: addr }));
-      notifySystem('สำเร็จ', 'ดึงพิกัดปัจจุบันและที่อยู่เรียบร้อย!', 'success');
-    }, () => notifySystem('ผิดพลาด', 'ไม่สามารถดึงพิกัดได้ กรุณาเปิดสิทธิ์ GPS', 'error'), { enableHighAccuracy: true, timeout: 10000 });
+      notifySystem('Concluído', 'Localização e morada actualizadas.', 'success');
+    }, () => notifySystem('ผิดพลาด', 'Não foi possível obter a localização. Permita o acesso ao GPS.', 'error'), { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const getCurrentLocationForParcel = (target) => {
     if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'O navegador não suporta GPS', 'error');
-    notifySystem('กำลังดึงพิกัด', 'กำลังหาตำแหน่งของคุณ...', 'info');
+    notifySystem('A obter localização', 'A procurar a sua localização...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc  = { lat: position.coords.latitude, lng: position.coords.longitude };
       const addr = await reverseGeocode(loc.lat, loc.lng);
@@ -1329,14 +1329,14 @@ export function AppProvider({ children }) {
         setParcelDetails(prev => ({ ...prev, dropoff: addr, dropoffLocation: loc }));
         setParcelMapTarget('dropoff');
       }
-      notifySystem('สำเร็จ', `ตั้ง${target === 'pickup' ? 'จุดรับ' : 'จุดส่ง'}เป็นตำแหน่งปัจจุบันแล้ว`, 'success');
-    }, () => notifySystem('ผิดพลาด', 'ไม่สามารถดึงพิกัดได้ กรุณาเปิดสิทธิ์ GPS', 'error'), { enableHighAccuracy: true, timeout: 10000 });
+      notifySystem('Concluído', `ตั้ง${target === 'pickup' ? 'จุดรับ' : 'จุดส่ง'}เป็นตำแหน่งปัจจุบันแล้ว`, 'success');
+    }, () => notifySystem('ผิดพลาด', 'Não foi possível obter a localização. Permita o acesso ao GPS.', 'error'), { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const handleSaveProfile = useCallback(() => {
     setUserProfile({ ...tempProfile });
     setProfileSubView('main');
-    notifySystem('สำเร็จ', 'บันทึกข้อมูลโปรไฟล์เรียบร้อย', 'success');
+    notifySystem('Concluído', 'Perfil guardado', 'success');
   }, [tempProfile]);  
 
   // ── Merchant Management ──────────────────────────────────────────────────
@@ -1357,18 +1357,18 @@ export function AppProvider({ children }) {
 
   const handleAddMenuItem = (restaurantId, newItem) => {
     setMenuItems(prev => ({ ...prev, [restaurantId]: [...(prev[restaurantId] || []), { ...newItem, id: generateId(), available: true }] }));
-    notifySystem('สำเร็จ', 'เพิ่มเมนูเรียบร้อย', 'success');
+    notifySystem('Concluído', 'Menu adicionado', 'success');
   };
 
   const handleEditMenuItem = (restaurantId, itemId, updatedItem) => {
     setMenuItems(prev => ({ ...prev, [restaurantId]: (prev[restaurantId] || []).map(item => item.id === itemId ? { ...item, ...updatedItem } : item) }));
-    notifySystem('สำเร็จ', 'แก้ไขเมนูเรียบร้อย', 'success');
+    notifySystem('Concluído', 'Menu actualizado', 'success');
   };
 
   const handleDeleteMenuItem = (restaurantId, itemId) => {
-    if (!window.confirm('ยืนยันการลบเมนูนี้?')) return;
+    if (!window.confirm('Confirma a eliminação deste menu?')) return;
     setMenuItems(prev => ({ ...prev, [restaurantId]: (prev[restaurantId] || []).filter(item => item.id !== itemId) }));
-    notifySystem('สำเร็จ', 'ลบเมนูเรียบร้อย', 'success');
+    notifySystem('Concluído', 'Menu eliminado', 'success');
   };
 
   const handleToggleItemAvailability = (restaurantId, itemId) => {
@@ -1380,7 +1380,7 @@ export function AppProvider({ children }) {
     if (!location) return;
     const uid = currentUser?.id || userProfile?.id;
     const nextAddresses = !userAddresses?.length
-      ? [{ id: 1, label: 'Casa', address: 'ที่อยู่ปัจจุบัน', location }]
+      ? [{ id: 1, label: 'Casa', address: 'Morada actual', location }]
       : userAddresses.map((a, idx) => idx === 0 ? { ...a, location } : a);
     setUserProfile(prev => ({ ...prev, location }));
     setUserAddresses(nextAddresses);
@@ -1398,19 +1398,19 @@ export function AppProvider({ children }) {
         };
       }
     }
-    notifySystem('📍 บันทึกตำแหน่งแล้ว', 'ตำแหน่งหลักของคุณถูกอัปเดตเรียบร้อย', 'success');
+    notifySystem('📍 Localização guardada', 'ตำแหน่งหลักของคุณถูกอัปเดตเรียบร้อย', 'success');
   }, [currentUser?.id, userProfile, userAddresses]);
 
   const handleAddAddress = (addr) => {
     const loc = addr.location || USER_LOCATION;
     setUserAddresses(prev => [...prev, { id: generateId(), label: addr.label, address: addr.fullAddr, location: loc }]);
-    notifySystem('สำเร็จ', 'บันทึกที่อยู่เรียบร้อย', 'success');
+    notifySystem('Concluído', 'Morada guardada', 'success');
   };
 
   const handleUpdateAddress = useCallback(async (id, location, label, fullAddr) => {
     const addr = fullAddr || await reverseGeocode(location.lat, location.lng).catch(() => `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`);
     setUserAddresses(prev => prev.map(a => a.id === id ? { ...a, location, address: addr, ...(label ? { label } : {}) } : a));
-    notifySystem('📍 อัปเดตหมุดแล้ว', 'บันทึกตำแหน่งที่อยู่ใหม่เรียบร้อย', 'success');
+    notifySystem('📍 Localização actualizada', 'บันทึกตำแหน่งที่อยู่ใหม่เรียบร้อย', 'success');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteAddress = (id) => setUserAddresses(prev => prev.filter(a => a.id !== id));
@@ -1472,7 +1472,7 @@ export function AppProvider({ children }) {
     }
     if (pendingResult.data?.length) setPendingRequests(pendingResult.data.map(r => r.data));
     await fetchAppData();
-    notifySystem('อัปเดต', 'โหลดข้อมูลล่าสุดแล้ว', 'success');
+    notifySystem('อัปเดต', 'Dados actualizados', 'success');
   }, [currentUser?.id, userProfile?.id, fetchAppData]);
 
   const forceRefresh = useCallback(async () => {
@@ -1486,9 +1486,9 @@ export function AppProvider({ children }) {
   // ── Auth Functions ───────────────────────────────────────────────────────
   const handleLogin = async () => {
     const email = (loginForm.email || loginForm.phone || '').trim().toLowerCase();
-    if (!email) return notifySystem('ผิดพลาด', 'กรุณากรอกอีเมล', 'error');
-    if (!email.includes('@')) return notifySystem('ผิดพลาด', 'กรุณาเข้าสู่ระบบด้วยอีเมล', 'error');
-    if (!loginForm.password) return notifySystem('ผิดพลาด', 'กรุณากรอกรหัสผ่าน', 'error');
+    if (!email) return notifySystem('ผิดพลาด', 'Indique o e-mail', 'error');
+    if (!email.includes('@')) return notifySystem('ผิดพลาด', 'Inicie sessão com o e-mail', 'error');
+    if (!loginForm.password) return notifySystem('ผิดพลาด', 'Indique a palavra-passe', 'error');
     setAuthLoading(true);
     try {
       let signInRes = { error: null };
@@ -1500,37 +1500,37 @@ export function AppProvider({ children }) {
       const error = signInRes.error;
       if (error) {
         if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_AUTH === 'true') {
-          const prof = { id: 'dev-user-id', name: 'ลูกค้าทดสอบ (Dev)', phone: '0812345678', email: email || 'customer@pedeja.local', location: USER_LOCATION };
+          const prof = { id: 'dev-user-id', name: 'Cliente de teste (Dev)', phone: '0812345678', email: email || 'customer@pedeja.local', location: USER_LOCATION };
           setIsLoggedIn(true);
           setCurrentUser({ id: 'dev-user-id', email: prof.email, ...prof, roles: ['customer'] });
           setUserProfile(prof);
           setTempProfile(prof);
           setUserRoles(['customer']);
           setUserWallet(1000);
-          setUserAddresses([{ id: 1, label: 'Casa', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION }]);
-          notifySystem('เข้าสู่ระบบ (Dev Mode)', 'ยินดีต้อนรับสู่ระบบ', 'success');
+          setUserAddresses([{ id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION }]);
+          notifySystem('เข้าสู่ระบบ (Dev Mode)', 'Bem-vindo ao sistema', 'success');
           return;
         }
-        return notifySystem('ผิดพลาด', 'อีเมล/รหัสผ่านไม่ถูกต้อง', 'error');
+        return notifySystem('ผิดพลาด', 'E-mail/palavra-passe inválidos', 'error');
       }
       const { data: profile } = await supabase.from('profiles').select('banned').eq('id', signInRes.data.user.id).maybeSingle();
       if (profile?.banned) {
         await supabase.auth.signOut();
-        return notifySystem('ผิดพลาด', 'บัญชีนี้ถูกระงับการใช้งาน', 'error');
+        return notifySystem('ผิดพลาด', 'Esta conta está suspensa', 'error');
       }
       setLoginForm({ phone: '', email: '', password: '' });
-      notifySystem('สำเร็จ', 'เข้าสู่ระบบเรียบร้อย!', 'success');
+      notifySystem('Concluído', 'Sessão iniciada!', 'success');
     } finally {
       setAuthLoading(false);
     }
   };
 
   const handleRegister = async () => {
-    if (!registerForm.name) return notifySystem('ผิดพลาด', 'กรุณากรอกชื่อ-นามสกุล', 'error');
-    if (!registerForm.email) return notifySystem('ผิดพลาด', 'กรุณากรอกอีเมล', 'error');
-    if (!registerForm.password) return notifySystem('ผิดพลาด', 'กรุณากรอกรหัสผ่าน', 'error');
-    if (registerForm.password.length < 6) return notifySystem('ผิดพลาด', 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', 'error');
-    if (registerForm.password !== registerForm.confirmPassword) return notifySystem('ผิดพลาด', 'รหัสผ่านไม่ตรงกัน', 'error');
+    if (!registerForm.name) return notifySystem('ผิดพลาด', 'Indique o nome completo', 'error');
+    if (!registerForm.email) return notifySystem('ผิดพลาด', 'Indique o e-mail', 'error');
+    if (!registerForm.password) return notifySystem('ผิดพลาด', 'Indique a palavra-passe', 'error');
+    if (registerForm.password.length < 6) return notifySystem('ผิดพลาด', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
+    if (registerForm.password !== registerForm.confirmPassword) return notifySystem('ผิดพลาด', 'As palavras-passe não coincidem', 'error');
     setAuthLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -1539,11 +1539,11 @@ export function AppProvider({ children }) {
         options: { data: { name: registerForm.name, phone: registerForm.phone || null } },
       });
       if (error) return notifySystem('ผิดพลาด', error.message, 'error');
-      if (!data.user) return notifySystem('ผิดพลาด', 'สมัครไม่สำเร็จ ลองใหม่อีกครั้ง', 'error');
+      if (!data.user) return notifySystem('ผิดพลาด', 'สมัครNão foi possível ลองใหม่อีกครั้ง', 'error');
       // Database trigger handle_new_auth_user initializes profile, wallet and
       // customer role atomically, including when email confirmation is enabled.
       setRegisterForm({ phone: '', email: '', password: '', confirmPassword: '', name: '' });
-      notifySystem('สำเร็จ', 'สมัครใช้งานเรียบร้อย! ยินดีต้อนรับ 🎉', 'success');
+      notifySystem('Concluído', 'Conta criada. Bem-vindo! 🎉', 'success');
     } finally {
       setAuthLoading(false);
     }
@@ -1563,7 +1563,7 @@ export function AppProvider({ children }) {
       if (error) {
         console.error('clearWalletHistory error', error);
         await loadUserSession(currentUser);
-        notifySystem('ไม่สำเร็จ', 'ไม่สามารถล้างประวัติกระเป๋าเงินได้', 'error');
+        notifySystem('Não foi possível', 'ไม่สามารถล้างประวัติกระเป๋าเงินได้', 'error');
       }
     }
   }, [currentUser, userProfile?.id, loadUserSession]);
@@ -1603,7 +1603,7 @@ export function AppProvider({ children }) {
     supabase.from('orders').update({ data: ratedOrder }).eq('id', orderId).then(() => {});
     setShowRatingModal(false);
     setRatingOrderData(null);
-    notifySystem('ขอบคุณ! 🌟', 'บันทึกรีวิวของคุณแล้ว', 'success');
+    notifySystem('Obrigado! 🌟', 'A sua avaliação foi guardada', 'success');
   }, [orders]);  
 
   // --- Context Value ---
