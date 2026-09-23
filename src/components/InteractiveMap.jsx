@@ -450,9 +450,10 @@ export default function InteractiveMap({
       mapRef.current.panTo([centerOverride.lat, centerOverride.lng], { animate: true });
     }
 
+    const riderAnim = riderAnimRef.current;
     return () => {
-      if (riderAnimRef.current.animId) {
-        cancelAnimationFrame(riderAnimRef.current.animId);
+      if (riderAnim.animId) {
+        cancelAnimationFrame(riderAnim.animId);
       }
     };
   }, [riderLocation, centerOverride]); // eslint-disable-line react-hooks/exhaustive-deps
