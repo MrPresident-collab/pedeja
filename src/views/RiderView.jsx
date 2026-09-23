@@ -1,1443 +1,864 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Bike, User, MessageSquare, AlertCircle,
-  ToggleLeft, ToggleRight, TrendingUp, Clock, DollarSign, Star, Loader, MapPin,
-  XCircle, X, Wallet, CreditCard, ArrowUpCircle, ArrowDownCircle, Camera, Bell, Sun, Moon, Globe,
+  AlertCircle,
+  ArrowLeft,
+  Bike,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  Clock3,
+  CreditCard,
+  HandCoins,
+  History,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Package,
+  Phone,
+  Power,
+  ReceiptText,
+  ShieldAlert,
+  ShoppingBag,
+  Store,
+  WalletCards,
+  X,
+  XCircle,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
-import InteractiveMap from '../components/InteractiveMap';
-import { getDistanceFromLatLonInKm, formatDateTimeFromMs, compressImage, isSameDay } from '../utils';
-import { USER_LOCATION } from '../constants';
-import { useJobOffer } from '../context/hooks/useJobOffer';
-import { getRiderJobDoneMs, getRiderJobIncome } from '../domain/riderJobs';
+
+const ACTIVE_STATUSES = ['ACCEPTED', 'ARRIVED_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'ARRIVED_DESTINATION'];
+const STATUS_LABELS = {
+  ACCEPTED: 'A caminho da recolha',
+  ARRIVED_PICKUP: 'Chegaste à recolha',
+  PICKED_UP: 'Encomenda contigo',
+  IN_TRANSIT: 'A caminho da entrega',
+  ARRIVED_DESTINATION: 'Chegaste ao destino',
+};
+
+function money(value) {
+  return `Kz ${Number(value || 0).toLocaleString('pt-AO', { maximumFractionDigits: 0 })}`;
+}
+
+function addressParts(row, prefix) {
+  return [
+    row?.[`${prefix}_address_line_1`],
+    row?.[`${prefix}_address_line_2`],
+    row?.[`${prefix}_neighborhood`],
+    row?.[`${prefix}_municipality`],
+    row?.[`${prefix}_city`],
+  ].filter(Boolean);
+}
+
+function formatAddress(parts) {
+  return parts.filter(Boolean).join(', ');
+}
+
+function getOrderKind(job) {
+  if (job?.source_type === 'ENVIAR' || job?.enviar_shipment_id) return 'ENVIAR';
+  if (job?.source_type === 'ORDER') return job?.order?.business_id ? 'FOME' : 'COMPRAS';
+  return job?.kind || 'FOME';
+}
+
+function getOrderTypeIcon(kind) {
+  if (kind === 'ENVIAR') return Package;
+  if (kind === 'COMPRAS') return ShoppingBag;
+  return ReceiptText;
+}
+
+function mapJob(job, order, shipment, business) {
+  const pickup = formatAddress(addressParts(job, 'pickup'));
+  const destination = formatAddress(addressParts(job, 'destination'));
+  const kind = getOrderKind({ ...job, order, enviar_shipment_id: job?.enviar_shipment_id });
+  return {
+    ...job,
+    order,
+    shipment,
+    business,
+    kind,
+    typeLabel: kind === 'ENVIAR' ? 'Enviar' : kind === 'COMPRAS' ? 'Compras' : 'Fome',
+    pickupAddress: pickup || 'Ponto de recolha',
+    destinationAddress: destination || 'Ponto de entrega',
+    recipientName: job?.recipient_name || shipment?.recipient_name || order?.recipient_name || '',
+    recipientPhone: job?.recipient_phone || shipment?.recipient_phone || order?.recipient_phone || '',
+    senderName: shipment?.sender_name || business?.name || order?.business_name || '',
+    senderPhone: shipment?.sender_phone || business?.phone || '',
+    instructions: job?.delivery_instructions || shipment?.customer_note || order?.delivery_instructions || order?.customer_note || '',
+    paymentMethod: order?.payment_method || (shipment ? 'PREPAID' : null),
+    totalAmount: Number(order?.total_amount ?? shipment?.total_amount ?? 0),
+    riderPay: Number(job?.rider_total_pay_aoa ?? 0),
+    pickupKm: Number(job?.pickup_distance_km ?? 0),
+    deliveryKm: Number(job?.delivery_distance_km ?? 0),
+  };
+}
 
 export default function RiderView() {
-  const { t, i18n } = useTranslation();
   const {
     setActiveRole,
-    riderTab, setRiderTab,
-    orders, setOrders, riders, restaurants, appConfig,
-    userProfile, currentUser,
-    acceptOrder,
-    updateOrderStatus,
-    requestCancelByRole,
-    hasPendingCancelRequest,
+    riderTab,
+    setRiderTab,
+    userProfile,
+    currentUser,
+    riders,
     openChatWindow,
-    setProfileSubView, setActiveTab,
-    updateRiderWorkingLocation,
-    userWallet,
-    walletHistory,
-    pendingRequests,
-    requestTopUp,
-    requestWithdraw,
-    isDataLoading,
+    isDarkMode,
+    toggleDarkMode,
     supabase,
   } = useApp();
 
-  // ── Grab Auto-Dispatch: listen for incoming job offers ─────────────────────
-  // (uses _uid which is declared below at line ~98 in the original sync block —
-  //  useState/useEffect order is stable so we can reference it here via closure)
-  const { notifySystem } = useApp();
-  const { offer: jobOffer, countdown: offerCountdown, accepting: offerAccepting,
-    acceptOffer, rejectOffer } = useJobOffer({
-    supabase,
-    riderUserId: userProfile?.id || currentUser?.id,
-    notifySystem,
-    onAccepted: (updatedOrder) => {
-      if (updatedOrder) {
-        setOrders(prev => {
-          const exists = prev.some(o => o.id === updatedOrder.id);
-          if (exists) return prev.map(o => o.id === updatedOrder.id ? updatedOrder : o);
-          return [updatedOrder, ...prev];
-        });
+  const uid = userProfile?.id || currentUser?.id;
+  const rider = useMemo(() => riders.find((item) => item.userId === uid), [riders, uid]);
+
+  const [availability, setAvailability] = useState(rider?.availabilityStatus || 'OFFLINE');
+  const [gpsStatus, setGpsStatus] = useState('idle');
+  const [gps, setGps] = useState(null);
+  const [offer, setOffer] = useState(null);
+  const [offerSeconds, setOfferSeconds] = useState(0);
+  const [activeJob, setActiveJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [todayPay, setTodayPay] = useState(0);
+  const [history, setHistory] = useState([]);
+  const offerTimerRef = useRef(null);
+  const offerDeadlineRef = useRef(null);
+
+  const isOnline = availability === 'AVAILABLE';
+  const isBusy = availability === 'BUSY';
+
+  const loadJob = useCallback(async (jobId) => {
+    if (!jobId) return null;
+    const { data: job, error: jobError } = await supabase
+      .from('delivery_jobs')
+      .select('*')
+      .eq('id', jobId)
+      .maybeSingle();
+    if (jobError) throw jobError;
+    if (!job) return null;
+
+    let order = null;
+    let shipment = null;
+    let business = null;
+
+    if (job.order_id) {
+      const orderResult = await supabase
+        .from('orders')
+        .select('id,business_id,payment_method,payment_status,total_amount,delivery_instructions,customer_note,recipient_name,recipient_phone,order_reference')
+        .eq('id', job.order_id)
+        .maybeSingle();
+      if (orderResult.error) throw orderResult.error;
+      order = orderResult.data;
+      if (order?.business_id) {
+        const businessResult = await supabase
+          .from('businesses')
+          .select('id,name,phone')
+          .eq('id', order.business_id)
+          .maybeSingle();
+        if (!businessResult.error) business = businessResult.data;
       }
-      setRiderTab('active');
-    },
-  });
-
-  // ── state สำหrecolhaปุ่ม "Aceitar entrega" ──────────────────────────────────────────────
-  const [acceptingId, setAcceptingId] = useState(null);
-  const [savingLocation, setSavingLocation] = useState(false);
-  const [pendingLocation, setPendingLocation] = useState(null);
-
-  // ── state สำหrecolhaรูปหลักฐานentrega (keyed by orderId) ──────────────────────
-  const [proofPhotos,   setProofPhotos]   = useState({}); // { [orderId]: url }
-  const [proofUploading, setProofUploading] = useState({}); // { [orderId]: bool }
-
-  // ── state สำหrecolha carteira tab ──────────────────────────────────────────────
-  const [walletAction, setWalletAction] = useState(null); // null | 'topup' | 'withdraw'
-  const [walletAmount, setWalletAmount] = useState('');
-  const [walletBank, setWalletBank] = useState('');
-  const [walletAccName, setWalletAccName] = useState('');
-  const [walletAccNo, setWalletAccNo] = useState('');
-  const [submittingWallet, setSubmittingcarteira] = useState(false);
-
-  // ── Reset wallet form เมื่อ user เปลี่ยน (ป้องกัน stale form ข้าม account) ──
-  const _walletUid = userProfile.id || currentUser?.id || '';
-  React.useEffect(() => {
-    setWalletAction(null);
-    setWalletAmount('');
-    setWalletBank('');
-    setWalletAccName('');
-    setWalletAccNo('');
-  }, [_walletUid]);
-
-  // ── Scroll to top เมื่อ switch tab (ป้องกัน scroll position anteriorทำให้เห็น map) ──
-  React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [riderTab]);
-
-  // ── state สำหrecolha Modal ขอcancelarงาน (entregaไป Admin) ──────────────────────────
-  const [showRiderCancelModal, setShowRiderCancelModal] = useState(false);
-  const [riderCancelOrderId, setRiderCancelOrderId]     = useState(null);
-  const [riderCancelReason, setRiderCancelReason]       = useState('');
-
-  const { isDarkMode, toggleDarkMode } = useApp();
-
-  // Online/offline toggle (persisted per rider)
-  const [isOnline, setIsOnline] = useState(() => {
-    const key = `pedeja_rider_online_${userProfile.id || currentUser?.id}`;
-    return localStorage.getItem(key) !== 'false';
-  });
-
-  // 'idle' | 'tracking' | 'denied' | 'unavailable' | 'timeout'
-  const [riderGPS,   setRiderGPS]   = useState(null);
-  const [gpsStatus,  setGpsStatus]  = useState('idle');
-
-  // Refs: actualizarทุก render ผ่าน useEffect → callback ไม่มี stale closure
-  const riderIdRef    = React.useRef(null);
-  const riderUidRef   = React.useRef(null);
-  const isOnlineRef   = React.useRef(isOnline);
-  const activeJobRef  = React.useRef(null);   // { id, status } ของงานที่Aทำอยู่
-
-  // ── Sync refs ทุก render (synchronous — ไม่ใช้ useEffect เพื่อลด overhead) ──
-  const _uid = userProfile.id || currentUser?.id;
-  const meRider = riders.find(r => r.userId === _uid);
-  riderIdRef.current  = meRider?.id ?? null;
-  riderUidRef.current = _uid ?? null;
-  isOnlineRef.current = isOnline;
-  const _activeJob = orders.find(o =>
-    ['rider_accepted', 'picking_up', 'delivering'].includes(o.status) &&
-    riderIdRef.current && o.riderId === riderIdRef.current,
-  );
-  activeJobRef.current = _activeJob ? { id: _activeJob.id, status: _activeJob.status } : null;
-
-  // ── Sync online status to DB whenever rider mounts or online state/meRider changes ──
-  React.useEffect(() => {
-    const rid = meRider?.id || riderIdRef.current;
-    if (rid) {
-      supabase.from('riders').update({ is_available: isOnline }).eq('id', rid).then(() => {});
     }
-  }, [isOnline, meRider?.id, supabase]);
 
-  // ── watchPosition — mount ครั้งเดียว, cleanup ตอน unmount ────────────────
-  React.useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsStatus('unavailable');
+    if (job.enviar_shipment_id) {
+      const shipmentResult = await supabase
+        .from('enviar_shipments')
+        .select('id,total_amount,delivery_fee,sender_name,sender_phone,recipient_name,recipient_phone,customer_note')
+        .eq('id', job.enviar_shipment_id)
+        .maybeSingle();
+      if (shipmentResult.error) throw shipmentResult.error;
+      shipment = shipmentResult.data;
+    }
+
+    return mapJob(job, order, shipment, business);
+  }, [supabase]);
+
+  const loadActive = useCallback(async () => {
+    if (!rider?.id) return;
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('delivery_assignments')
+      .select('delivery_job_id,status,offer_expires_at,accepted_at,proposed_at')
+      .eq('rider_id', rider.id)
+      .in('status', ['ACCEPTED'])
+      .order('accepted_at', { ascending: false })
+      .limit(3);
+    if (assignmentError) throw assignmentError;
+
+    const jobIds = (assignments || []).map((a) => a.delivery_job_id);
+    if (!jobIds.length) {
+      setActiveJob(null);
       return;
     }
 
-    const GEO_OPTS  = { enableHighAccuracy: true, maximumAge: 4000, timeout: 20000 };
+    for (const jobId of jobIds) {
+      const job = await loadJob(jobId);
+      if (job && ACTIVE_STATUSES.includes(job.status)) {
+        setActiveJob(job);
+        return;
+      }
+    }
+    setActiveJob(null);
+  }, [loadJob, rider?.id, supabase]);
 
-    const onSuccess = (pos) => {
-      const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setRiderGPS(loc);
+  const loadHistory = useCallback(async () => {
+    if (!rider?.id) return;
+    const { data: jobs, error: jobsError } = await supabase
+      .from('delivery_jobs')
+      .select('id,status,rider_total_pay_aoa,created_at,updated_at,delivered_at')
+      .eq('status', 'DELIVERED')
+      .order('delivered_at', { ascending: false })
+      .limit(50);
+    if (jobsError) throw jobsError;
+    const rows = (jobs || []).map((job) => ({
+      ...job,
+      pay: Number(job.rider_total_pay_aoa || 0),
+    }));
+    setHistory(rows);
+    const today = new Date().toDateString();
+    setTodayPay(rows.filter((row) => new Date(row.delivered_at || row.updated_at || row.created_at).toDateString() === today)
+      .reduce((sum, row) => sum + row.pay, 0));
+  }, [rider?.id, supabase]);
+
+  const loadState = useCallback(async () => {
+    if (!rider?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const { data: riderRow, error: riderError } = await supabase
+        .from('riders')
+        .select('availability_status')
+        .eq('id', rider.id)
+        .maybeSingle();
+      if (riderError) throw riderError;
+      setAvailability(riderRow?.availability_status || 'OFFLINE');
+      await Promise.all([loadActive(), loadHistory()]);
+    } catch (err) {
+      console.error('[RiderView] load state', err);
+      setError('Não foi possível actualizar o estado do estafeta.');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadActive, loadHistory, rider?.id, supabase]);
+
+  useEffect(() => {
+    loadState();
+  }, [loadState]);
+
+  const hydrateOffer = useCallback(async (assignment) => {
+    if (!assignment?.delivery_job_id) return;
+    const job = await loadJob(assignment.delivery_job_id);
+    if (!job) return;
+
+    const expires = new Date(assignment.offer_expires_at || Date.now()).getTime();
+    const seconds = Math.max(0, Math.ceil((expires - Date.now()) / 1000));
+    if (!seconds) return;
+
+    setOffer({ ...assignment, job });
+    offerDeadlineRef.current = expires;
+    setOfferSeconds(seconds);
+    clearInterval(offerTimerRef.current);
+    offerTimerRef.current = setInterval(() => {
+      const left = Math.max(0, Math.ceil((offerDeadlineRef.current - Date.now()) / 1000));
+      setOfferSeconds(left);
+      if (!left) {
+        clearInterval(offerTimerRef.current);
+        setOffer(null);
+      }
+    }, 250);
+  }, [loadJob]);
+
+  useEffect(() => () => clearInterval(offerTimerRef.current), []);
+
+  useEffect(() => {
+    if (!rider?.id) return undefined;
+
+    const channel = supabase
+      .channel(`rider-delivery-assignments-${rider.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'delivery_assignments',
+        filter: `rider_id=eq.${rider.id}`,
+      }, async (payload) => {
+        const row = payload.new;
+        if (row?.status === 'PROPOSED') {
+          await hydrateOffer(row);
+        } else if (row?.status === 'ACCEPTED') {
+          clearInterval(offerTimerRef.current);
+          setOffer(null);
+          const job = await loadJob(row.delivery_job_id);
+          if (job) setActiveJob(job);
+          setAvailability('BUSY');
+        } else if (['REJECTED', 'EXPIRED', 'REVOKED'].includes(row?.status)) {
+          setOffer(null);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      clearInterval(offerTimerRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [hydrateOffer, loadJob, rider?.id, supabase]);
+
+  useEffect(() => {
+    if (!rider?.id) return undefined;
+
+    let cancelled = false;
+    const refresh = async () => {
+      const { data, error: assignmentError } = await supabase
+        .from('delivery_assignments')
+        .select('delivery_job_id,status,offer_expires_at,proposed_at')
+        .eq('rider_id', rider.id)
+        .in('status', ['PROPOSED', 'ACCEPTED'])
+        .order('proposed_at', { ascending: false })
+        .limit(5);
+      if (assignmentError || cancelled) return;
+
+      const proposed = (data || []).find((row) =>
+        row.status === 'PROPOSED' && new Date(row.offer_expires_at || 0).getTime() > Date.now()
+      );
+      if (proposed) await hydrateOffer(proposed);
+    };
+    refresh();
+    return () => { cancelled = true; };
+  }, [hydrateOffer, rider?.id, supabase]);
+
+  useEffect(() => {
+    if (!navigator.geolocation || !rider?.id) {
+      setGpsStatus('unavailable');
+      return undefined;
+    }
+
+    const options = { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 };
+    const onSuccess = (position) => {
+      const next = { lat: position.coords.latitude, lng: position.coords.longitude };
+      setGps(next);
       setGpsStatus('tracking');
-
-      const riderId = riderIdRef.current;
-      if (riderId) updateRiderWorkingLocation(riderId, loc, isOnlineRef.current);
+      supabase.rpc('rider_update_location', {
+        p_latitude: next.lat,
+        p_longitude: next.lng,
+      }).then(({ error: rpcError }) => {
+        if (rpcError) console.error('[RiderView] rider_update_location', rpcError);
+      });
+    };
+    const onError = (geoError) => {
+      if (geoError.code === 1) setGpsStatus('denied');
+      else setGpsStatus('unavailable');
     };
 
-    const onError = (err) => {
-      if (err.code === err.PERMISSION_DENIED)   setGpsStatus('denied');
-      else if (err.code === err.POSITION_UNAVAILABLE) setGpsStatus('unavailable');
-      else                                            setGpsStatus('timeout');
-    };
-
-    // ดึงlocalizaçãoเร็วครั้งแรกก่อน (ไม่aguardar watch)
-    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-      ...GEO_OPTS, timeout: 10000,
-    });
-
-    // Watch แบบต่อเนื่อง — จะเรียก onSuccess ทุกครั้งที่localizaçãoเปลี่ยน
-    const watchId = navigator.geolocation.watchPosition(onSuccess, onError, GEO_OPTS);
-
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, options);
+    const watchId = navigator.geolocation.watchPosition(onSuccess, onError, options);
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rider?.id, supabase]);
 
-  const toggleOnline = () => {
-    setIsOnline(prev => {
-      const next = !prev;
-      const key = `pedeja_rider_online_${userProfile.id || currentUser?.id}`;
-      localStorage.setItem(key, String(next));
-      // The isOnline effect above writes the new availability once.
-      return next;
-    });
+  const setOnline = async (nextOnline) => {
+    setActionLoading(true);
+    setError('');
+    try {
+      const { data, error: rpcError } = await supabase.rpc('rider_set_availability', {
+        p_status: nextOnline ? 'AVAILABLE' : 'OFFLINE',
+      });
+      if (rpcError) throw rpcError;
+      if (!data) throw new Error('AVAILABILITY_NOT_CHANGED');
+      setAvailability(nextOnline ? 'AVAILABLE' : 'OFFLINE');
+    } catch (err) {
+      console.error('[RiderView] availability', err);
+      setError(err?.message === 'RIDER_NOT_VERIFIED'
+        ? 'A conta de estafeta ainda não está verificada.'
+        : err?.message === 'ACTIVE_DELIVERY_EXISTS'
+          ? 'Conclua a entrega activa antes de ficar offline.'
+          : 'Não foi possível alterar a disponibilidade.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  // ── หาdadosestafetaก่อน ────────────────────────────────────────────────
-  const me = riders.find(r => r.userId === (userProfile.id || currentUser?.id));
+  const acceptOffer = async () => {
+    if (!offer?.job?.id || actionLoading || offerSeconds <= 0) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      await supabase.rpc('rider_accept_delivery', { p_delivery_job_id: offer.job.id }).then(({ error: rpcError }) => {
+        if (rpcError) throw rpcError;
+      });
+      const job = await loadJob(offer.job.id);
+      setOffer(null);
+      clearInterval(offerTimerRef.current);
+      setActiveJob(job);
+      setAvailability('BUSY');
+      setRiderTab('active');
+    } catch (err) {
+      console.error('[RiderView] accept', err);
+      setError(err?.message === 'OFFER_EXPIRED' || err?.message?.includes('OFFER_EXPIRED')
+        ? 'Esta entrega já expirou.'
+        : 'Não foi possível aceitar esta entrega.');
+      setOffer(null);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-  // ── localizaçãoที่ใช้คำนวณระยะทาง: GPS real → localizaçãoปักหมุดของestafeta → USER_LOCATION ──
-  const myLocation = riderGPS || me?.location || USER_LOCATION;
+  const rejectOffer = async () => {
+    if (!offer?.job?.id || actionLoading) return;
+    setActionLoading(true);
+    try {
+      const { error: rpcError } = await supabase.rpc('rider_reject_delivery', {
+        p_delivery_job_id: offer.job.id,
+        p_reason: 'Rider recusou a oferta',
+      });
+      if (rpcError) throw rpcError;
+      setOffer(null);
+      clearInterval(offerTimerRef.current);
+    } catch (err) {
+      console.error('[RiderView] reject', err);
+      setError('Não foi possível recusar esta entrega.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
-  if (!me) {
+  const advance = async (action) => {
+    if (!activeJob?.id || actionLoading) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      const { error: rpcError } = await supabase.rpc('rider_advance_delivery', {
+        p_delivery_job_id: activeJob.id,
+        p_action: action,
+      });
+      if (rpcError) throw rpcError;
+      const job = await loadJob(activeJob.id);
+      if (job?.status === 'DELIVERED') {
+        setActiveJob(null);
+        setAvailability('AVAILABLE');
+        await loadHistory();
+        setRiderTab('home');
+      } else {
+        setActiveJob(job);
+      }
+    } catch (err) {
+      console.error('[RiderView] advance', err);
+      const message = err?.message || '';
+      if (message.includes('CASH_PAYMENT_REQUIRED') || message.includes('ORDER_PAYMENT_REQUIRED')) {
+        setError('O pagamento desta entrega ainda não foi confirmado.');
+      } else if (message.includes('PICKUP_WAIT_EXCEEDED')) {
+        setError('O tempo máximo de espera na recolha foi atingido. Contacte o suporte.');
+      } else {
+        setError('Não foi possível actualizar a entrega. O servidor manteve o estado anterior.');
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const navigationUrl = useCallback((location, address) => {
+    if (location?.coordinates?.length === 2) {
+      const [lng, lat] = location.coordinates;
+      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    }
+    return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : '#';
+  }, []);
+
+  const help = useCallback(() => {
+    openChatWindow(
+      activeJob ? `support-${activeJob.id}` : `support-${uid}`,
+      'Suporte Pedejá',
+      'rider',
+    );
+  }, [activeJob, openChatWindow, uid]);
+
+  if (!rider) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6 text-center">
-        <AlertCircle size={56} className="text-yellow-400 mb-4" />
-        <h2 className="text-xl font-bold mb-2">Ainda não existem dados do estafeta</h2>
-        <p className="text-gray-400 text-sm mb-2">O Admin ainda não aprovou ou os dados precisam de ser actualizados</p>
-        <p className="text-xs text-gray-500 mb-6">UID: {userProfile.id || currentUser?.id || '—'}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-        >🔄 Actualizar dados</button>
-        <button
-          onClick={() => { setActiveRole('customer'); setProfileSubView('reg_rider'); setActiveTab('profile'); }}
-          className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-        >📋 Registar estafeta</button>
-        <button onClick={() => setActiveRole('customer')} className="text-gray-400 text-sm underline mt-2">Voltar ao início</button>
-      </div>
-    );
-  }
-
-  if (me.status === 'banned') {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6 text-center">
-        <AlertCircle size={56} className="text-red-400 mb-4" />
-        <h2 className="text-xl font-bold mb-2">Conta suspensa</h2>
-        <p className="text-gray-400 text-sm mb-6">Contacte o suporte</p>
-        <button onClick={() => setActiveRole('customer')} className="text-gray-400 text-sm underline">Voltar ao início</button>
-      </div>
-    );
-  }
-
-  // ── ตัวกaguardarงงานที่พร้อมrecolha ────────────────────────────────────────────────
-  const myUid = userProfile.id || currentUser?.id;
-  const availableJobs = isOnline ? orders.filter(o => {
-    if (o.status !== 'ready_to_pickup' || o.riderId) return false;
-    // ห้ามAceitar entregaที่ตัวเองสั่ง
-    if (o.customerId && o.customerId === myUid) return false;
-    // verificarระยะทาง — ถ้าไม่มี pickupLocation ก็แสดงงานนั้นด้วย (พิมพ์moradaเอง)
-    if (!o.pickupLocation) return true;
-    const dist = getDistanceFromLatLonInKm(
-      myLocation.lat, myLocation.lng,
-      o.pickupLocation.lat, o.pickupLocation.lng,
-    );
-    return dist <= (appConfig.riderRadius || 5);
-  }) : [];
-
-  const myJobs = orders.filter(o =>
-    ['rider_accepted', 'picking_up', 'delivering'].includes(o.status) && o.riderId === me.id,
-  );
-
-  const historyJobs = orders.filter(o =>
-    ['delivered', 'completed', 'cancelled'].includes(o.status) && o.riderId === me.id,
-  );
-
-  const completedJobs = historyJobs.filter(j => ['delivered', 'completed'].includes(j.status));
-  const nowMs = Date.now();
-  const todayJobs = completedJobs.filter(j => isSameDay(getRiderJobDoneMs(j), nowMs));
-  const todayEarning = todayJobs.reduce((s, j) => s + getRiderJobIncome(j, appConfig), 0);
-  const totalEarning = completedJobs.reduce((s, j) => s + getRiderJobIncome(j, appConfig), 0);
-
-  return (
-    <div className={`min-h-screen pt-14 pb-20 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
-
-      {/* ══ Grab Auto-Dispatch: Job Offer Popup ══════════════════════════════ */}
-      {jobOffer && (() => {
-        const offerOrder = orders.find(o => o.id === jobOffer.order_id);
-        return (
-          <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end justify-center">
-            <div className="bg-gray-900 border-2 border-green-500 w-full max-w-md rounded-t-3xl p-5 pb-8 shadow-2xl animate-slide-up">
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-                  <Bell size={20} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-white font-black text-base">🛵 Nova entrega disponível!</p>
-                  <p className="text-gray-400 text-xs">Responda dentro de {offerCountdown} segundos</p>
-                </div>
-                {/* Countdown ring */}
-                <div className="ml-auto text-center">
-                  <div className={`text-3xl font-black ${offerCountdown <= 5 ? 'text-red-400 animate-pulse' : 'text-green-400'}`}>
-                    {offerCountdown}
-                  </div>
-                  <div className="text-[10px] text-gray-500">segundos</div>
-                </div>
-              </div>
-
-              {/* Countdown bar */}
-              <div className="w-full bg-gray-700 rounded-full h-1.5 mb-4 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${offerCountdown <= 5 ? 'bg-red-500' : 'bg-green-500'}`}
-                  style={{ width: `${(offerCountdown / 25) * 100}%` }}
-                />
-              </div>
-
-              {/* Order detail */}
-              {offerOrder && (
-                <div className="bg-gray-800 rounded-xl p-3 mb-4 space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-bold text-sm">
-                      {offerOrder.type === 'parcel' ? '📦 Entregar encomenda' : offerOrder.type === 'ride' ? '🚗 Viagem' : offerOrder.type === 'service' ? `🛠️ Serviço: ${offerOrder.serviceCategory || ''}` : offerOrder.restaurantName}
-                    </span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      offerOrder.paymentMethod === 'cash'
-                        ? 'bg-yellow-900/60 text-yellow-300'
-                        : 'bg-green-900/60 text-green-300'
-                    }`}>
-                      {offerOrder.paymentMethod === 'cash' ? '💰 Numerário' : '👛 carteira'}
-                    </span>
-                  </div>
-                  {offerOrder.type === 'food' && offerOrder.address && (
-                    <p className="text-xs text-gray-400">📍 Entregar em: {offerOrder.address}</p>
-                  )}
-                  {offerOrder.type === 'parcel' && (
-                    <p className="text-xs text-gray-400">📦 {offerOrder.pickup} → {offerOrder.dropoff}</p>
-                  )}
-                  {offerOrder.type === 'service' && (
-                    <div className="text-xs text-gray-300 space-y-0.5">
-                      <p className="text-emerald-400 font-semibold">🛠️ Tipo de serviço: {offerOrder.serviceCategory || 'Não especificado'}</p>
-                      {(offerOrder.preferredDate || offerOrder.preferredTime) && (
-                        <p className="text-gray-400">📅 Agendamento: {offerOrder.preferredDate || ''} {offerOrder.preferredTime || ''}</p>
-                      )}
-                      {offerOrder.notes && (
-                        <p className="text-yellow-200 text-[11px]">📝 Observação: {offerOrder.notes}</p>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex gap-3 pt-1 text-xs text-gray-300">
-                    <span>💵 Kz {(offerOrder.grandTotal || 0).toLocaleString()}</span>
-                    <span>🛵 Taxa de entrega Kz {(offerOrder.deliveryFee || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => rejectOffer(jobOffer.id, offerOrder)}
-                  disabled={offerAccepting}
-                  className="flex-1 py-3 rounded-xl border border-red-700 text-red-400 font-bold text-sm hover:bg-red-900/20 active:scale-95 transition-all disabled:opacity-40"
-                >
-                  ✕ Recusar
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const ok = await acceptOffer(jobOffer.id);
-                      if (ok) {
-                        setRiderTab('active');
-                      }
-                    } catch (err) {
-                      console.error('[RiderView] accept offer error:', err);
-                    }
-                  }}
-                  disabled={offerAccepting}
-                  className="flex-2 flex-grow py-3 rounded-xl bg-green-500 text-white font-black text-base hover:bg-green-400 active:scale-95 transition-all shadow-lg shadow-green-900/50 disabled:opacity-40 flex items-center justify-center gap-2"
-                >
-                  {offerAccepting
-                    ? <><Loader size={16} className="animate-spin" /> A aceitar...</>
-                    : '✅ Aceitar!'}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      <div className="p-4 bg-gray-800 shadow-lg">
-        <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-bold flex items-center"><Bike className="mr-2 text-green-400" /> Pedejá</h1>
-          <div className="flex items-center gap-2">
-            {/* Language Switcher */}
-            <button
-              onClick={() => {
-                const nextLang = i18n.language === 'th' ? 'en' : 'th';
-                i18n.changeLanguage(nextLang);
-                localStorage.setItem('pedeja_lang', nextLang);
-              }}
-              className="bg-gray-700 text-gray-200 hover:bg-gray-600 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
-            >
-              <Globe size={14} className="text-green-400" />
-              <span>{i18n.language === 'th' ? 'EN' : 'TH'}</span>
-            </button>
-
-            {/* Dark Mode Switcher */}
-            <button
-              onClick={toggleDarkMode}
-              className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
-                isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-              }`}
-              title={isDarkMode ? t('light_mode') : t('dark_mode')}
-            >
-              {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button onClick={() => setActiveRole('customer')} className="text-xs bg-gray-700 text-white px-3 py-1.5 rounded-lg">{t('back')}</button>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center text-sm text-gray-300">
-            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center font-bold text-sm mr-2">
-              {(me.name || 'R')[0]}
-            </div>
-            <div>
-              <div className="font-bold text-white text-sm">{me.name}</div>
-              <div className="text-xs text-gray-400">{me.phone}</div>
-            </div>
-          </div>
-          {/* Online/Offline toggle */}
-          <button
-            onClick={toggleOnline}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${
-              isOnline
-                ? 'bg-green-500 text-white shadow-lg shadow-green-900/50'
-                : 'bg-gray-700 text-gray-400'
-            }`}
-          >
-            {isOnline ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-            {isOnline ? 'Online' : 'Offline'}
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+        <div className="max-w-sm text-center">
+          <ShieldAlert size={40} className="mx-auto mb-4 text-amber-400" />
+          <h1 className="text-xl font-bold">Conta de estafeta não disponível</h1>
+          <p className="text-sm text-slate-400 mt-2">A tua conta ainda não tem um perfil de estafeta activo.</p>
+          <button onClick={() => setActiveRole('customer')} className="mt-6 px-5 py-3 rounded-xl bg-white text-slate-900 font-bold">
+            Voltar
           </button>
         </div>
+      </div>
+    );
+  }
 
-        {/* ── GPS Status Indicator ── */}
-        <div className="mt-2">
-          {gpsStatus === 'tracking' && (
-            <div className="flex items-center gap-1.5 text-xs text-green-400">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-              </span>
-              Localização GPS em tempo real
-              {riderGPS && (
-                <span className="text-gray-500 ml-1">
-                  ({riderGPS.lat.toFixed(4)}, {riderGPS.lng.toFixed(4)})
-                </span>
-              )}
-            </div>
-          )}
-          {gpsStatus === 'denied' && (
-            <div className="flex items-center gap-1.5 text-xs text-yellow-400 bg-yellow-900/30 rounded-lg px-2 py-1">
-              <AlertCircle size={12} />
-              GPS ถูกfecharกั้น — ระบบจ่ายงานอัตโนมัติจะไม่ทำงาน por favorabrirสิทธิ์localizaçãoในเบราว์เซอร์
-            </div>
-          )}
-          {gpsStatus === 'unavailable' && (
-            <div className="flex items-center gap-1.5 text-xs text-violet-400 bg-orange-900/30 rounded-lg px-2 py-1">
-              <AlertCircle size={12} /> GPS indisponível — a distribuição automática não funcionará
-            </div>
-          )}
-          {gpsStatus === 'timeout' && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <AlertCircle size={12} /> GPS expirou — a tentar novamente...
-            </div>
-          )}
-        </div>
+  const shell = isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-950';
+  const panel = isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
+  const muted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          <div className="bg-gray-700 rounded-xl p-2.5 text-center">
-            <DollarSign size={14} className="text-green-400 mx-auto mb-0.5" />
-            <div className="text-sm font-bold text-green-400">Kz {todayEarning.toFixed(0)}</div>
-            <div className="text-[10px] text-gray-500">{t('rider_today')}</div>
+  const renderOffer = () => {
+    if (!offer) return null;
+    const job = offer.job;
+    const TypeIcon = getOrderTypeIcon(job.kind);
+    const cash = job.paymentMethod === 'CASH';
+    const tip = Number(job.order?.tip_amount || job.shipment?.tip_amount || 0);
+
+    return (
+      <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end justify-center">
+        <div className={`${panel} w-full max-w-md rounded-t-3xl border p-5 pb-7 shadow-2xl`}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Nova entrega</p>
+              <p className="text-3xl font-black mt-1">{money(job.riderPay)}</p>
+            </div>
+            <div className={`w-14 h-14 rounded-full border-4 flex items-center justify-center font-black text-lg ${offerSeconds <= 5 ? 'border-red-500 text-red-400' : 'border-emerald-500 text-emerald-400'}`}>
+              {offerSeconds}
+            </div>
           </div>
-          <div className="bg-gray-700 rounded-xl p-2.5 text-center">
-            <TrendingUp size={14} className="text-blue-400 mx-auto mb-0.5" />
-            <div className="text-sm font-bold text-blue-400">Kz {totalEarning.toFixed(0)}</div>
-            <div className="text-[10px] text-gray-500">{t('rider_total')}</div>
+
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="rounded-xl border border-slate-700 px-3 py-2 flex items-center gap-2">
+              <TypeIcon size={17} />
+              <span className="text-sm font-bold">{job.typeLabel}</span>
+            </div>
+            <div className="rounded-xl border border-slate-700 px-3 py-2 flex items-center gap-2">
+              {cash ? <HandCoins size={17} /> : <CreditCard size={17} />}
+              <span className="text-sm font-bold">{cash ? 'Numerário' : 'Pago'}</span>
+            </div>
           </div>
-          <div className="bg-gray-700 rounded-xl p-2.5 text-center">
-            <Star size={14} className="text-yellow-400 mx-auto mb-0.5" />
-            <div className="text-sm font-bold text-yellow-400">{completedJobs.length}</div>
-            <div className="text-[10px] text-gray-500">{t('rider_completed_jobs')}</div>
+
+          <div className="flex items-center gap-4 text-sm font-semibold mb-4">
+            <span>{job.pickupKm ? `${job.pickupKm.toFixed(1)} km` : '—'}</span>
+            <span>{job.expected_pickup_at ? `até ${new Date(job.expected_pickup_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}` : 'tempo estimado'}</span>
+            {tip > 0 && <span className="text-emerald-400">Gorjeta {money(tip)}</span>}
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Recolha</p>
+              <p className="font-bold mt-1">{job.senderName || 'Ponto de recolha'}</p>
+              <p className={`text-sm ${muted}`}>{job.pickupAddress}</p>
+            </div>
+            <div className="h-px bg-slate-800" />
+            <div>
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Entrega</p>
+              <p className="font-bold mt-1">{job.recipientName || 'Destinatário'}</p>
+              <p className={`text-sm ${muted}`}>{job.destinationAddress}</p>
+              {job.instructions && <p className="text-sm mt-1 text-amber-400">{job.instructions}</p>}
+            </div>
+          </div>
+
+          {cash && job.totalAmount > 0 && (
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-sm mb-4">
+              Cobrar no destino: <strong>{money(job.totalAmount)}</strong>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button onClick={rejectOffer} disabled={actionLoading} className="flex-1 py-3.5 rounded-xl border border-slate-700 font-bold disabled:opacity-40">
+              Recusar
+            </button>
+            <button onClick={acceptOffer} disabled={actionLoading || offerSeconds <= 0} className="flex-[1.4] py-3.5 rounded-xl bg-emerald-500 text-white font-black disabled:opacity-40">
+              {actionLoading ? 'A processar...' : 'Aceitar'}
+            </button>
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* GPS status bar */}
-      {isOnline && (
-        <div className={`mx-4 mb-1 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 ${riderGPS ? 'bg-green-900/40 text-green-300' : 'bg-yellow-900/40 text-yellow-300'}`}>
-          <span>{riderGPS ? '📡' : '⚠️'}</span>
-          {riderGPS
-            ? `GPS: ${riderGPS.lat.toFixed(4)}, ${riderGPS.lng.toFixed(4)} — raio ${appConfig.riderRadius} km`
-            : 'A aguardar GPS… a usar a localização inicial'}
+  const renderHome = () => (
+    <div className="space-y-4">
+      <section className={`rounded-3xl border p-5 ${panel}`}>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className={`text-xs uppercase tracking-wider font-bold ${muted}`}>Estado</p>
+            <h1 className="text-3xl font-black mt-1">
+              {isBusy ? 'Em entrega' : isOnline ? 'Disponível' : 'Offline'}
+            </h1>
+            <p className={`text-sm mt-1 ${muted}`}>
+              {isBusy ? 'Tens uma entrega activa.' : isOnline ? 'A procurar entregas na tua zona.' : 'Não estás a receber entregas.'}
+            </p>
+          </div>
+          <div className={`w-3 h-3 rounded-full mt-2 ${isBusy ? 'bg-amber-400' : isOnline ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+        </div>
+
+        {!isBusy && (
+          <button
+            onClick={() => setOnline(!isOnline)}
+            disabled={actionLoading}
+            className={`w-full mt-6 py-4 rounded-2xl font-black flex items-center justify-center gap-2 ${isOnline ? 'bg-slate-800 text-white' : 'bg-emerald-500 text-white'}`}
+          >
+            <Power size={19} />
+            {actionLoading ? 'A actualizar...' : isOnline ? 'Ficar offline' : 'Ficar disponível'}
+          </button>
+        )}
+
+        {isBusy && (
+          <button onClick={() => setRiderTab('active')} className="w-full mt-6 py-4 rounded-2xl bg-white text-slate-950 font-black flex items-center justify-center gap-2">
+            Ver entrega activa <ChevronRight size={18} />
+          </button>
+        )}
+      </section>
+
+      {isOnline && !isBusy && (
+        <section className={`rounded-2xl border p-4 ${panel}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Navigation size={19} className="text-emerald-400" />
+            </div>
+            <div>
+              <p className="font-bold">A procurar entregas</p>
+              <p className={`text-xs ${muted}`}>{gpsStatus === 'tracking' ? 'Localização activa' : 'A aguardar localização'}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {gpsStatus === 'denied' && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
+          <AlertCircle size={18} className="text-amber-400 shrink-0" />
+          <p className="text-sm text-amber-300">Activa a localização do dispositivo para receber ofertas baseadas na tua posição.</p>
         </div>
       )}
 
-      <div className="flex p-4 gap-1.5">
-        <button onClick={() => setRiderTab('jobs')} className={`flex-1 py-2 rounded-lg font-bold text-xs ${riderTab === 'jobs' ? 'bg-green-600' : 'bg-gray-700'}`}>
-          {t('rider_tab_new_jobs')} {availableJobs.length > 0 && <span className="bg-red-500 text-white text-xs rounded-full px-1.5 ml-0.5">{availableJobs.length}</span>}
-        </button>
-        <button onClick={() => setRiderTab('active')} className={`flex-1 py-2 rounded-lg font-bold text-xs ${riderTab === 'active' ? 'bg-green-600' : 'bg-gray-700'}`}>{t('rider_tab_active')} ({myJobs.length})</button>
-        <button onClick={() => setRiderTab('map')} className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 ${riderTab === 'map' ? 'bg-blue-600' : 'bg-gray-700'}`}>
-          <MapPin size={13} />{t('rider_tab_map')}
-        </button>
-        <button onClick={() => setRiderTab('history')} className={`flex-1 py-2 rounded-lg font-bold text-xs ${riderTab === 'history' ? 'bg-green-600' : 'bg-gray-700'}`}>{t('rider_tab_history')}</button>
-        <button onClick={() => setRiderTab('wallet')} className={`flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 ${riderTab === 'wallet' ? 'bg-yellow-600' : 'bg-gray-700'}`}>
-          <carteira size={13} />{t('rider_tab_wallet')}
-        </button>
-      </div>
+      <section className="grid grid-cols-2 gap-3">
+        <div className={`rounded-2xl border p-4 ${panel}`}>
+          <WalletCards size={18} className="text-emerald-400 mb-3" />
+          <p className={`text-xs ${muted}`}>Hoje</p>
+          <p className="text-xl font-black mt-1">{money(todayPay)}</p>
+        </div>
+        <div className={`rounded-2xl border p-4 ${panel}`}>
+          <History size={18} className="text-slate-400 mb-3" />
+          <p className={`text-xs ${muted}`}>Entregas</p>
+          <p className="text-xl font-black mt-1">{history.length}</p>
+        </div>
+      </section>
+    </div>
+  );
 
-      {/* key={riderTab} — force full unmount/remount on tab switch
-          ป้องกัน Leaflet map tiles (z-index 200–1000) ซ้อนทับ wallet content */}
-      <div key={riderTab} className="px-4 space-y-4">
-        {riderTab === 'jobs' && availableJobs.map(job => (
-          <div key={job.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-            {/* Header: Comerciante / ประเภทงาน + รายได้ */}
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'Entrega')}</span>
-                <div className="text-xs text-gray-500 mt-0.5">#{job.id.slice(-6)}</div>
-              </div>
-              <div className="text-right">
-                {job.paymentMethod === 'cash' ? (
-                  <>
-                    <div className="text-yellow-400 font-bold text-base">Kz {(job.grandTotal || 0).toFixed(0)}</div>
-                    <div className="text-xs text-gray-500">Cobrar numerário</div>
-                    <div className="text-xs text-green-400">Líquido Kz {(job.riderIncome || 0).toFixed(0)}</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-green-400 font-bold text-base">Kz {(job.riderIncome || 0).toFixed(0)}</div>
-                    <div className="text-xs text-gray-500">entra na carteira</div>
-                  </>
-                )}
-              </div>
+  const renderActive = () => {
+    if (!activeJob) {
+      return (
+        <section className={`rounded-3xl border p-8 text-center ${panel}`}>
+          <Bike size={36} className="mx-auto text-slate-500 mb-3" />
+          <h2 className="font-bold text-lg">Nenhuma entrega activa</h2>
+          <p className={`text-sm mt-1 ${muted}`}>Quando aceitares uma entrega, ela aparece aqui.</p>
+        </section>
+      );
+    }
+
+    const pickupPhase = ['ACCEPTED', 'ARRIVED_PICKUP'].includes(activeJob.status);
+    const destinationPhase = ['PICKED_UP', 'IN_TRANSIT', 'ARRIVED_DESTINATION'].includes(activeJob.status);
+    const cash = activeJob.paymentMethod === 'CASH';
+    const targetLocation = pickupPhase ? activeJob.pickup_location : activeJob.destination_location;
+    const targetAddress = pickupPhase ? activeJob.pickupAddress : activeJob.destinationAddress;
+    const contactName = pickupPhase ? activeJob.senderName : activeJob.recipientName;
+    const contactPhone = pickupPhase ? activeJob.senderPhone : activeJob.recipientPhone;
+    const nextAction = activeJob.status === 'ACCEPTED'
+      ? 'ARRIVED_PICKUP'
+      : activeJob.status === 'ARRIVED_PICKUP'
+        ? 'PICKED_UP'
+        : activeJob.status === 'PICKED_UP'
+          ? 'IN_TRANSIT'
+          : activeJob.status === 'IN_TRANSIT'
+            ? 'ARRIVED_DESTINATION'
+            : 'DELIVERED';
+    const actionLabel = activeJob.status === 'ACCEPTED'
+      ? 'Cheguei à recolha'
+      : activeJob.status === 'ARRIVED_PICKUP'
+        ? 'Confirmar recolha'
+        : activeJob.status === 'PICKED_UP'
+          ? 'Começar entrega'
+          : activeJob.status === 'IN_TRANSIT'
+            ? 'Cheguei ao destino'
+            : 'Confirmar entrega';
+
+    return (
+      <div className="space-y-4">
+        <section className={`rounded-3xl border p-5 ${panel}`}>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <p className={`text-xs uppercase tracking-wider font-bold ${muted}`}>{STATUS_LABELS[activeJob.status]}</p>
+              <p className="font-black text-lg mt-1">#{activeJob.order?.order_reference || activeJob.id.slice(0, 8)}</p>
             </div>
-
-            {/* ยอดtotalpedido + วิธีชำระ */}
-            {job.paymentMethod === 'cash' ? (
-              <div className="mb-2 bg-yellow-900/40 border border-yellow-700/40 rounded-lg px-3 py-2 space-y-0.5">
-                <div className="text-xs text-yellow-300 font-bold flex items-center gap-1.5">
-                  💰 Cobrar numerárioจาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}: <strong>Kz {(job.grandTotal || 0).toLocaleString()}</strong>
-                </div>
-                {(job.adminGP || 0) > 0 && (
-                  <div className="text-[11px] text-orange-300">
-                    ⚠️ Após a entrega −Kz {(job.adminGP || 0).toFixed(0)} จะหักจากcarteira (ค่า GP platform)
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="mb-2 text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 bg-gray-700 text-gray-300">
-                👛 <span>Pago pela carteira · Total: Kz {(job.grandTotal || 0).toLocaleString()}</span>
-              </div>
-            )}
-
-            {/* mapa */}
-            <div className="mb-3 rounded-lg overflow-hidden border border-gray-600">
-              <InteractiveMap mode="view" userLocation={job.location} shopLocation={job.pickupLocation} className="h-36" />
-            </div>
-
-            {/* morada */}
-            <div className="text-sm text-gray-400 mb-1.5 space-y-1">
-              <div>📍 {job.type === 'parcel' ? `Recolha: ${job.pickup}` : `Comerciante: ${job.restaurantName}`}</div>
-              {job.type === 'parcel' && job.dropoff && (
-                <div>🏁 Entrega: {job.dropoff}</div>
-              )}
-              {job.type === 'food' && job.address && (
-                <div>🏠 Entrega: {job.address}</div>
-              )}
-            </div>
-
-            {/* นำทาง */}
-            <div className="flex gap-2 mb-3">
-              {job.pickupLocation && (
-                <a
-                  href={`https://maps.google.com/maps?daddr=${job.pickupLocation.lat},${job.pickupLocation.lng}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex-1 bg-blue-900/50 text-blue-300 border border-blue-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
-                >
-                  🗺️ Navegar para {job.type === 'parcel' ? 'ponto de recolha' : 'Comerciante'}
-                </a>
-              )}
-              {(job.location || job.address) && (
-                <a
-                  href={job.location
-                    ? `https://maps.google.com/maps?daddr=${job.location.lat},${job.location.lng}`
-                    : `https://maps.google.com/maps?q=${encodeURIComponent(job.address || '')}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex-1 bg-green-900/50 text-green-300 border border-green-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
-                >
-                  🗺️ Navegar para entrega
-                </a>
-              )}
-            </div>
-
-            {/* pesoencomenda */}
-            {job.type === 'parcel' && job.weight && (
-              <div className="bg-gray-700/40 rounded-lg px-3 py-1.5 mb-2 flex items-center gap-2">
-                <span className="text-xs text-gray-400">📦 Peso:</span>
-                <span className="text-xs text-white font-bold">{job.weight} kg</span>
-              </div>
-            )}
-
-            {/* itenscomida (food orders) */}
-            {job.type === 'food' && job.items && job.items.length > 0 && (
-              <div className="bg-gray-700/50 rounded-lg px-3 py-2 mb-2">
-                <p className="text-xs text-gray-400 font-bold mb-1">🍱 Itens do pedido ({job.items.length} itens)</p>
-                {job.items.slice(0, 3).map((item, i) => (
-                  <div key={i} className="text-xs text-gray-300 flex justify-between">
-                    <span>· {item.name} {item.qty > 1 ? `x${item.qty}` : ''}</span>
-                    <span>Kz {((item.price || 0) * (item.qty || 1)).toFixed(0)}</span>
-                  </div>
-                ))}
-                {job.items.length > 3 && (
-                  <p className="text-xs text-gray-500 mt-0.5">+{job.items.length - 3} itens</p>
-                )}
-              </div>
-            )}
-
-            {/* descriçãoงานserviço (service orders) */}
-            {job.type === 'service' && (
-              <div className="bg-emerald-950/40 border border-emerald-700/40 rounded-lg px-3 py-2 mb-2 space-y-1">
-                <p className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
-                  🛠️ serviço: {job.serviceCategory || 'Não especificadoประเภท'}
-                </p>
-                {(job.preferredDate || job.preferredTime) && (
-                  <p className="text-xs text-gray-300">
-                    📅 Agendamento: {job.preferredDate || ''} {job.preferredTime || ''}
-                  </p>
-                )}
-                {job.notes && (
-                  <p className="text-xs text-yellow-200">
-                    📝 descrição: {job.notes}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* ระยะทาง */}
-            <div className="text-xs text-gray-500 mb-3 flex gap-3">
-              <span>📏 จากคุณ: {job.pickupLocation
-                ? `${getDistanceFromLatLonInKm(myLocation.lat, myLocation.lng, job.pickupLocation.lat, job.pickupLocation.lng).toFixed(1)} km`
-                : 'Desconhecido'}</span>
-              {job.distance > 0 && <span>🛵 Distância de entrega: {job.distance.toFixed(1)} km</span>}
-            </div>
-
-            {/* ── númeroContacto (encomenda) ── */}
-            {job.type === 'parcel' && (job.customerPhone || job.receiverPhone) && (
-              <div className="bg-gray-700/60 rounded-lg px-3 py-2 mb-3 space-y-1.5">
-                <p className="text-xs text-gray-400 font-bold">📞 Contacto</p>
-                {job.customerPhone && (
-                  <a href={`tel:${job.customerPhone}`} className="flex items-center gap-2 text-xs text-green-300 hover:text-green-200">
-                    <span className="bg-gray-600 px-2 py-0.5 rounded text-gray-400">Remetente</span>
-                    <span className="font-bold">{job.customerName || 'cliente'}</span>
-                    <span className="underline">{job.customerPhone}</span>
-                  </a>
-                )}
-                {job.receiverPhone && (
-                  <a href={`tel:${job.receiverPhone}`} className="flex items-center gap-2 text-xs text-blue-300 hover:text-blue-200">
-                    <span className="bg-gray-600 px-2 py-0.5 rounded text-gray-400">destinatário</span>
-                    <span className="font-bold">{job.receiverName || 'destinatário'}</span>
-                    <span className="underline">{job.receiverPhone}</span>
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* ⚠️ คำเตือนcarteiraติดeliminar (cash orders) */}
-            {job.paymentMethod === 'cash' && (() => {
-              const gpRate = (job.type === 'parcel' ? (appConfig.gpDelivery ?? 15) : job.type === 'ride' ? (appConfig.gpRide ?? 15) : job.type === 'service' ? (appConfig.gpService ?? 15) : (appConfig.gpFood ?? 30)) / 100;
-              const adminGP = typeof job.adminGP === 'number' ? job.adminGP : typeof job.settlement?.gpAmount === 'number' ? job.settlement.gpAmount : ((job.type === 'food' ? (job.foodTotal || 0) : (job.grandTotal || job.deliveryFee || 0)) * gpRate);
-              const foodTotal = job.foodTotal || (job.type === 'food' ? ((job.merchantIncome || 0) + adminGP) : 0);
-              const netChange = job.type === 'food' ? -foodTotal : -adminGP;
-              if (netChange < 0 && (userWallet ?? 0) + netChange < 0) {
-                const shortfall = Math.ceil(Math.abs((userWallet ?? 0) + netChange));
-                return (
-                  <div className="bg-red-900/40 border border-red-700/50 rounded-xl px-3 py-2.5 mb-3">
-                    <p className="text-red-300 text-xs font-bold">⚠️ A carteira ficará negativaApós a entrega</p>
-                    <p className="text-red-400 text-xs mt-0.5">
-                      Carteira actual Kz {(userWallet ?? 0).toLocaleString()} — Falta Kz {shortfall.toLocaleString()} para pagar a comida + GP da plataforma
-                    </p>
-                    <p className="text-gray-500 text-[10px] mt-0.5">ยังAceitar entregaได้ แต่A carteira ficará negativa</p>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {/* ปุ่มAceitar entrega */}
-            <button
-              disabled={acceptingId === job.id}
-              onClick={async () => {
-                setAcceptingId(job.id);
-                try {
-                  const ok = await acceptOrder(job.id, me.id, myLocation);
-                  if (ok) setRiderTab('active');
-                } catch (err) {
-                  void err; // error handled inside acceptOrder; always reset spinner
-                } finally {
-                  setAcceptingId(null);
-                }
-              }}
-              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                acceptingId === job.id
-                  ? 'bg-gray-600 cursor-not-allowed text-gray-400'
-                  : 'bg-green-500 hover:bg-green-400 active:scale-95 text-white shadow-lg shadow-green-900/40'
-              }`}
-            >
-              {acceptingId === job.id ? (
-                <><Loader size={16} className="animate-spin" /> A aceitar entrega...</>
-              ) : job.paymentMethod === 'cash' ? (
-                <>✅ Aceitar entrega — Cobrar numerário Kz {(job.grandTotal || 0).toFixed(0)}</>
-              ) : (
-                <>✅ Aceitar entrega — Receber Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira</>
-              )}
-            </button>
+            <p className="font-black text-emerald-400">{money(activeJob.riderPay)}</p>
           </div>
-        ))}
-        {riderTab === 'jobs' && availableJobs.length === 0 && (
-          isDataLoading && isOnline ? (
-            <div className="space-y-3 mt-4 px-4">
-              {[1, 2].map(i => (
-                <div key={i} className="bg-white rounded-2xl p-4 shadow-sm animate-pulse">
-                  <div className="flex justify-between mb-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/5" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
-                    <div className="h-3 bg-gray-200 rounded w-2/3" />
-                  </div>
-                  <div className="h-10 bg-gray-200 rounded-xl mt-3" />
-                </div>
-              ))}
+
+          <div className="relative pl-7">
+            <div className="absolute left-2 top-2 bottom-2 w-px bg-slate-700" />
+            <div className="relative mb-7">
+              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-emerald-400 bg-slate-950" />
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Recolha</p>
+              <p className="font-bold mt-1">{activeJob.senderName || 'Ponto de recolha'}</p>
+              <p className={`text-sm mt-1 ${muted}`}>{activeJob.pickupAddress}</p>
             </div>
+            <div className="relative">
+              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-slate-500 bg-slate-950" />
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Entrega</p>
+              <p className="font-bold mt-1">{activeJob.recipientName || 'Destinatário'}</p>
+              <p className={`text-sm mt-1 ${muted}`}>{activeJob.destinationAddress}</p>
+              {activeJob.instructions && <p className="text-sm text-amber-400 mt-2">{activeJob.instructions}</p>}
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-2 gap-3">
+          <a href={navigationUrl(targetLocation, targetAddress)} target="_blank" rel="noreferrer" className="py-3 rounded-2xl bg-sky-500 text-white font-bold flex items-center justify-center gap-2">
+            <Navigation size={18} /> Navegar
+          </a>
+          {contactPhone ? (
+            <a href={`tel:${contactPhone}`} className={`py-3 rounded-2xl border ${panel} font-bold flex items-center justify-center gap-2`}>
+              <Phone size={18} /> Contactar
+            </a>
           ) : (
-            <div className="text-center text-gray-500 mt-10">
-              {!isOnline ? (
-                <div>
-                  <ToggleLeft size={40} className="mx-auto mb-2 opacity-30" />
-                  <p className="font-bold text-gray-400">Está em modo offline</p>
-                  <button onClick={toggleOnline} className="mt-3 bg-green-500 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-green-600">
-                    abrirAceitar entrega
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <Clock size={40} className="mx-auto mb-2 opacity-30" />
-                  <p>Não existem entregas no raio {appConfig.riderRadius} km</p>
-                  <p className="text-xs mt-1">Aguarde...</p>
-                </div>
-              )}
-            </div>
-          )
-        )}
-
-        {/* ── Map tab — ปักหมุดจุดAceitar entrega ─── */}
-        {riderTab === 'map' && (
-          <div>
-            <div className="bg-gray-800 rounded-xl p-4 mb-4 border border-blue-500/30">
-              <h3 className="font-bold text-white mb-1 flex items-center gap-2">
-                <MapPin size={16} className="text-blue-400" /> Defina a sua zona de trabalho
-              </h3>
-              <p className="text-xs text-gray-400 mb-3">
-                Toque no mapa para marcar a sua zona de trabalho — As entregas dentro do raio {appConfig.riderRadius || 5} km จากจุดนี้จะปรากฏในแท็บ "Novas entregas"
-              </p>
-
-              {/* แสดงจุดactual */}
-              <div className="text-xs text-gray-400 mb-3 space-y-0.5">
-                <div>📍 Localização actual: {me.location ? `${me.location.lat.toFixed(4)}, ${me.location.lng.toFixed(4)}` : 'Ainda não definida'}</div>
-                {riderGPS && <div>📡 GPS real: {riderGPS.lat.toFixed(4)}, {riderGPS.lng.toFixed(4)}</div>}
-                {pendingLocation && <div className="text-blue-300">🔵 Escolher novamente: {pendingLocation.lat.toFixed(4)}, {pendingLocation.lng.toFixed(4)}</div>}
-              </div>
-
-              {/* mapa */}
-              <div className="rounded-xl overflow-hidden border border-blue-500/40 mb-3">
-                <InteractiveMap
-                  mode="select"
-                  userLocation={pendingLocation || me.location || myLocation}
-                  onLocationSelect={(loc) => setPendingLocation(loc)}
-                  className="h-64"
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 mb-3 text-center">Toque no mapa para seleccionar a localização e depois guarde</p>
-
-              {/* ปุ่ม GPS อัตโนมัติ */}
-              <button
-                onClick={() => {
-                  if (riderGPS) setPendingLocation(riderGPS);
-                  else navigator.geolocation?.getCurrentPosition(
-                    pos => setPendingLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                    () => {},
-                    { enableHighAccuracy: true, timeout: 8000 },
-                  );
-                }}
-                className="w-full py-2 rounded-lg bg-gray-700 text-gray-300 text-sm font-bold mb-2 hover:bg-gray-600 active:scale-95 transition-all"
-              >
-                📡 ใช้localização GPS actual
-              </button>
-
-              {/* ปุ่มguardar */}
-              <button
-                disabled={!pendingLocation || savingLocation}
-                onClick={async () => {
-                  if (!pendingLocation) return;
-                  setSavingLocation(true);
-                  await updateRiderWorkingLocation(me.id, pendingLocation);
-                  setPendingLocation(null);
-                  setSavingLocation(false);
-                }}
-                className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                  pendingLocation && !savingLocation
-                    ? 'bg-blue-500 text-white hover:bg-blue-400 active:scale-95'
-                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {savingLocation ? (
-                  <><Loader size={16} className="animate-spin" /> A guardar...</>
-                ) : (
-                  <><MapPin size={16} /> Guardar zona de trabalho</>
-                )}
-              </button>
-            </div>
-
-            {/* แสดงรัศมีจากจุดปักหมุด */}
-            <div className="bg-gray-800 rounded-xl p-3 border border-gray-700 text-xs text-gray-400">
-              <p className="font-bold text-white mb-1">📋 Resumo das definições</p>
-              <p>Raio de trabalho: <span className="text-green-400 font-bold">{appConfig.riderRadius || 5} km</span></p>
-              <p className="mt-1 text-gray-500">Nota: o GPS actualiza automaticamente a sua localização. A zona de trabalho ajuda a encontrar entregas próximas quando o GPS não está disponível.</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Active jobs ─── */}
-        {riderTab === 'active' && (
-          <>
-            {myJobs.length === 0 ? (
-              // ✅ FIX: empty state สำหrecolha active tab (ป้องกัน white screen)
-              <div className="text-center text-gray-500 mt-16 px-4">
-                <Bike size={48} className="mx-auto mb-3 opacity-20" />
-                <p className="font-bold text-gray-400 text-lg">Não existem entregas activas</p>
-                <p className="text-sm text-gray-600 mt-1">toqueแท็บ "Novas entregas" เพื่อAceitar entrega</p>
-                <button
-                  onClick={() => setRiderTab('jobs')}
-                  className="mt-4 bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-green-400"
-                >
-                  ดูNovas entregas
-                </button>
-              </div>
-            ) : (
-              myJobs.map(job => {
-                return (
-                  <div key={job.id} className="bg-gray-800 p-4 rounded-xl border border-green-500">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'Entrega')}</span>
-                        <div className="text-xs text-gray-400 mt-0.5">#{job.id}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-green-400 font-bold">Kz {(job.riderIncome || 0).toFixed(0)}</div>
-                        <div className={`text-xs mt-0.5 px-2 py-0.5 rounded-full font-bold ${
-                          job.status === 'rider_accepted' ? 'bg-indigo-900 text-indigo-300' :
-                          job.status === 'picking_up' ? 'bg-yellow-900 text-yellow-300' :
-                          'bg-blue-900 text-blue-300'
-                        }`}>
-                          {job.status === 'rider_accepted' ? '🟡 A caminho da recolha' :
-                           job.status === 'picking_up' ? '🟠 ถึงponto de recolha' :
-                           '🔵 A entregar'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {job.paymentMethod === 'cash' && (
-                      <div className="mb-3 bg-yellow-900/30 border border-yellow-700/40 rounded-xl p-3 space-y-1">
-                        <div className="text-sm font-bold text-yellow-300">
-                          💰 Cobrar numerárioจาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}: Kz {(job.grandTotal || 0).toLocaleString()}
-                        </div>
-                        {job.type === 'parcel' ? (
-                          (job.riderIncome || 0) > 0 && (
-                            <div className="text-[11px] text-green-300">
-                              ✅ Após a entrega +Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira (GP Kz {(job.adminGP || 0).toFixed(0)} já descontado)
-                            </div>
-                          )
-                        ) : (
-                          (job.foodTotal || 0) > 0 && (
-                            <div className="text-[11px] text-orange-300">
-                              ⚠️ Após a entrega หัก −Kz {(job.foodTotal || 0).toFixed(0)} (ยอดcomida) recolhaTaxa de entrega +Kz {(job.deliveryFee || 0).toFixed(0)}
-                            </div>
-                          )
-                        )}
-                      </div>
-                    )}
-
-                    {/* Map */}
-                    <div className="mb-3 rounded-lg overflow-hidden border border-green-500/30">
-                      <InteractiveMap
-                        mode="view"
-                        userLocation={job.location}
-                        shopLocation={job.pickupLocation}
-                        riderLocation={job.riderLocation}
-                        status={job.status}
-                        className="h-48"
-                      />
-                    </div>
-
-                    {/* Address info */}
-                    <div className="text-xs text-gray-400 mb-3 space-y-1">
-                      {job.type === 'food' && <div>🏪 Recolha: {job.restaurantName}</div>}
-                      {job.type === 'parcel' && <div>📦 Recolha: {job.pickup}</div>}
-                      {job.type === 'service' && <div>🛠️ Tipo de serviço: <span className="text-emerald-300 font-bold">{job.serviceCategory || 'Não especificadoประเภท'}</span></div>}
-                      {job.type === 'service' && (job.preferredDate || job.preferredTime) && (
-                        <div>📅 Agendamento: {job.preferredDate || ''} {job.preferredTime || ''}</div>
-                      )}
-                      <div>📍 {job.type === 'service' ? 'Local do serviço' : 'entregaที่'}: {job.address || job.dropoff || 'Morada do cliente'}</div>
-                      <div>👤 {job.type === 'service' ? 'Cliente' : 'Remetente'}: {job.customerName} {job.customerPhone ? `· ${job.customerPhone}` : ''}</div>
-                      {job.type === 'parcel' && job.receiverName && (
-                        <div>📬 destinatário: {job.receiverName} {job.receiverPhone ? `· ${job.receiverPhone}` : ''}</div>
-                      )}
-                    </div>
-
-                    {/* หมายเหตุจากcliente */}
-                    {job.notes && (
-                      <div className="bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-3 py-1.5 mb-3 flex items-start gap-2">
-                        <span className="text-yellow-400 text-xs">📝</span>
-                        <span className="text-xs text-yellow-200">{job.notes}</span>
-                      </div>
-                    )}
-
-                    {/* นำทาง */}
-                    <div className="flex gap-2 mb-3">
-                      {job.pickupLocation && (
-                        <a
-                          href={`https://maps.google.com/maps?daddr=${job.pickupLocation.lat},${job.pickupLocation.lng}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="flex-1 bg-blue-900/50 text-blue-300 border border-blue-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
-                        >
-                          🗺️ Navegar para {job.type === 'parcel' ? 'ponto de recolha' : 'Comerciante'}
-                        </a>
-                      )}
-                      {(job.location || job.address) && (
-                        <a
-                          href={job.location
-                            ? `https://maps.google.com/maps?daddr=${job.location.lat},${job.location.lng}`
-                            : `https://maps.google.com/maps?q=${encodeURIComponent(job.address || '')}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="flex-1 bg-green-900/50 text-green-300 border border-green-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
-                        >
-                          🗺️ Navegar para entrega
-                        </a>
-                      )}
-                    </div>
-
-                    {/* ── Contacto ── */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {job.customerPhone && (
-                        <a
-                          href={`tel:${job.customerPhone}`}
-                          className="flex-1 min-w-[110px] bg-gray-700 py-2 rounded-lg flex items-center justify-center font-bold text-xs hover:bg-gray-600 active:scale-95 transition-all"
-                        >
-                          📞 <span className="ml-1">{job.customerPhone}</span>
-                        </a>
-                      )}
-                      {job.type === 'parcel' && job.receiverPhone && (
-                        <a
-                          href={`tel:${job.receiverPhone}`}
-                          className="flex-1 min-w-[110px] bg-blue-900/40 text-blue-300 border border-blue-700/50 py-2 rounded-lg flex items-center justify-center font-bold text-xs hover:bg-blue-900/60 active:scale-95 transition-all"
-                        >
-                          📞 <span className="ml-1">{job.receiverPhone}</span>
-                        </a>
-                      )}
-                      {job.type === 'food' && (() => {
-                        const phone = job.restaurantPhone || restaurants.find(r => r.id === job.restaurantId)?.phone;
-                        return phone ? (
-                          <a
-                            href={`tel:${phone}`}
-                            className="flex-1 min-w-[110px] bg-orange-900/40 text-orange-300 border border-orange-700/50 py-2 rounded-lg flex items-center justify-center font-bold text-xs hover:bg-orange-900/60 active:scale-95 transition-all"
-                          >
-                            📞 <span className="ml-1">{phone}</span>
-                          </a>
-                        ) : null;
-                      })()}
-                      <button
-                        onClick={() => openChatWindow('support-' + userProfile.id, 'suporte (Admin)', 'rider')}
-                        className="flex-1 min-w-[110px] bg-blue-900/40 text-blue-300 border border-blue-700/50 py-2 rounded-lg flex items-center justify-center font-bold text-xs hover:bg-blue-900/60 active:scale-95 transition-all"
-                      >
-                        <MessageSquare size={13} className="mr-1" /> Admin
-                      </button>
-                    </div>
-
-                    {/* ขอcancelarงาน → Admin */}
-                    {hasPendingCancelRequest(job.id) ? (
-                      <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
-                        <Clock size={13} className="text-yellow-400 shrink-0" />
-                        <p className="text-yellow-300 text-xs font-bold">⏳ aguardar Admin aprovaçãocancelar</p>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setRiderCancelOrderId(job.id); setRiderCancelReason(''); setShowRiderCancelModal(true); }}
-                        className="w-full py-1.5 rounded-lg border border-red-800/50 text-red-400 text-xs font-bold flex items-center justify-center gap-1 hover:bg-red-900/20 mb-3 transition-all"
-                      >
-                        ✕ ขอcancelarงานนี้ (entrega Admin)
-                      </button>
-                    )}
-
-                    {/* ── Step: rider_accepted → picking_up ── */}
-                    {job.status === 'rider_accepted' && (
-                      <button
-                        onClick={() => updateOrderStatus(job.id, 'picking_up')}
-                        className="w-full bg-indigo-500 py-3 rounded-xl font-bold text-sm hover:bg-indigo-400 active:scale-95 transition-all"
-                      >
-                        ✅ ถึงponto de recolhaconcluído
-                      </button>
-                    )}
-
-                    {/* ── Step: picking_up → delivering ── */}
-                    {job.status === 'picking_up' && (
-                      <button
-                        onClick={() => updateOrderStatus(job.id, 'delivering')}
-                        className="w-full bg-blue-500 py-3 rounded-xl font-bold text-sm hover:bg-blue-400 active:scale-95 transition-all"
-                      >
-                        ✅ confirmarrecolhaของconcluído → ออกentrega
-                      </button>
-                    )}
-
-                    {/* ── Step: delivering → delivered ── */}
-                    {job.status === 'delivering' && (
-                      <>
-                        {job.paymentMethod === 'cash' && (
-                          <div className="bg-yellow-900/40 border border-yellow-600/50 rounded-xl p-3 mb-3">
-                            <p className="text-yellow-300 text-sm font-bold mb-0.5">
-                              💰 อย่าลืมCobrar numerário Kz {(job.grandTotal || 0).toLocaleString()} จาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}!
-                            </p>
-                            {job.type === 'parcel' ? (
-                              (job.riderIncome || 0) > 0 && (
-                                <p className="text-green-300 text-[11px]">
-                                  ✅ หลังtoqueconfirmar +Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira (GP Kz {(job.adminGP || 0).toFixed(0)} já descontado)
-                                </p>
-                              )
-                            ) : (
-                              (job.foodTotal || 0) > 0 && (
-                                <p className="text-orange-300 text-[11px]">
-                                  ⚠️ หลังtoqueconfirmar หัก −Kz {(job.foodTotal || 0).toFixed(0)} (ยอดcomida) recolhaTaxa de entrega +Kz {(job.deliveryFee || 0).toFixed(0)}
-                                </p>
-                              )
-                            )}
-                          </div>
-                        )}
-
-                        {/* ── รูปหลักฐานentrega ── */}
-                        <div className="bg-gray-700/40 border border-gray-600/50 rounded-xl p-3 mb-3">
-                          <p className="text-xs text-gray-400 font-bold mb-2">
-                            📷 ถ่ายรูปหลักฐานentrega
-                            {!proofPhotos[job.id] && <span className="text-gray-500 font-normal ml-1">(แนะนำ)</span>}
-                          </p>
-
-                          {proofPhotos[job.id] ? (
-                            <div className="relative">
-                              <img
-                                src={proofPhotos[job.id]}
-                                alt="delivery proof"
-                                className="w-full h-36 object-cover rounded-lg"
-                              />
-                              <button
-                                onClick={() => setProofPhotos(prev => ({ ...prev, [job.id]: null }))}
-                                className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
-                              >
-                                <X size={14} />
-                              </button>
-                              <span className="absolute bottom-1.5 left-1.5 bg-green-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                ✓ อัปcarregarConcluído
-                              </span>
-                            </div>
-                          ) : proofUploading[job.id] ? (
-                            <div className="flex items-center justify-center h-20 bg-gray-800/60 rounded-xl">
-                              <Loader size={18} className="animate-spin text-green-400 mr-2" />
-                              <span className="text-xs text-gray-400">Aอัปcarregar...</span>
-                            </div>
-                          ) : (
-                            <label htmlFor={`rider-proof-file-${job.id}`} className="flex flex-col items-center justify-center h-20 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer hover:border-green-500/50 transition-all active:scale-95">
-                              <Camera size={22} className="text-gray-500 mb-1" />
-                              <span className="text-xs text-gray-500">toqueเพื่อถ่ายรูป / seleccionarรูป</span>
-                              <input
-                                id={`rider-proof-file-${job.id}`}
-                                name="proofImage"
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files[0];
-                                  if (!file || proofUploading[job.id]) return;
-                                  e.target.value = '';
-                                  setProofUploading(prev => ({ ...prev, [job.id]: true }));
-                                  try {
-                                    const compressed = await compressImage(file, 800, 600, 0.8).catch(() => file);
-                                    setProofPhotos(prev => ({ ...prev, [job.id]: typeof compressed === 'string' ? compressed : URL.createObjectURL(file) }));
-                                  } catch { /* proof is optional — never block delivery */ }
-                                  finally { setProofUploading(prev => ({ ...prev, [job.id]: false })); }
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-
-                        <button
-                          disabled={!!proofUploading[job.id]}
-                          onClick={async () => {
-                            // Update to delivered — rider availability released, customer verifies and confirms completion
-                            await updateOrderStatus(
-                              job.id, 'delivered', null,
-                              {
-                                deliveredAt: new Date().toISOString(),
-                                deliveredAtMs: Date.now(),
-                                ...(proofPhotos[job.id] ? { deliveryProofUrl: proofPhotos[job.id] } : {}),
-                              },
-                            );
-                            setProofPhotos(prev => { const n = { ...prev }; delete n[job.id]; return n; });
-                          }}
-                          className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-green-900/50 ${
-                            proofUploading[job.id]
-                              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                              : 'bg-green-500 hover:bg-green-400 active:scale-95 text-white'
-                          }`}
-                        >
-                          {proofUploading[job.id]
-                            ? <><Loader size={16} className="animate-spin inline mr-1" /> Aอัปcarregarรูป...</>
-                            : '🎉 confirmarentregaถึงที่หมายconcluído!'}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </>
-        )}
-
-        {/* ═══════════════════════════ WALLET TAB ═══════════════════════════ */}
-        {riderTab === 'wallet' && (() => {
-          const pendingWithdrawals = pendingRequests.filter(
-            r => r.userId === _walletUid && r.type === 'withdraw'
-          );
-          const pendingWithdrawTotal = pendingWithdrawals.reduce(
-            (sum, r) => sum + (Number(r.data?.amount) || 0), 0
-          );
-          const effectiveBalance = Math.max(0, (userWallet ?? 0) - pendingWithdrawTotal);
-          return (
-          <div className="pb-6">
-            {/* ── ยอดcarteiraหลัก ─────────────────────────────────────────────── */}
-            <div className="bg-gray-800 border border-green-600/40 rounded-2xl p-5 mb-4 flex flex-col items-center">
-              <div className="flex items-center gap-2 mb-1">
-                <carteira size={18} className="text-green-400" />
-                <span className="text-sm text-green-300 font-bold">carteiraเงินหลัก</span>
-              </div>
-              <div className="text-4xl font-black text-green-400 my-2">
-                Kz {Number(userWallet ?? 0).toLocaleString()}
-              </div>
-              {pendingWithdrawTotal > 0 && (
-                <div className="flex flex-col items-center gap-0.5 mb-1">
-                  <span className="text-[11px] text-violet-400">⏳ A aguardar levantamento −Kz {pendingWithdrawTotal.toLocaleString()}</span>
-                  <span className="text-xs font-bold text-white">Saldo disponível para levantamento Kz {effectiveBalance.toLocaleString()}</span>
-                </div>
-              )}
-              <p className="text-[11px] text-gray-500 text-center">รายได้จากentrega · ถอนเมื่อ Admin aprovação</p>
-              <div className="flex gap-3 mt-4 w-full">
-                <button
-                  onClick={() => { setWalletAction(walletAction === 'topup' ? null : 'topup'); setWalletAmount(''); }}
-                  className={`flex-1 text-xs py-2.5 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
-                    walletAction === 'topup' ? 'bg-blue-500 text-white' : 'bg-blue-700/30 text-blue-300 hover:bg-blue-700/50'
-                  }`}
-                >
-                  <ArrowUpCircle size={13} /> carregamento
-                </button>
-                <button
-                  onClick={() => { setWalletAction(walletAction === 'withdraw' ? null : 'withdraw'); setWalletAmount(''); }}
-                  className={`flex-1 text-xs py-2.5 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
-                    walletAction === 'withdraw' ? 'bg-violet-500 text-white' : 'bg-orange-700/30 text-orange-300 hover:bg-orange-700/50'
-                  }`}
-                >
-                  <ArrowDownCircle size={13} /> levantamento
-                </button>
-              </div>
-            </div>
-
-            {/* ── ฟอร์มentregapedido ─────────────────────────────────────────────────── */}
-            {walletAction && (
-              <div className="bg-gray-800 border border-gray-600 rounded-2xl p-4 mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-bold text-white text-sm">
-                    {walletAction === 'topup' ? '💳 ขอcarregamento' : '💸 ขอlevantamento'}
-                  </h3>
-                  <button
-                    onClick={() => { setWalletAction(null); setWalletAmount(''); setWalletBank(''); setWalletAccName(''); setWalletAccNo(''); }}
-                    className="text-gray-400 hover:text-white w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-700 transition-all"
-                  >✕</button>
-                </div>
-
-                {walletAction === 'topup' && (
-                  <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-3 mb-3 text-xs text-blue-300 leading-relaxed">
-                    💡 transferênciaมาที่บัญชีแอดมิน concluídoแจ้งdescriçãoด้านล่าง Admin จะcarregamentoให้ภายใน 24 ชม.
-                  </div>
-                )}
-                {walletAction === 'withdraw' && effectiveBalance <= 0 && (
-                  <div className="bg-red-900/20 border border-red-700/30 rounded-xl p-3 mb-3 text-xs text-red-300">
-                    ⚠️ Saldo disponível = Kz 0. Não é possível levantar.
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label htmlFor="rider-wallet-amount-input" className="sr-only">Valor</label>
-                  <input
-                    id="rider-wallet-amount-input"
-                    name="walletAmount"
-                    type="number"
-                    placeholder={walletAction === 'withdraw' ? `Valor (สูงสุด Kz ${effectiveBalance.toLocaleString()})` : 'Valor (Kz ) *'}
-                    value={walletAmount}
-                    onChange={e => setWalletAmount(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500"
-                    autoComplete="off"
-                    aria-label="Valor"
-                  />
-                  <label htmlFor="rider-wallet-bank-input" className="sr-only">nomebanco</label>
-                  <input id="rider-wallet-bank-input" name="walletBank" type="text" placeholder="nomebanco (เช่น กสิกร, SCB) *" value={walletBank}
-                    onChange={e => setWalletBank(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="nomebanco" />
-                  <label htmlFor="rider-wallet-accname-input" className="sr-only">nomeบัญชี</label>
-                  <input id="rider-wallet-accname-input" name="walletAccName" type="text" placeholder="nomeบัญชี *" value={walletAccName}
-                    onChange={e => setWalletAccName(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="nomeบัญชี" />
-                  <label htmlFor="rider-wallet-accno-input" className="sr-only">número da conta</label>
-                  <input id="rider-wallet-accno-input" name="walletAccNo" type="text" placeholder="número da conta *" value={walletAccNo}
-                    onChange={e => setWalletAccNo(e.target.value)}
-                    className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="número da conta" />
-                </div>
-
-                <button
-                  onClick={() => {
-                    const amt = parseFloat(walletAmount);
-                    if (!amt || amt <= 0) return;
-                    const bankInfo = { bank: walletBank, accountName: walletAccName, accountNumber: walletAccNo };
-                    setSubmittingcarteira(true);
-                    try {
-                      if (walletAction === 'topup') requestTopUp(amt, null, null, bankInfo);
-                      else requestWithdraw(amt, bankInfo);
-                      setWalletAction(null); setWalletAmount(''); setWalletBank(''); setWalletAccName(''); setWalletAccNo('');
-                    } finally { setSubmittingcarteira(false); }
-                  }}
-                  disabled={
-                    submittingWallet || !walletAmount || parseFloat(walletAmount) <= 0 ||
-                    !walletBank || !walletAccName || !walletAccNo ||
-                    (walletAction === 'withdraw' && (parseFloat(walletAmount) > effectiveBalance || effectiveBalance <= 0))
-                  }
-                  className="w-full mt-3 bg-green-600 hover:bg-green-500 active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {submittingWallet ? '⏳ A entregar...' : '📨 entregapedidoให้ Admin'}
-                </button>
-              </div>
-            )}
-
-            {/* ── pedidoที่aguardar Admin ────────────────────────────────────────────── */}
-            {(() => {
-              const pending = pendingRequests.filter(r =>
-                r.userId === _walletUid && (r.type === 'topup' || r.type === 'withdraw')
-              );
-              if (!pending.length) return null;
-              return (
-                <div className="mb-4">
-                  <h4 className="text-xs text-yellow-400 font-bold uppercase mb-2">⏳ aguardar Admin aprovação ({pending.length})</h4>
-                  <div className="space-y-2">
-                    {pending.map((req, idx) => {
-                      const amt = req.data?.amount ?? req.amount ?? 0;
-                      return (
-                        <div key={req.id || idx} className="bg-gray-800 border border-yellow-700/30 rounded-xl p-3 flex justify-between items-center">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            req.type === 'topup' ? 'bg-blue-900/50 text-blue-300' : 'bg-orange-900/50 text-orange-300'
-                          }`}>
-                            {req.type === 'topup' ? '💰 carregamento' : '💸 levantamento'}
-                          </span>
-                          <span className="font-bold text-white text-sm">Kz {Number(amt).toLocaleString()}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ── históricoธุรกรรม ─────────────────────────────────────────────── */}
-            <h4 className="text-xs text-gray-500 font-bold uppercase mb-2 tracking-wide">históricoธุรกรรม</h4>
-            {!walletHistory || walletHistory.length === 0 ? (
-              <div className="text-center text-gray-600 py-8">
-                <carteira size={32} className="mx-auto mb-2 opacity-20" />
-                <p className="text-sm text-gray-500">ยังไม่มีhistórico — รายได้จะแสดงเมื่อentregaงานConcluído</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[...(walletHistory || [])].sort((a, b) => {
-                    const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
-                    return ms(b) - ms(a);
-                  }).slice(0, 40).map((entry, i) => {
-                  const amt = entry.amount ?? 0;
-                  return (
-                    <div key={entry.id || i} className="bg-gray-800 rounded-xl p-3 border border-gray-700/80">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs text-gray-300 truncate">{entry.desc || '—'}</div>
-                          <div className="text-[10px] text-gray-500 mt-0.5">{entry.createdAtMs ? formatDateTimeFromMs(entry.createdAtMs) : (entry.date || '')}</div>
-                        </div>
-                        <div className={`font-bold text-sm flex-shrink-0 ${amt >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {amt >= 0 ? '+' : '-'}Kz {Math.abs(amt).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          );
-        })()}
-
-        {riderTab === 'history' && (
-          <div>
-            {/* ── Contacto Admin ── */}
-            <button
-              onClick={() => openChatWindow('support-' + userProfile.id, 'suporte (Admin)', 'rider')}
-              className="w-full mb-4 bg-blue-900/30 border border-blue-700/40 text-blue-300 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-900/50 active:scale-95 transition-all"
-            >
-              <MessageSquare size={16} /> Contactosuporte (Admin)
+            <button onClick={help} className={`py-3 rounded-2xl border ${panel} font-bold flex items-center justify-center gap-2`}>
+              <CircleHelp size={18} /> Contactar suporte
             </button>
+          )}
+        </div>
 
-            {/* ── Earnings summary ── */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                <h3 className="text-gray-400 text-xs mb-1">รายได้hoje</h3>
-                <div className="text-2xl font-bold text-green-400">Kz {todayEarning.toFixed(0)}</div>
-                <div className="text-xs text-gray-500 mt-1">{todayJobs.length} งาน</div>
-              </div>
-              <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                <h3 className="text-gray-400 text-xs mb-1">รายได้totaltodos</h3>
-                <div className="text-2xl font-bold text-blue-400">Kz {totalEarning.toFixed(0)}</div>
-                <div className="text-xs text-gray-500 mt-1">{completedJobs.length} งานConcluído</div>
-              </div>
-            </div>
+        <button onClick={help} className="w-full py-3 rounded-2xl border border-slate-700 text-sm font-bold flex items-center justify-center gap-2">
+          <CircleHelp size={17} /> Ajuda
+        </button>
 
-            {/* ── Job list ── */}
-            <h4 className="font-bold mb-3 text-sm text-gray-400">itensย้อนหลัง</h4>
-            {historyJobs.length === 0 ? (
-              <div className="text-center text-gray-600 py-12">
-                <Star size={36} className="mx-auto mb-2 opacity-20" />
-                <p>ยังไม่มีhistóricoentrega</p>
-              </div>
-            ) : (
-              historyJobs.map(job => {
-                // ✅ FIX: verificarทั้ง 'delivered' และ 'completed' (status เปลี่ยนเป็น completed ทันที)
-                const isSuccess = job.status === 'delivered' || job.status === 'completed';
-                const income = getRiderJobIncome(job, appConfig);
+        {cash && activeJob.status === 'ARRIVED_DESTINATION' && activeJob.totalAmount > 0 && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <p className="text-xs uppercase tracking-wider text-amber-400 font-bold">Cobrança</p>
+            <p className="text-xl font-black mt-1">{money(activeJob.totalAmount)}</p>
+            <p className={`text-xs mt-1 ${muted}`}>Confirma a entrega depois de o pagamento ser registado.</p>
+          </div>
+        )}
 
-                return (
-                  <div key={job.id} className="bg-gray-800 p-3 rounded-xl border border-gray-700 mb-2">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0 mr-3">
-                        <div className="font-bold text-sm text-white truncate">
-                          {job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'Entrega')}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">{job.deliveredAt || job.completedAt || job.createdAt || job.timestamp}</div>
-                        {job.status === 'cancelled' && (
-                          <div className="text-xs text-red-400 mt-0.5">
-                            cancelar: {job.cancelReason || 'Não especificadomotivo'}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        {isSuccess ? (
-                          <>
-                            <div className="text-green-400 font-bold">+Kz {income.toFixed(0)}</div>
-                            <div className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full mt-0.5">
-                              ✓ จัดentregaConcluído
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-[10px] text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">
-                            ✗ cancelar
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+        <button
+          onClick={() => advance(nextAction)}
+          disabled={actionLoading}
+          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-base disabled:opacity-50"
+        >
+          {actionLoading ? 'A actualizar...' : actionLabel}
+        </button>
+
+        {destinationPhase && (
+          <div className="text-center text-xs text-slate-500">
+            {activeJob.status === 'PICKED_UP' ? 'A encomenda está contigo.' : 'Segue o próximo passo indicado acima.'}
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* ── Modal ขอcancelarงาน (Rider → Admin) ───────────────────────────── */}
-      {showRiderCancelModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm">
-          <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-700">
-            <div className="bg-red-900 px-5 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-white">
-                <XCircle size={20} />
-                <h3 className="font-bold text-base">ขอcancelarงาน (aguardar Admin aprovação)</h3>
-              </div>
-              <button onClick={() => setShowRiderCancelModal(false)} className="text-white/70 hover:text-white">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-5">
-              <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-xl px-3 py-2 mb-4 flex items-start gap-2">
-                <span className="text-yellow-400 mt-0.5">⚠️</span>
-                <p className="text-xs text-yellow-300">pedidocancelarจะถูกentregaให้ <strong>Admin</strong> aprovaçãoก่อน Admin อาจRecusarหรือaprovaçãocancelar</p>
-              </div>
-              <p className="text-sm text-gray-300 mb-3">indiquemotivoที่ต้องcancelarงาน</p>
-              <div className="space-y-2 mb-3">
-                {['ไม่สามารถเข้าถึงponto de recolhaสินค้า', 'รถเสีย / เกิดอุบัติเหตุ', 'clienteไม่recolhaสาย', 'อื่นๆ'].map(preset => (
-                  <button
-                    key={preset}
-                    onClick={() => setRiderCancelReason(preset)}
-                    className={`w-full text-left text-sm px-3 py-2 rounded-lg border transition-all ${
-                      riderCancelReason === preset
-                        ? 'bg-red-900/60 border-red-500 text-red-300 font-semibold'
-                        : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {riderCancelReason === preset ? '● ' : '○ '}{preset}
-                  </button>
-                ))}
-              </div>
-              <label htmlFor="rider-cancel-reason-input" className="sr-only">motivoadicionarเติม</label>
-              <textarea
-                id="rider-cancel-reason-input"
-                name="cancelReason"
-                value={riderCancelReason}
-                onChange={e => setRiderCancelReason(e.target.value)}
-                placeholder="หรือพิมพ์motivoadicionarเติม..."
-                className="w-full bg-gray-700 border border-gray-600 rounded-xl p-3 text-sm text-white placeholder-gray-500 resize-none h-16 focus:outline-none focus:ring-2 focus:ring-red-500"
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex gap-2 px-5 pb-5">
-              <button
-                onClick={() => setShowRiderCancelModal(false)}
-                className="flex-1 py-2.5 rounded-xl bg-gray-700 text-gray-300 font-bold text-sm hover:bg-gray-600 active:scale-95 transition-all"
-              >
-                cancelar
-              </button>
-              <button
-                onClick={() => {
-                  requestCancelByRole(riderCancelOrderId, riderCancelReason, 'rider');
-                  setShowRiderCancelModal(false);
-                }}
-                disabled={!riderCancelReason.trim()}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                  riderCancelReason.trim()
-                    ? 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/50'
-                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                entregapedidoถึง Admin
-              </button>
-            </div>
+  const renderHistory = () => (
+    <div className="space-y-3">
+      <section className={`rounded-2xl border p-4 ${panel}`}>
+        <p className={`text-xs ${muted}`}>Ganhos de hoje</p>
+        <p className="text-2xl font-black mt-1">{money(todayPay)}</p>
+      </section>
+      {history.length === 0 ? (
+        <section className={`rounded-2xl border p-8 text-center ${panel}`}>
+          <History size={32} className="mx-auto text-slate-500 mb-3" />
+          <p className="font-bold">Ainda sem entregas concluídas</p>
+        </section>
+      ) : history.map((item) => (
+        <div key={item.id} className={`rounded-2xl border p-4 ${panel} flex items-center justify-between`}>
+          <div>
+            <p className="font-bold">Entrega concluída</p>
+            <p className={`text-xs mt-1 ${muted}`}>{new Date(item.delivered_at || item.updated_at || item.created_at).toLocaleString('pt-AO')}</p>
+          </div>
+          <p className="font-black text-emerald-400">+{money(item.pay)}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderWallet = () => (
+    <section className={`rounded-3xl border p-6 ${panel}`}>
+      <WalletCards size={28} className="text-emerald-400 mb-4" />
+      <p className={`text-sm ${muted}`}>Ganhos registados</p>
+      <p className="text-3xl font-black mt-1">{money(todayPay)}</p>
+      <p className={`text-xs mt-3 ${muted}`}>Os valores de cada entrega são calculados e liquidados pelo servidor.</p>
+    </section>
+  );
+
+  const renderProfile = () => (
+    <div className="space-y-3">
+      <section className={`rounded-3xl border p-5 ${panel}`}>
+        <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+          <Bike size={26} />
+        </div>
+        <p className="font-black text-xl">{userProfile?.name || 'Estafeta'}</p>
+        <p className={`text-sm mt-1 ${muted}`}>{userProfile?.phone || userProfile?.email || ''}</p>
+      </section>
+      <button onClick={() => toggleDarkMode()} className={`w-full rounded-2xl border p-4 ${panel} flex items-center justify-between font-bold`}>
+        <span>Modo {isDarkMode ? 'escuro' : 'claro'}</span>
+        <ChevronRight size={18} />
+      </button>
+      <button onClick={help} className={`w-full rounded-2xl border p-4 ${panel} flex items-center justify-between font-bold`}>
+        <span>Suporte Pedejá</span>
+        <MessageCircle size={18} />
+      </button>
+      <button onClick={() => setActiveRole('customer')} className="w-full rounded-2xl bg-slate-800 text-white p-4 font-bold flex items-center justify-center gap-2">
+        <ArrowLeft size={18} /> Voltar
+      </button>
+    </div>
+  );
+
+  let content = null;
+  if (loading) {
+    content = (
+      <div className="space-y-3">
+        <div className={`h-40 rounded-3xl border ${panel} animate-pulse`} />
+        <div className={`h-24 rounded-2xl border ${panel} animate-pulse`} />
+      </div>
+    );
+  } else if (riderTab === 'active') {
+    content = renderActive();
+  } else if (riderTab === 'history') {
+    content = renderHistory();
+  } else if (riderTab === 'wallet') {
+    content = renderWallet();
+  } else if (riderTab === 'profile') {
+    content = renderProfile();
+  } else {
+    content = renderHome();
+  }
+
+  return (
+    <div className={`min-h-screen ${shell} pb-24`}>
+      {renderOffer()}
+
+      <header className={`sticky top-0 z-40 border-b backdrop-blur-xl ${isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
+        <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+          <button onClick={() => setActiveRole('customer')} className="font-black tracking-tight flex items-center gap-2">
+            <Bike size={20} />
+            Pedejá
+          </button>
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${isBusy ? 'bg-amber-400' : isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+            <span className="text-xs font-bold">{isBusy ? 'Em entrega' : isOnline ? 'Disponível' : 'Offline'}</span>
           </div>
         </div>
-      )}
+      </header>
+
+      <main className="max-w-md mx-auto px-4 py-5">
+        {error && (
+          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-2 text-sm text-red-300">
+            <XCircle size={18} className="shrink-0 mt-0.5" />
+            <span>{error}</span>
+            <button onClick={() => setError('')} className="ml-auto"><X size={16} /></button>
+          </div>
+        )}
+        {content}
+      </main>
+
+      <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+        <div className="max-w-md mx-auto grid grid-cols-4 h-16">
+          {[
+            ['home', Power, 'Início'],
+            ['active', Bike, 'Entrega'],
+            ['wallet', WalletCards, 'Carteira'],
+            ['profile', CircleHelp, 'Perfil'],
+          ].map(([tab, Icon, label]) => {
+            const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
+            return (
+              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-emerald-400' : muted}`}>
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
