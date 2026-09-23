@@ -12,7 +12,7 @@ const RestaurantCard = ({ rest, appConfig, onSelect, userProfile }) => {
       className={`restaurant-card mb-4 ${isDisabled ? 'opacity-60' : 'card-hover'} ${isMyShop ? 'ring-2 ring-orange-400' : ''}`}
       role="button"
       tabIndex={isDisabled ? -1 : 0}
-      aria-label={`ร้าน ${rest.name}`}
+      aria-label={`Estabelecimento ${rest.name}`}
     >
       <div className="relative overflow-hidden" style={{ height: 160 }}>
         <img
@@ -27,13 +27,13 @@ const RestaurantCard = ({ rest, appConfig, onSelect, userProfile }) => {
           <Clock size={11} /> {rest.time}
         </span>
         {rest.status === 'closed' && (
-          <div className="restaurant-card-closed-overlay">ร้านปิด</div>
+          <div className="restaurant-card-closed-overlay">Estabelecimento fechado</div>
         )}
         {isOutOfRange && (
-          <div className="restaurant-card-closed-overlay">นอกพื้นที่</div>
+          <div className="restaurant-card-closed-overlay">Fora da área de serviço</div>
         )}
         {isMyShop && (
-          <span className="absolute top-2 right-2 bg-violet-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">ร้านคุณ</span>
+          <span className="absolute top-2 right-2 bg-violet-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">O seu estabelecimento</span>
         )}
       </div>
       <div className="p-3">
@@ -50,14 +50,14 @@ const RestaurantCard = ({ rest, appConfig, onSelect, userProfile }) => {
             rest.distance <= appConfig.riderRadius
               ? 'bg-green-100 text-green-700'
               : 'bg-violet-100 text-violet-600'
-          }`}>{rest.distance} กม.</span>
+          }`}>{rest.distance} km</span>
         </div>
         <div className="flex items-center gap-2 mt-1.5 text-sm text-gray-500">
           <span className="flex items-center gap-0.5 text-yellow-500 font-semibold">
             <Star size={13} className="fill-current" /> {rest.rating}
           </span>
           <span className="text-gray-300">•</span>
-          <span className="text-gray-500">ค่าส่ง ฿{appConfig.baseFee + Math.ceil(rest.distance) * appConfig.perKmFee}</span>
+          <span className="text-gray-500">Taxa de entrega Kz {appConfig.baseFee + Math.ceil(rest.distance) * appConfig.perKmFee}</span>
         </div>
       </div>
     </div>
