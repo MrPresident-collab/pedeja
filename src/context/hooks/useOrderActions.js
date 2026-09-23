@@ -439,10 +439,6 @@ export function useOrderActions(deps) {
 
     // ── Completion & Settlement Flow (Financial Settlement is Source of Truth) ──
     if (newStatus === 'completed') {
-      const { foodTotal, gpAmount, merchantIncome, riderIncome: calcRiderIncome } = _settlementAmounts(order);
-      const riderUid     = order.riderUserId || riders.find(r => r.id === order.riderId)?.userId;
-      const shopOwnerUid = order.restaurantOwnerId || restaurants.find(r => r.id === order.restaurantId)?.ownerId;
-
       const gpFoodRate    = (appConfig.gpFood ?? 30) / 100;
       const gpDelivRate   = (appConfig.gpDelivery ?? 15) / 100;
 
@@ -479,7 +475,7 @@ export function useOrderActions(deps) {
       // Do not mutate wallet balances from the customer client.
 
       // Mark rider as available again
-      const riderRow = riders.find(r => r.userId === riderUid);
+      const riderRow = riders.find(r => r.userId === (order.riderUserId || riders.find(r => r.id === order.riderId)?.userId));
       if (riderRow) {
         supabase.from('riders').update({ is_available: true }).eq('id', riderRow.id).then(() => {});
       }
