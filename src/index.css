@@ -172,13 +172,13 @@ html, body {
 
 /* ===== Buttons ===== */
 .btn-primary {
-  @apply bg-orange-500 text-white font-semibold py-3 px-6 rounded-2xl
-         transition-all duration-200 active:scale-95 hover:bg-orange-600
-         shadow-lg shadow-orange-200 hover:shadow-orange-300;
+  @apply bg-violet-500 text-white font-semibold py-3 px-6 rounded-2xl
+         transition-all duration-200 active:scale-95 hover:bg-violet-600
+         shadow-lg shadow-violet-200 hover:shadow-orange-300;
 }
 .btn-secondary {
-  @apply bg-white text-orange-500 font-semibold py-3 px-6 rounded-2xl
-         border-2 border-orange-200 transition-all duration-200
+  @apply bg-white text-violet-500 font-semibold py-3 px-6 rounded-2xl
+         border-2 border-violet-200 transition-all duration-200
          active:scale-95 hover:bg-orange-50;
 }
 
@@ -212,16 +212,16 @@ html, body {
   @apply flex flex-col items-center justify-center gap-0.5
          flex-1 py-2 transition-all duration-200 relative;
 }
-.bottom-nav-item.active { @apply text-orange-500; }
+.bottom-nav-item.active { @apply text-violet-500; }
 .bottom-nav-item .nav-dot {
-  @apply absolute top-1 w-1 h-1 rounded-full bg-orange-500
+  @apply absolute top-1 w-1 h-1 rounded-full bg-violet-500
          transition-all duration-300 opacity-0;
 }
 .bottom-nav-item.active .nav-dot { @apply opacity-100; }
 
 /* ===== Order Status Steps ===== */
 .status-step { @apply flex items-center gap-3 p-3 rounded-2xl transition-all duration-300; }
-.status-step.active { @apply bg-orange-50 border border-orange-200; }
+.status-step.active { @apply bg-orange-50 border border-violet-200; }
 
 /* ===== Rider Card ===== */
 .rider-online-pulse {
