@@ -1,62 +1,21 @@
 {
-  "name": "BoomRider - สั่งอาหารออนไลน์",
-  "short_name": "BoomRider",
-  "description": "แอปสั่งอาหารและส่งพัสดุออนไลน์ ส่งเร็ว ราคาถูก",
+  "name": "Pedejá",
+  "short_name": "Pedejá",
+  "description": "Entrega de comida e encomendas em Angola.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f97316",
-  "theme_color": "#f97316",
+  "background_color": "#6D28D9",
+  "theme_color": "#6D28D9",
   "orientation": "portrait-primary",
-  "lang": "th",
-  "categories": ["food", "lifestyle", "shopping"],
+  "lang": "pt-AO",
+  "dir": "ltr",
+  "categories": ["food", "shopping"],
   "icons": [
     {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon.svg",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "prefer_related_applications": false
