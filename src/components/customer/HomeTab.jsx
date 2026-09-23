@@ -38,7 +38,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     getCurrentLocationForParcel('pickup');
   }, [serviceType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [orderNotes, setOrderNotes]   = useState('');
   const [promoInput, setPromoInput]   = useState('');
   const [promoResult, setPromoResult] = useState(null);
@@ -50,7 +50,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
   });
   const [rideMapTarget, setRideMapTarget] = useState('pickup');
   const [serviceDetails, setServiceDetails] = useState({
-    serviceCategory: 'ทำความสะอาดบ้าน', address: '', location: null, note: '', preferredDate: '', preferredTime: '10:00', price: 350
+    serviceCategory: 'Limpeza doméstica', address: '', location: null, note: '', preferredDate: '', preferredTime: '10:00', price: 350
   });
 
   const rideDistance = (isValidCoordinate(rideDetails.pickupLocation) && isValidCoordinate(rideDetails.dropoffLocation))
@@ -86,8 +86,8 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
   };
 
   const getCurrentLocationForService = () => {
-    if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'Browser ไม่รองรับ GPS', 'error');
-    notifySystem('กำลังดึงพิกัด', 'กำลังหาตำแหน่งของคุณ...', 'info');
+    if (!navigator.geolocation) return notifySystem('Erro', 'O navegador não suporta GPS', 'error');
+    notifySystem('A obter localização', 'A procurar a sua localização...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
       try {
@@ -101,8 +101,8 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
       } catch {
         setServiceDetails(prev => ({ ...prev, address: `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`, location: loc }));
       }
-      notifySystem('สำเร็จ', 'ตั้งจุดรับบริการเป็นตำแหน่งปัจจุบันแล้ว', 'success');
-    }, () => notifySystem('ผิดพลาด', 'ไม่สามารถดึงพิกัดได้ กรุณาเปิดสิทธิ์ GPS', 'error'), { enableHighAccuracy: true, timeout: 10000 });
+      notifySystem('Concluído', 'Ponto de recolha definido para a localização actual', 'success');
+    }, () => notifySystem('Erro', 'Não foi possível obter a localização. Permita o acesso ao GPS.', 'error'), { enableHighAccuracy: true, timeout: 10000 });
   };
 
   // Modal for selecting item options / toppings
@@ -122,9 +122,9 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     const result      = validatePromoCode(promoInput.trim(), foodTotal + deliveryFee);
     setPromoResult(result);
     if (result.valid) {
-      notifySystem('สำเร็จ', `ใช้โค้ด ${promoInput.toUpperCase()} ส่วนลด ฿${result.discount}`, 'success');
+      notifySystem('Concluído', `ใช้โค้ด ${promoInput.toUpperCase()} desconto Kz ${result.discount}`, 'success');
     } else {
-      notifySystem('ผิดพลาด', result.message, 'error');
+      notifySystem('Erro', result.message, 'error');
     }
   };
 
@@ -133,7 +133,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
   const categories = useMemo(() => {
     const catsInShops = restaurants.filter(r => r.category).map(r => r.category);
     const combined = [...new Set([...DEFAULT_CATEGORIES, ...catsInShops])].sort();
-    return ['ทั้งหมด', ...combined];
+    return ['Todos', ...combined];
   }, [restaurants]);
 
   const handleOpenOptionModal = (item) => {
@@ -171,7 +171,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
   const visibleRestaurants = useMemo(() => {
     let list = restaurantsWithDistance.filter(r => r.status === 'open');
-    if (selectedCategory !== 'ทั้งหมด') list = list.filter(r => r.category === selectedCategory);
+    if (selectedCategory !== 'Todos') list = list.filter(r => r.category === selectedCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(r => {
@@ -195,7 +195,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
           <button
             onClick={() => setSelectedRestaurant(null)}
             className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm p-2 rounded-full shadow-lg active:scale-90 transition-transform"
-            aria-label="ย้อนกลับ"
+            aria-label="Voltar"
           >
             <ArrowLeft size={20} className="text-gray-800" />
           </button>
@@ -209,13 +209,13 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
           <div className="flex items-center gap-3 text-sm text-gray-500">
             <span className="flex items-center gap-1"><Clock size={13} /> {selectedRestaurant.time}</span>
             <span className="text-gray-300">•</span>
-            <span>{selectedRestaurant.distance} กม.</span>
+            <span>{selectedRestaurant.distance} km</span>
             <span className="text-gray-300">•</span>
-            <span className="text-orange-600 font-semibold">ค่าส่ง ฿{calculateDeliveryFee(selectedRestaurant.distance)}</span>
+            <span className="text-orange-600 font-semibold">Taxa de entrega Kz {calculateDeliveryFee(selectedRestaurant.distance)}</span>
           </div>
         </div>
         <div className="px-4 pt-4 pb-40">
-          <h2 className="font-bold text-lg text-gray-800 mb-3">เมนูทั้งหมด</h2>
+          <h2 className="font-bold text-lg text-gray-800 mb-3">เมนูTodos</h2>
           <div className="space-y-3">
             {menuItems[selectedRestaurant.id]?.length > 0 ? (
               menuItems[selectedRestaurant.id].map(item => (
@@ -233,13 +233,13 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                               <Sparkles size={9} /> {item.tag}
                             </span>
                           )}
-                          {!item.available && <span className="text-red-500 text-xs font-bold"> (หมด)</span>}
+                          {!item.available && <span className="text-red-500 text-xs font-bold"> (Esgotado)</span>}
                         </div>
                         <p className="text-gray-400 text-xs mt-0.5 line-clamp-2">{item.desc}</p>
-                        <p className="font-bold text-gray-900 mt-1.5">฿{item.price}</p>
+                        <p className="font-bold text-gray-900 mt-1.5">Kz {item.price}</p>
                         {item.options && item.options.length > 0 && (
                           <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-0.5 mt-0.5">
-                            <SlidersHorizontal size={10} /> มีตัวเลือกเพิ่มเติม ({item.options.length})
+                            <SlidersHorizontal size={10} /> Opções adicionais ({item.options.length})
                           </span>
                         )}
                       </div>
@@ -256,7 +256,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             ) : (
               <div className="text-center py-12 text-gray-400">
                 <ChefHat size={40} className="mx-auto mb-2 opacity-30" />
-                <p>ยังไม่มีเมนูอาหาร</p>
+                <p>Ainda não existem itens</p>
               </div>
             )}
           </div>
@@ -279,7 +279,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                     <button onClick={() => handleCartQty(item.id, -1)} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-orange-100 text-gray-600 hover:text-orange-600"><Minus size={14} /></button>
                     <span className="text-sm font-bold w-5 text-center">{item.qty}</span>
                     <button onClick={() => handleCartQty(item.id, 1)} className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white hover:bg-orange-600"><Plus size={14} /></button>
-                    <span className="text-xs font-bold text-gray-500 w-14 text-right">฿{(item.price * item.qty).toLocaleString()}</span>
+                    <span className="text-xs font-bold text-gray-500 w-14 text-right">Kz {(item.price * item.qty).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
@@ -287,64 +287,64 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
             {!showPromoField ? (
               <button onClick={() => setShowPromoField(true)} className="text-xs text-orange-500 underline flex items-center gap-1 mb-2">
-                <Tag size={12} /> ใช้โค้ดส่วนลด
+                <Tag size={12} /> Usar código de desconto
               </button>
             ) : (
               <div className="flex gap-2 mb-2">
-                <label htmlFor="cart-promo-input" className="sr-only">โค้ดส่วนลด</label>
+                <label htmlFor="cart-promo-input" className="sr-only">Código de desconto</label>
                 <input
                   id="cart-promo-input"
                   name="promoCode"
                   value={promoInput}
                   onChange={e => setPromoInput(e.target.value.toUpperCase())}
-                  placeholder="กรอกโค้ดส่วนลด"
+                  placeholder="กรอกCódigo de desconto"
                   className="flex-1 border border-orange-200 rounded-lg px-3 py-1.5 text-sm font-mono uppercase focus:outline-none focus:border-orange-400"
                   maxLength={20}
                   autoComplete="off"
-                  aria-label="กรอกโค้ดส่วนลด"
+                  aria-label="กรอกCódigo de desconto"
                 />
-                <button onClick={handleApplyPromo} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold">ใช้</button>
+                <button onClick={handleApplyPromo} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold">Aplicar</button>
                 <button onClick={() => { setShowPromoField(false); setPromoInput(''); setPromoResult(null); }} className="text-gray-400 hover:text-gray-600 px-2"><X size={16} /></button>
               </div>
             )}
             {promoResult?.valid && (
               <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 mb-2 flex items-center gap-2 text-sm text-green-700">
-                <CheckCircle size={14} /> ส่วนลด <strong>฿{promoResult.discount}</strong>
+                <CheckCircle size={14} /> desconto <strong>Kz {promoResult.discount}</strong>
               </div>
             )}
 
-            <label htmlFor="cart-order-notes" className="sr-only">หมายเหตุถึงร้าน</label>
+            <label htmlFor="cart-order-notes" className="sr-only">Observação para o comerciante</label>
             <textarea
               id="cart-order-notes"
               name="orderNotes"
               value={orderNotes}
               onChange={e => setOrderNotes(e.target.value)}
-              placeholder="หมายเหตุถึงร้าน (ไม่ใส่น้ำตาล, ไม่ใส่ผัก...)"
+              placeholder="Observação para o comerciante (ไม่ใส่น้ำตาล, ไม่ใส่ผัก...)"
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none h-16 mb-2 focus:outline-none focus:border-orange-300"
               maxLength={200}
               autoComplete="off"
             />
 
             <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
-              <span>ค่าอาหาร</span><span>฿{calculateFoodTotal().toLocaleString()}</span>
+              <span>Comida</span><span>Kz {calculateFoodTotal().toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
-              <span>ค่าส่ง</span><span>฿{calculateDeliveryFee(cart[0].distance)}</span>
+              <span>Entrega</span><span>Kz {calculateDeliveryFee(cart[0].distance)}</span>
             </div>
             {promoDiscount > 0 && (
               <div className="flex justify-between items-center mb-2 text-sm text-green-600 font-semibold">
-                <span>ส่วนลด</span><span>-฿{promoDiscount}</span>
+                <span>Desconto</span><span>-Kz {promoDiscount}</span>
               </div>
             )}
             <div className="flex justify-between items-center mb-3 font-black text-lg">
-              <span>รวม</span>
-              <span className="text-orange-600">฿{Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}</span>
+              <span>Total</span>
+              <span className="text-orange-600">Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}</span>
             </div>
 
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Banknote size={13} /> ชำระ:</span>
+              <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Banknote size={13} /> Pagamento:</span>
               <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'wallet' ? 'bg-orange-500 text-white border-orange-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>Wallet</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'cash' ? 'bg-blue-500 text-white border-blue-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>เงินสด</button>
+              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'cash' ? 'bg-blue-500 text-white border-blue-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>Numerário</button>
             </div>
             {(!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)) && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-2 text-xs text-amber-800 font-medium text-center">
@@ -354,7 +354,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <button
               onClick={() => {
                 if (!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)) {
-                  notifySystem('ผิดพลาด', 'กรุณาปักหมุดตำแหน่งที่อยู่จัดส่งของคุณบนแผนที่ก่อนสั่งอาหาร', 'error');
+                  notifySystem('Erro', 'Marque a morada de entrega no mapa antes de fazer o pedido', 'error');
                   return;
                 }
                 if (promoResult?.valid) applyPromoCode(promoInput);
@@ -364,7 +364,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               disabled={!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-xl shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              สั่งอาหาร ฿{Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}
+              สั่งอาหาร Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}
             </button>
           </div>
         )}
@@ -376,14 +376,14 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               <div className="bg-orange-500 text-white p-4 flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-base leading-tight">{selectedMenuItem.name}</h3>
-                  <p className="text-xs text-orange-100 mt-0.5">ราคาเริ่มต้น ฿{selectedMenuItem.price}</p>
+                  <p className="text-xs text-orange-100 mt-0.5">Preço inicial Kz {selectedMenuItem.price}</p>
                 </div>
                 <button onClick={() => setSelectedMenuItem(null)} className="text-white/80 hover:text-white p-1">
                   <X size={20} />
                 </button>
               </div>
               <div className="p-4 max-h-72 overflow-y-auto">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">เลือกตัวเลือกเพิ่มเติม / ท็อปปิ้ง</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Escolha opções adicionais / extras</p>
                 <div className="space-y-2">
                   {selectedMenuItem.options?.map((opt, idx) => {
                     const isSelected = selectedOptions.some(o => o.name === opt.name);
@@ -396,7 +396,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                         }`}
                       >
                         <span className="text-sm font-medium text-gray-800">{opt.name}</span>
-                        <span className="text-xs font-bold text-orange-600">+฿{opt.price || 0}</span>
+                        <span className="text-xs font-bold text-orange-600">+Kz {opt.price || 0}</span>
                       </div>
                     );
                   })}
@@ -404,9 +404,9 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               </div>
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-xs text-gray-400 block">ราคารวม</span>
+                  <span className="text-xs text-gray-400 block">ราคาTotal</span>
                   <span className="text-lg font-black text-orange-600">
-                    ฿{selectedMenuItem.price + selectedOptions.reduce((s, o) => s + (o.price || 0), 0)}
+                    Kz {selectedMenuItem.price + selectedOptions.reduce((s, o) => s + (o.price || 0), 0)}
                   </span>
                 </div>
                 <button
@@ -473,13 +473,13 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-800">
-              {searchQuery ? `ผลการค้นหา "${searchQuery}"` : selectedCategory === 'ทั้งหมด' ? 'ร้านใกล้คุณ' : selectedCategory}
+              {searchQuery ? `ผลการค้นหา "${searchQuery}"` : selectedCategory === 'Todos' ? 'ร้านใกล้คุณ' : selectedCategory}
             </h2>
             <span className="text-xs text-orange-500 font-medium">{visibleRestaurants.length} ร้าน</span>
           </div>
 
           {visibleRestaurants.length === 0 && (
-            isDataLoading && !searchQuery && selectedCategory === 'ทั้งหมด' ? (
+            isDataLoading && !searchQuery && selectedCategory === 'Todos' ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="bg-white rounded-2xl p-3 flex gap-3 shadow-sm animate-pulse">
@@ -497,7 +497,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                 <Search size={40} className="mx-auto mb-2 opacity-20" />
                 <p className="font-medium">ไม่พบร้านอาหารที่ค้นหา</p>
                 <button
-                  onClick={() => { setSearchQuery(''); setSelectedCategory('ทั้งหมด'); }}
+                  onClick={() => { setSearchQuery(''); setSelectedCategory('Todos'); }}
                   className="mt-2 text-orange-500 text-sm underline"
                 >ล้างการค้นหา</button>
               </div>
@@ -517,7 +517,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h2 className="font-bold text-lg mb-4 text-blue-600 flex items-center"><Package className="mr-2" /> บริการส่งพัสดุด่วน</h2>
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 text-center">ค่าบริการเริ่มต้น {appConfig.baseFee}บ. + {appConfig.perKmFee}บ./กม.</p>
+            <p className="text-xs text-gray-500 text-center">ค่าบริการเริ่มต้น {appConfig.baseFee}บ. + {appConfig.perKmFee}บ./km</p>
             <div className="mb-4">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <button
@@ -605,7 +605,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             {parcelDistance > 0 && (
               <div className="bg-blue-50 p-3 rounded-xl text-center my-2 border border-blue-200">
                 <p className="text-sm font-bold text-blue-800">
-                  📏 ระยะทาง {parcelDistance.toFixed(1)} กม. &nbsp;|&nbsp; ค่าส่ง ฿{parcelEstimate}
+                  📏 ระยะทาง {parcelDistance.toFixed(1)} km &nbsp;|&nbsp; Taxa de entrega Kz {parcelEstimate}
                 </p>
                 <p className="text-xs text-blue-500 mt-0.5">คำนวณจากจุดรับถึงจุดส่ง</p>
               </div>
@@ -613,7 +613,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
               <span className="text-sm font-bold">ชำระเงิน:</span>
               <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white border-gray-300'}`}>Wallet</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300'}`}>เงินสด</button>
+              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300'}`}>Numerário</button>
             </div>
             <button
               onClick={placeParcelOrder}
@@ -629,7 +629,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h2 className="font-bold text-lg mb-4 text-purple-600 flex items-center"><Car className="mr-2" /> บริการเรียกรถรับส่ง (Ride)</h2>
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 text-center">ค่าบริการเดินทางเริ่มต้น {appConfig.rideBaseFee ?? appConfig.baseFee}บ. + {appConfig.ridePerKmFee ?? appConfig.perKmFee}บ./กม.</p>
+            <p className="text-xs text-gray-500 text-center">ค่าบริการเดินทางเริ่มต้น {appConfig.rideBaseFee ?? appConfig.baseFee}บ. + {appConfig.ridePerKmFee ?? appConfig.perKmFee}บ./km</p>
             <div className="mb-4">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <button
@@ -704,7 +704,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             {rideDistance > 0 && (
               <div className="bg-purple-50 p-3 rounded-xl text-center my-2 border border-purple-200">
                 <p className="text-sm font-bold text-purple-900">
-                  📏 ระยะทาง {rideDistance.toFixed(1)} กม. &nbsp;|&nbsp; ค่าโดยสาร ฿{rideEstimate}
+                  📏 ระยะทาง {rideDistance.toFixed(1)} km &nbsp;|&nbsp; ค่าโดยสาร Kz {rideEstimate}
                 </p>
                 <p className="text-xs text-purple-600 mt-0.5">คำนวณจากจุดรับถึงจุดส่ง</p>
               </div>
@@ -712,14 +712,14 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
               <span className="text-sm font-bold">ชำระเงิน:</span>
               <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-purple-100 border-purple-500 text-purple-700 font-bold' : 'bg-white border-gray-300'}`}>Wallet</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>เงินสด</button>
+              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>Numerário</button>
             </div>
             <button
               onClick={() => placeRideOrder ? placeRideOrder(rideDetails) : notifySystem('แจ้งเตือน', 'อยู่ระหว่างประมวลผล', 'info')}
               disabled={!isValidCoordinate(rideDetails.pickupLocation) || !isValidCoordinate(rideDetails.dropoffLocation)}
               className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
-              {rideDistance > 0 ? `เรียกรถรับส่ง (฿${rideEstimate.toLocaleString()})` : 'เรียกรถรับส่งทันที'}
+              {rideDistance > 0 ? `เรียกรถรับส่ง (Kz ${rideEstimate.toLocaleString()})` : 'เรียกรถรับส่งทันที'}
             </button>
           </div>
         </div>
@@ -744,7 +744,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               >
                 {(appConfig.extraServices || []).map((srv, idx) => (
                   <option key={idx} value={srv.name}>
-                    🔧 {srv.name} (฿{srv.price})
+                    🔧 {srv.name} (Kz {srv.price})
                   </option>
                 ))}
               </select>
@@ -812,12 +812,12 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               </div>
             </div>
             <div className="bg-emerald-50 p-3 rounded-xl text-center border border-emerald-200">
-              <p className="text-sm font-bold text-emerald-800">ค่าบริการประเมิน: ฿{serviceDetails.price}</p>
+              <p className="text-sm font-bold text-emerald-800">ค่าบริการประเมิน: Kz {serviceDetails.price}</p>
             </div>
             <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
               <span className="text-sm font-bold">ชำระเงิน:</span>
               <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'wallet' ? 'bg-emerald-100 border-emerald-500 text-emerald-700 font-bold' : 'bg-white border-gray-300'}`}>Wallet</button>
-              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>เงินสด</button>
+              <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-1 text-xs rounded border ${paymentMethod === 'cash' ? 'bg-blue-100 border-blue-500 text-blue-700 font-bold' : 'bg-white border-gray-300'}`}>Numerário</button>
             </div>
             <button
               onClick={() => placeServiceOrder ? placeServiceOrder(serviceDetails) : notifySystem('แจ้งเตือน', 'อยู่ระหว่างประมวลผล', 'info')}
