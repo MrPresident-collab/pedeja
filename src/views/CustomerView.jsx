@@ -43,17 +43,17 @@ export default function CustomerView() {
               <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-md shadow-orange-200">
                 <span className="text-white text-lg">🛵</span>
               </div>
-              <span className="font-black text-xl tracking-tight gradient-text">BoomRider</span>
+              <span className="font-black text-xl tracking-tight gradient-text">Pedejá</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400 dark:text-gray-400">{t('hello')},</span>
               <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 max-w-[80px] truncate">
-                {(userProfile.name || 'ผู้ใช้').split(' ')[0]}
+                {(userProfile.name || 'Utilizador').split(' ')[0]}
               </span>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="ml-1 p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-orange-100 dark:hover:bg-gray-600 hover:text-orange-600 text-gray-400 dark:text-gray-300 active:scale-90 transition-all"
+                className="ml-1 p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-gray-600 hover:text-violet-600 text-gray-400 dark:text-gray-300 active:scale-90 transition-all"
                 title="รีเฟรชข้อมูล"
               >
                 <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
@@ -88,7 +88,7 @@ export default function CustomerView() {
           <button onClick={() => setProfileSubView('main')} className="mr-4 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
             <ArrowLeft />
           </button>
-          <h2 className="text-xl font-bold">เมนูจัดการ</h2>
+          <h2 className="text-xl font-bold">Menu de gestão</h2>
         </div>
       )}
 
