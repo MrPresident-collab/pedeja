@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   INITIAL_CONFIG, INITIAL_RESTAURANTS, INITIAL_RIDERS, INITIAL_MENU_ITEMS,
-  USER_LOCATION, ADMIN_EMAIL, PEDEJA_SERVICE_TYPES,
+  ADMIN_EMAIL, PEDEJA_SERVICE_TYPES,
 } from '../constants';
 import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrderNotificationSound, initPushNotifications } from '../utils';
 import { supabase } from '../lib/supabase';
