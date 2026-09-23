@@ -15,7 +15,7 @@ const COUNTRIES = [
 ];
 
 function normalizePhone(raw, dial) {
-  const digits = raw.replace(/\\D/g, '');
+  const digits = raw.replace(/\D/g, '');
   if (!digits) return '';
   return `${dial}${digits.replace(/^0+/, '')}`;
 }
@@ -36,7 +36,6 @@ export default function AuthView() {
   const [otp, setOtp] = useState('');
   const [stage, setStage] = useState('phone');
   const [loading, setLoading] = useState(false);
-  const [rememberDevice, setRememberDevice] = useState(true);
 
   const selectedCountry = useMemo(
     () => COUNTRIES.find((item) => item.code === country) || COUNTRIES[0],
