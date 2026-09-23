@@ -1,63 +1,36 @@
 import React from 'react';
-import { Home, ShoppingBag, User, ShieldAlert } from 'lucide-react';
+import { Home, ShoppingBag, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 
 export default function BottomNav() {
   const { t } = useTranslation();
-  const {
-    activeTab, setActiveTab,
-    activeRole, setActiveRole,
-    setProfileSubView,
-    isAdmin, pendingRequests,
-    orders, userProfile, currentUser,
-    selectedRestaurant,
-  } = useApp();
-
+  const { activeTab, setActiveTab, setProfileSubView, orders, userProfile, currentUser, selectedRestaurant } = useApp();
   if (selectedRestaurant) return null;
 
-  const activityBadge = orders.filter(o =>
-    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(o.status) &&
-    (o.customerId === userProfile.id || o.customerId === currentUser?.id),
+  const activityBadge = orders.filter(order =>
+    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status) &&
+    (order.customerId === userProfile.id || order.customerId === currentUser?.id),
   ).length;
 
   const tabs = [
-    { id: 'home',     icon: Home,        label: t('nav_home') },
+    { id: 'home', icon: Home, label: t('nav_home') },
     { id: 'activity', icon: ShoppingBag, label: t('nav_activity'), badge: activityBadge },
-    { id: 'profile',  icon: User,        label: t('nav_profile') },
-    ...(isAdmin ? [{ id: 'admin', icon: ShieldAlert, label: 'แอดมิน', badge: pendingRequests.length, isRole: true }] : []),
+    { id: 'profile', icon: User, label: t('nav_profile') },
   ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-700 flex justify-around z-40 bottom-nav-bar shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-      {tabs.map(({ id, icon, label, badge, isRole }) => {
-        const IconComponent = icon;
-        return (
-        <button
-          key={id}
-          onClick={() => {
-            if (isRole) { setActiveRole(id); }
-            else { setActiveTab(id); setProfileSubView('main'); }
-          }}
-          className={`bottom-nav-item ${
-            isRole
-              ? (activeRole === id ? 'active' : 'text-gray-400 dark:text-gray-400')
-              : (activeTab === id && activeRole === 'customer' ? 'active' : 'text-gray-400 dark:text-gray-400')
-          } ${id === 'admin' ? '!text-red-500' : ''}`}
-        >
+      {tabs.map(({ id, icon: Icon, label, badge }) => (
+        <button key={id} onClick={() => { setActiveTab(id); setProfileSubView('main'); }} className={`bottom-nav-item ${activeTab === id ? 'active' : 'text-gray-400 dark:text-gray-400'}`}>
           <div className="relative">
-            <IconComponent size={22} strokeWidth={activeTab === id ? 2.5 : 1.8} />
-            {badge > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                {badge > 9 ? '9+' : badge}
-              </span>
-            )}
+            <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 1.8} />
+            {badge > 0 && <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">{badge > 9 ? '9+' : badge}</span>}
           </div>
           <span className={`text-[10px] font-${activeTab === id ? 'bold' : 'medium'} mt-0.5`}>{label}</span>
           <div className="nav-dot" />
         </button>
-        );
-      })}
+      ))}
     </div>
   );
 }
