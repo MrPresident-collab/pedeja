@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { isValidCoordinate, isDefaultFallbackLocation, getDistanceFromLatLonInKm } from '../src/utils.js';
 
-test('isValidCoordinate rejects null, undefined, out-of-bounds, and default Bangkok fallback', () => {
+test('isValidCoordinate rejects null, undefined, out-of-bounds, and default Luanda fallback', () => {
   // Valid real coordinates
   assert.equal(isValidCoordinate({ lat: 13.7367, lng: 100.5231 }), true);
   assert.equal(isValidCoordinate({ lat: 0, lng: 0 }), true); // 0 is valid coordinate
@@ -19,9 +19,9 @@ test('isValidCoordinate rejects null, undefined, out-of-bounds, and default Bang
   assert.equal(isValidCoordinate(undefined), false);
   assert.equal(isValidCoordinate({ lat: 'invalid', lng: 100 }), false);
 
-  // Default Bangkok fallback coordinates
-  assert.equal(isDefaultFallbackLocation({ lat: 13.7563, lng: 100.5018 }), true);
-  assert.equal(isValidCoordinate({ lat: 13.7563, lng: 100.5018 }), false);
+  // Default Luanda fallback coordinates
+  assert.equal(isDefaultFallbackLocation({ lat: -8.8383, lng: 13.2344 }), true);
+  assert.equal(isValidCoordinate({ lat: -8.8383, lng: 13.2344 }), false);
 });
 
 test('Editing address text clears old coordinates state', () => {

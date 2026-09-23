@@ -105,7 +105,7 @@ function AppRouter() {
             title="Falar com o assistente Pedejá"
           >
             <Bot size={22} className="group-hover:rotate-12 transition-transform" />
-            <span className="text-xs font-bold pr-1 hidden sm:inline">Assistente Pedejá</g/span>
+            <span className="text-xs font-bold pr-1 hidden sm:inline">Assistente Pedejá</span>
           </button>
 
           <Suspense fallback={<ViewLoader />}>
