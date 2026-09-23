@@ -6,7 +6,7 @@ import {
   Edit, Power, Lock, Phone, FileBadge,
   Image as ImageIcon, Ban, X, Users, BarChart2, Tag,
   TrendingUp, ShoppingBag, Star, PlusCircle, Trash2,
-  ToggleLeft, ToggleRight, carteira, AlertCircle, List,
+  ToggleLeft, ToggleRight, Wallet, AlertCircle, List,
   DatabaseZap, ShieldOff, CheckSquare, Square, Car,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -62,9 +62,9 @@ export default function AdminView() {
     editConfig, setEditConfig,
     isConfigDirty, setIsConfigDirty,
     chats,
-    globalcarteiras,
+    globalWallets,
     currentUser,
-    usercarteira,
+    userWallet,
     walletHistory,
     editingShop, setEditingShop,
     shopEditForm, setShopEditForm,
@@ -84,9 +84,9 @@ export default function AdminView() {
     // Promo
     promoCodes, createPromoCode, togglePromoCode, deletePromoCode,
     // Admin tools
-    adminAdjustcarteira, adminBanUser,
+    adminAdjustWallet, adminBanUser,
     grantRole, revokeRole,
-    setOrders, setRestaurants, setRiders, setPendingRequests, setGlobalcarteiras,
+    setOrders, setRestaurants, setRiders, setPendingRequests, setGlobalWallets,
     isDataLoading,
   } = useApp();
 
@@ -96,8 +96,8 @@ export default function AdminView() {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustDesc, setAdjustDesc] = useState('');
   const [resetPwdUserId, setResetPwdUserId] = useState(null);
-  const [usercarteiraEntries, setUsercarteiraEntries] = useState({});
-  const [usercarteiraLoading, setUsercarteiraLoading] = useState({});
+  const [userWalletEntries, setUsercarteiraEntries] = useState({});
+  const [userWalletLoading, setUsercarteiraLoading] = useState({});
 
   // Promo form
   const [promoForm, setPromoForm] = useState({
@@ -137,7 +137,7 @@ export default function AdminView() {
       email: p.email,
       phone: p.phone,
       banned: p.banned,
-      walletBalance: walletsMap[p.id] ?? globalcarteiras[p.id]?.balance ?? 0,
+      walletBalance: walletsMap[p.id] ?? globalWallets[p.id]?.balance ?? 0,
       roles: rolesMap[p.id] || ['customer'],
     })));
   };
@@ -272,7 +272,7 @@ export default function AdminView() {
       if (opts.riders)          { tasks.push(purge('riders')); setRiders([]); }
       if (opts.wallets) {
         tasks.push(purge('wallets'));
-        setGlobalcarteiras({});
+        setGlobalWallets({});
       } else if (opts.walletEntries) {
         tasks.push(purge('wallet_history'));
       }
@@ -429,7 +429,7 @@ export default function AdminView() {
   // ── carteira adjust ─────────────────────────────────────────────────────────
   const loadUsercarteiraEntries = async (userId) => {
     if (!userId) return;
-    if (usercarteiraLoading[userId]) return;
+    if (userWalletLoading[userId]) return;
     setUsercarteiraLoading(prev => ({ ...prev, [userId]: true }));
     const { data, error } = await supabase.from('wallets').select('history').eq('user_id', userId).maybeSingle();
     if (error) console.error('Failed to load wallet history:', error);
@@ -461,7 +461,7 @@ export default function AdminView() {
     if (!adjustUserId || isNaN(amt) || amt === 0 || !adjustDesc) {
       return notifySystem('Erro', 'Preencha todos os campos', 'error');
     }
-    await adminAdjustcarteira(adjustUserId, amt, adjustDesc);
+    await adminAdjustWallet(adjustUserId, amt, adjustDesc);
     setAdjustUserId(null);
     setAdjustAmount('');
     setAdjustDesc('');
@@ -583,7 +583,7 @@ export default function AdminView() {
           </div>
           {/* ── Carteira Admin (GP สะสม) ───────────────────────────────── */}
           {(() => {
-            const adminBal = usercarteira ?? 0;
+            const adminBal = userWallet ?? 0;
             const rawHistory = walletHistory?.length ? walletHistory : [];
             const displayHistory = [...rawHistory].sort((a, b) => {
               const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
@@ -830,7 +830,7 @@ export default function AdminView() {
               <div className="divide-y max-h-[480px] overflow-y-auto">
                 {walletRows.map(row => {
                   const isExpanded = walletExpanded === row.uid;
-                  const history = usercarteiraEntries[row.uid] || (row.uid === currentUser?.id ? walletHistory : []);
+                  const history = userWalletEntries[row.uid] || (row.uid === currentUser?.id ? walletHistory : []);
                   const roleCls = r => r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-violet-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500';
                   const gpEntries = history.filter(e => (e.desc||'').toLowerCase().includes('gp'));
                   const totalGP   = gpEntries.reduce((s,e)=>s+(e.amount||0), 0);
@@ -876,7 +876,7 @@ export default function AdminView() {
                       {/* Expanded history */}
                       {isExpanded && (
                         <div className="bg-gray-50 border-t px-4 py-3 space-y-1.5 max-h-60 overflow-y-auto">
-                          {usercarteiraLoading[row.uid] ? (
+                          {userWalletLoading[row.uid] ? (
                             <p className="text-xs text-gray-400 text-center py-2">A carregar histórico…</p>
                           ) : history.length === 0 ? (
                             <p className="text-xs text-gray-400 text-center py-2">Sem histórico de transacções</p>
@@ -1073,7 +1073,7 @@ export default function AdminView() {
                       )}
                       <div className="text-xs text-gray-400 mt-2">โดย: {req.user}</div>
                       {(req.type === 'topup' || req.type === 'withdraw') && (() => {
-                        const walletEntry = globalcarteiras[req.userId];
+                        const walletEntry = globalWallets[req.userId];
                         return (
                           <div className="text-xs font-bold mt-1">
                             {walletEntry == null ? (
@@ -1253,7 +1253,7 @@ export default function AdminView() {
                                 onClick={() => loadUsercarteiraEntries(user.id)}
                                 className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold hover:bg-blue-200"
                               >รีเฟรช</button>
-                              {(usercarteiraEntries[user.id] || []).length > 0 && (
+                              {(userWalletEntries[user.id] || []).length > 0 && (
                                 <button
                                   onClick={() => handleClearUsercarteiraHistory(user.id, user.name)}
                                   className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold hover:bg-red-200"
@@ -1261,13 +1261,13 @@ export default function AdminView() {
                               )}
                             </div>
                           </div>
-                          {usercarteiraLoading[user.id] ? (
+                          {userWalletLoading[user.id] ? (
                             <p className="text-xs text-gray-400 text-center py-3">Acarregar...</p>
-                          ) : (usercarteiraEntries[user.id] || []).length === 0 ? (
+                          ) : (userWalletEntries[user.id] || []).length === 0 ? (
                             <p className="text-xs text-gray-400 text-center py-2">Ainda não existem transacções</p>
                           ) : (
                             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                              {[...(usercarteiraEntries[user.id] || [])].sort((a, b) => {
+                              {[...(userWalletEntries[user.id] || [])].sort((a, b) => {
                                 const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
                                 return ms(b) - ms(a);
                               }).map((entry, idx) => {
