@@ -194,3 +194,14 @@ test('Read-only audit script contains zero data mutation statements or forbidden
 
   assert.ok(/\bSELECT\b/i.test(sql), 'Read-only audit script must contain SELECT statement');
 });
+
+test('Order metadata writes use a scoped RPC and direct client UPDATE is revoked', () => {
+  const migration = readFileSync('supabase/migrations/046_guard_order_metadata_updates.sql', 'utf8');
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.update_order_metadata/i);
+  assert.match(migration, /REVOKE UPDATE ON public\.orders FROM authenticated/i);
+  assert.match(migration, /unsupported_order_metadata/i);
+
+  const appContext = readFileSync('src/context/AppContext.jsx', 'utf8');
+  assert.match(appContext, /rpc\('update_order_metadata'/i);
+  assert.doesNotMatch(appContext, /from\(['"]orders['"]\)\.update\(/i);
+});

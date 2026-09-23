@@ -1448,10 +1448,13 @@ export function AppProvider({ children }) {
         if (!activeStatuses.includes(o.status) || o.riderId !== riderId) return o;
         changed = true;
         const updated = { ...o, riderLocation: location };
-        supabase.from('orders')
-          .update({ data: updated })
-          .eq('id', o.id)
-          .then(() => {});
+        const riderLocationPatch = { riderLocation: location };
+        supabase.rpc('update_order_metadata', {
+          p_order_id: o.id,
+          p_patch: riderLocationPatch,
+        }).then(({ error, data }) => {
+          if (error || !data?.ok) console.error('rider location order update error:', error || data?.reason);
+        });
         return updated;
       });
       return changed ? next : prev;
@@ -1467,9 +1470,8 @@ export function AppProvider({ children }) {
       supabase.from('pending_requests').select('id, data'),
     ]);
     const latest = rolesResult.data?.map(r => r.role) || [];
-    if (latest.length > 0) {
-      setUserRoles(latest);
-    }
+    // An empty result is meaningful: a previously granted role was revoked.
+    setUserRoles(latest.length > 0 ? latest : ['customer']);
     if (pendingResult.data?.length) setPendingRequests(pendingResult.data.map(r => r.data));
     await fetchAppData();
     notifySystem('Actualizar', 'Dados actualizados', 'success');
@@ -1599,8 +1601,17 @@ export function AppProvider({ children }) {
       if (updatedRider) supabase.from('riders').update({ data: updatedRider }).eq('id', riderId).then(() => {});
     }
     const ratedOrder = { ...orderToRate, rated: true, ratingComment: comment };
+    const ratingPatch = { rated: true, ratingComment: comment || null };
+    const { error: ratingError, data: ratingResult } = await supabase.rpc('update_order_metadata', {
+      p_order_id: orderId,
+      p_patch: ratingPatch,
+    });
+    if (ratingError || !ratingResult?.ok) {
+      console.error('order rating update error:', ratingError || ratingResult?.reason);
+      notifySystem('Não foi possível', 'A avaliação do pedido não foi guardada', 'error');
+      return;
+    }
     setOrders(prev => prev.map(o => o.id === orderId ? ratedOrder : o));
-    supabase.from('orders').update({ data: ratedOrder }).eq('id', orderId).then(() => {});
     setShowRatingModal(false);
     setRatingOrderData(null);
     notifySystem('Obrigado! 🌟', 'A sua avaliação foi guardada', 'success');
