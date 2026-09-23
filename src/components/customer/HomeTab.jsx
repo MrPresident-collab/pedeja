@@ -215,7 +215,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
           </div>
         </div>
         <div className="px-4 pt-4 pb-40">
-          <h2 className="font-bold text-lg text-gray-800 mb-3">เมนูTodos</h2>
+          <h2 className="font-bold text-lg text-gray-800 mb-3">Todos os itens</h2>
           <div className="space-y-3">
             {menuItems[selectedRestaurant.id]?.length > 0 ? (
               menuItems[selectedRestaurant.id].map(item => (
@@ -247,7 +247,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                         disabled={!item.available}
                         onClick={() => handleOpenOptionModal(item)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 transition-all active:scale-90 ${item.available ? 'bg-orange-500 text-white shadow-md shadow-orange-200' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-                        aria-label={`เพิ่ม ${item.name}`}
+                        aria-label={`Adicionar ${item.name}`}
                       >+</button>
                     </div>
                   </div>
@@ -297,11 +297,11 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                   name="promoCode"
                   value={promoInput}
                   onChange={e => setPromoInput(e.target.value.toUpperCase())}
-                  placeholder="กรอกCódigo de desconto"
+                  placeholder="Introduza o código de desconto"
                   className="flex-1 border border-orange-200 rounded-lg px-3 py-1.5 text-sm font-mono uppercase focus:outline-none focus:border-orange-400"
                   maxLength={20}
                   autoComplete="off"
-                  aria-label="กรอกCódigo de desconto"
+                  aria-label="Introduza o código de desconto"
                 />
                 <button onClick={handleApplyPromo} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold">Aplicar</button>
                 <button onClick={() => { setShowPromoField(false); setPromoInput(''); setPromoResult(null); }} className="text-gray-400 hover:text-gray-600 px-2"><X size={16} /></button>
@@ -319,7 +319,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               name="orderNotes"
               value={orderNotes}
               onChange={e => setOrderNotes(e.target.value)}
-              placeholder="Observação para o comerciante (ไม่ใส่น้ำตาล, ไม่ใส่ผัก...)"
+              placeholder="Observação para o comerciante (ex.: sem açúcar, sem legumes...)"
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none h-16 mb-2 focus:outline-none focus:border-orange-300"
               maxLength={200}
               autoComplete="off"
@@ -404,7 +404,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               </div>
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-xs text-gray-400 block">ราคาTotal</span>
+                  <span className="text-xs text-gray-400 block">Total</span>
                   <span className="text-lg font-black text-orange-600">
                     Kz {selectedMenuItem.price + selectedOptions.reduce((s, o) => s + (o.price || 0), 0)}
                   </span>
@@ -461,21 +461,21 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
           <div className="featured-banner mb-5">
             <div className="relative z-10">
-              <div className="text-xs font-semibold text-orange-200 uppercase tracking-wider mb-1">ยินดีต้อนรับสู่ BoomRider</div>
-              <h2 className="text-xl font-black text-white leading-tight mb-1">สั่งอาหาร<br />ส่งพัสดุ ง่ายๆ!</h2>
-              <p className="text-orange-100 text-xs mb-3">บริการครอบคลุมทั่วกรุงเทพและปริมณฑล</p>
+              <div className="text-xs font-semibold text-orange-200 uppercase tracking-wider mb-1">Bem-vindo à Pedejá</div>
+              <h2 className="text-xl font-black text-white leading-tight mb-1">Peça comida<br />Envie encomendas com facilidade!</h2>
+              <p className="text-orange-100 text-xs mb-3">Entregas actualmente disponíveis em Luanda</p>
               <button
                 onClick={() => setServiceType('parcel')}
                 className="bg-white text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full"
-              >ส่งพัสดุเดี๋ยวนี้ →</button>
+              >Enviar encomenda agora →</button>
             </div>
           </div>
 
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-800">
-              {searchQuery ? `ผลการค้นหา "${searchQuery}"` : selectedCategory === 'Todos' ? 'ร้านใกล้คุณ' : selectedCategory}
+              {searchQuery ? `ผลการค้นหา "${searchQuery}"` : selectedCategory === 'Todos' ? 'Estabelecimentos perto de si' : selectedCategory}
             </h2>
-            <span className="text-xs text-orange-500 font-medium">{visibleRestaurants.length} ร้าน</span>
+            <span className="text-xs text-orange-500 font-medium">{visibleRestaurants.length} estabelecimentos</span>
           </div>
 
           {visibleRestaurants.length === 0 && (
@@ -495,11 +495,11 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             ) : (
               <div className="text-center py-16 text-gray-400">
                 <Search size={40} className="mx-auto mb-2 opacity-20" />
-                <p className="font-medium">ไม่พบร้านอาหารที่ค้นหา</p>
+                <p className="font-medium">Nenhum estabelecimento encontrado</p>
                 <button
                   onClick={() => { setSearchQuery(''); setSelectedCategory('Todos'); }}
                   className="mt-2 text-orange-500 text-sm underline"
-                >ล้างการค้นหา</button>
+                >Limpar pesquisa</button>
               </div>
             )
           )}
@@ -515,16 +515,16 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
       ) : serviceType === 'parcel' ? (
         /* ── Parcel form ── */
         <div className="bg-white p-5 rounded-xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-blue-600 flex items-center"><Package className="mr-2" /> บริการส่งพัสดุด่วน</h2>
+          <h2 className="font-bold text-lg mb-4 text-blue-600 flex items-center"><Package className="mr-2" /> Entrega rápida de encomendas</h2>
           <div className="space-y-3">
-            <p className="text-xs text-gray-500 text-center">ค่าบริการเริ่มต้น {appConfig.baseFee}บ. + {appConfig.perKmFee}บ./km</p>
+            <p className="text-xs text-gray-500 text-center">Taxa inicial Kz {appConfig.baseFee} + Kz {appConfig.perKmFee}/km</p>
             <div className="mb-4">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <button
                   type="button"
                   onClick={() => setParcelMapTarget('pickup')}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${parcelMapTarget === 'pickup' ? 'bg-green-500 text-white shadow-md shadow-green-200' : 'bg-gray-100 text-gray-600'}`}
-                >📍 จุดรับ{isValidCoordinate(parcelDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
+                >📍 Ponto de recolha{isValidCoordinate(parcelDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
                 <button
                   type="button"
                   onClick={() => setParcelDetails(prev => ({
@@ -535,13 +535,13 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                     dropoffLocation: prev.pickupLocation
                   }))}
                   className="px-2 py-1.5 text-xs bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100"
-                  title="สลับจุดรับ-ส่ง"
+                  title="สลับPonto de recolha-ส่ง"
                 >⇅ สลับ</button>
                 <button
                   type="button"
                   onClick={() => setParcelMapTarget('dropoff')}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${parcelMapTarget === 'dropoff' ? 'bg-red-500 text-white shadow-md shadow-red-200' : 'bg-gray-100 text-gray-600'}`}
-                >🏁 จุดส่ง{isValidCoordinate(parcelDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
+                >🏁 Ponto de entrega{isValidCoordinate(parcelDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
               </div>
               <InteractiveMap
                 mode="select"
@@ -560,31 +560,31 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label htmlFor="parcel-pickup-input" className="text-xs text-gray-500 flex items-center gap-1">
-                  จุดรับของ {isValidCoordinate(parcelDetails.pickupLocation) ? <span className="text-green-600 font-bold">✓ ยืนยันแล้ว</span> : <span className="text-amber-600 font-bold">⚠️ กรุณาปักหมุด</span>}
+                  Ponto de recolhaของ {isValidCoordinate(parcelDetails.pickupLocation) ? <span className="text-green-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
                 </label>
                 <button
                   onClick={() => getCurrentLocationForParcel('pickup')}
                   className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-green-200 active:scale-95 transition-transform"
-                ><Crosshair size={12} /> ตำแหน่งปัจจุบัน</button>
+                ><Crosshair size={12} /> Localização actual</button>
               </div>
               <div className="flex items-center border rounded-lg p-2 bg-gray-50">
                 <MapPin size={18} className="text-green-500 mr-2 flex-shrink-0" />
-                <input id="parcel-pickup-input" name="pickup" value={parcelDetails.pickup} onChange={e => setParcelDetails({ ...parcelDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="ระบุจุดรับ..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
+                <input id="parcel-pickup-input" name="pickup" value={parcelDetails.pickup} onChange={e => setParcelDetails({ ...parcelDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="ระบุPonto de recolha..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
               </div>
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label htmlFor="parcel-dropoff-input" className="text-xs text-gray-500 flex items-center gap-1">
-                  จุดส่งของ {isValidCoordinate(parcelDetails.dropoffLocation) ? <span className="text-green-600 font-bold">✓ ยืนยันแล้ว</span> : <span className="text-amber-600 font-bold">⚠️ กรุณาปักหมุด</span>}
+                  Ponto de entregaของ {isValidCoordinate(parcelDetails.dropoffLocation) ? <span className="text-green-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
                 </label>
                 <button
                   onClick={() => getCurrentLocationForParcel('dropoff')}
                   className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-red-200 active:scale-95 transition-transform"
-                ><Crosshair size={12} /> ตำแหน่งปัจจุบัน</button>
+                ><Crosshair size={12} /> Localização actual</button>
               </div>
               <div className="flex items-center border rounded-lg p-2 bg-gray-50">
                 <Navigation size={18} className="text-red-500 mr-2 flex-shrink-0" />
-                <input id="parcel-dropoff-input" name="dropoff" value={parcelDetails.dropoff} onChange={e => setParcelDetails({ ...parcelDetails, dropoff: e.target.value, dropoffLocation: null })} type="text" placeholder="ระบุจุดส่ง..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
+                <input id="parcel-dropoff-input" name="dropoff" value={parcelDetails.dropoff} onChange={e => setParcelDetails({ ...parcelDetails, dropoff: e.target.value, dropoffLocation: null })} type="text" placeholder="ระบุPonto de entrega..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
               </div>
             </div>
             <div>
@@ -607,7 +607,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                 <p className="text-sm font-bold text-blue-800">
                   📏 ระยะทาง {parcelDistance.toFixed(1)} km &nbsp;|&nbsp; Taxa de entrega Kz {parcelEstimate}
                 </p>
-                <p className="text-xs text-blue-500 mt-0.5">คำนวณจากจุดรับถึงจุดส่ง</p>
+                <p className="text-xs text-blue-500 mt-0.5">คำนวณจากPonto de recolhaถึงPonto de entrega</p>
               </div>
             )}
             <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
@@ -636,7 +636,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                   type="button"
                   onClick={() => setRideMapTarget('pickup')}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${rideMapTarget === 'pickup' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-gray-100 text-gray-600'}`}
-                >📍 จุดรับ{isValidCoordinate(rideDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
+                >📍 Ponto de recolha{isValidCoordinate(rideDetails.pickupLocation) ? ' ✓' : ' ⚠️'}</button>
                 <button
                   type="button"
                   onClick={() => setRideDetails(prev => ({
@@ -647,13 +647,13 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                     dropoffLocation: prev.pickupLocation
                   }))}
                   className="px-2 py-1.5 text-xs bg-purple-50 text-purple-600 font-bold rounded-lg hover:bg-purple-100"
-                  title="สลับจุดรับ-ส่ง"
+                  title="สลับPonto de recolha-ส่ง"
                 >⇅ สลับ</button>
                 <button
                   type="button"
                   onClick={() => setRideMapTarget('dropoff')}
                   className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${rideMapTarget === 'dropoff' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-gray-100 text-gray-600'}`}
-                >🏁 จุดส่ง{isValidCoordinate(rideDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
+                >🏁 Ponto de entrega{isValidCoordinate(rideDetails.dropoffLocation) ? ' ✓' : ' ⚠️'}</button>
               </div>
               <InteractiveMap
                 mode="select"
@@ -671,18 +671,18 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             </div>
             <div>
               <label htmlFor="ride-pickup-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
-                <span>จุดรับผู้โดยสาร</span>
-                {isValidCoordinate(rideDetails.pickupLocation) ? <span className="text-purple-600 font-bold">✓ ยืนยันแล้ว</span> : <span className="text-amber-600 font-bold">⚠️ กรุณาปักหมุด</span>}
+                <span>Ponto de recolhaผู้โดยสาร</span>
+                {isValidCoordinate(rideDetails.pickupLocation) ? <span className="text-purple-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
               </label>
               <div className="flex items-center border rounded-lg p-2 bg-gray-50">
                 <MapPin size={18} className="text-purple-500 mr-2 flex-shrink-0" />
-                <input id="ride-pickup-input" name="ridePickup" value={rideDetails.pickup} onChange={e => setRideDetails({ ...rideDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="ระบุจุดรับผู้โดยสาร..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
+                <input id="ride-pickup-input" name="ridePickup" value={rideDetails.pickup} onChange={e => setRideDetails({ ...rideDetails, pickup: e.target.value, pickupLocation: null })} type="text" placeholder="ระบุPonto de recolhaผู้โดยสาร..." className="w-full outline-none bg-transparent text-sm" autoComplete="off" />
               </div>
             </div>
             <div>
               <label htmlFor="ride-dropoff-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
-                <span>จุดส่ง (จุดหมาย)</span>
-                {isValidCoordinate(rideDetails.dropoffLocation) ? <span className="text-indigo-600 font-bold">✓ ยืนยันแล้ว</span> : <span className="text-amber-600 font-bold">⚠️ กรุณาปักหมุด</span>}
+                <span>Ponto de entrega (จุดหมาย)</span>
+                {isValidCoordinate(rideDetails.dropoffLocation) ? <span className="text-indigo-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
               </label>
               <div className="flex items-center border rounded-lg p-2 bg-gray-50">
                 <Navigation size={18} className="text-indigo-500 mr-2 flex-shrink-0" />
@@ -706,7 +706,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                 <p className="text-sm font-bold text-purple-900">
                   📏 ระยะทาง {rideDistance.toFixed(1)} km &nbsp;|&nbsp; ค่าโดยสาร Kz {rideEstimate}
                 </p>
-                <p className="text-xs text-purple-600 mt-0.5">คำนวณจากจุดรับถึงจุดส่ง</p>
+                <p className="text-xs text-purple-600 mt-0.5">คำนวณจากPonto de recolhaถึงPonto de entrega</p>
               </div>
             )}
             <div className="flex items-center space-x-2 mt-2 p-2 bg-gray-50 rounded-lg">
@@ -752,14 +752,14 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <div className="mb-4">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs font-bold text-emerald-700">
-                  {isValidCoordinate(serviceDetails.location) ? '🔧 พิกัดรับบริการ: ยืนยันแล้ว ✓' : '⚠️ กรุณาปักหมุดตำแหน่งรับบริการ'}
+                  {isValidCoordinate(serviceDetails.location) ? '🔧 พิกัดรับบริการ: Confirmado ✓' : '⚠️ Marque no mapaตำแหน่งรับบริการ'}
                 </span>
                 <button
                   type="button"
                   onClick={getCurrentLocationForService}
                   className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-emerald-200 active:scale-95 transition-transform"
                 >
-                  <Crosshair size={12} /> ตำแหน่งปัจจุบัน
+                  <Crosshair size={12} /> Localização actual
                 </button>
               </div>
               <InteractiveMap
@@ -772,7 +772,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             <div>
               <label htmlFor="service-address-input" className="text-xs text-gray-500 mb-1 flex items-center justify-between">
                 <span>สถานที่รับบริการ (ที่อยู่)</span>
-                {isValidCoordinate(serviceDetails.location) ? <span className="text-emerald-600 font-bold">✓ ยืนยันแล้ว</span> : <span className="text-amber-600 font-bold">⚠️ กรุณาปักหมุด</span>}
+                {isValidCoordinate(serviceDetails.location) ? <span className="text-emerald-600 font-bold">✓ Confirmado</span> : <span className="text-amber-600 font-bold">⚠️ Marque no mapa</span>}
               </label>
               <div className="flex items-center border rounded-lg p-2 bg-gray-50">
                 <MapPin size={18} className="text-emerald-500 mr-2 flex-shrink-0" />
