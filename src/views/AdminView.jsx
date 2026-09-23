@@ -6,7 +6,7 @@ import {
   Edit, Power, Lock, Phone, FileBadge,
   Image as ImageIcon, Ban, X, Users, BarChart2, Tag,
   TrendingUp, ShoppingBag, Star, PlusCircle, Trash2,
-  ToggleLeft, ToggleRight, Wallet, AlertCircle, List,
+  ToggleLeft, ToggleRight, carteira, AlertCircle, List,
   DatabaseZap, ShieldOff, CheckSquare, Square, Car,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -62,9 +62,9 @@ export default function AdminView() {
     editConfig, setEditConfig,
     isConfigDirty, setIsConfigDirty,
     chats,
-    globalWallets,
+    globalcarteiras,
     currentUser,
-    userWallet,
+    usercarteira,
     walletHistory,
     editingShop, setEditingShop,
     shopEditForm, setShopEditForm,
@@ -84,9 +84,9 @@ export default function AdminView() {
     // Promo
     promoCodes, createPromoCode, togglePromoCode, deletePromoCode,
     // Admin tools
-    adminAdjustWallet, adminBanUser,
+    adminAdjustcarteira, adminBanUser,
     grantRole, revokeRole,
-    setOrders, setRestaurants, setRiders, setPendingRequests, setGlobalWallets,
+    setOrders, setRestaurants, setRiders, setPendingRequests, setGlobalcarteiras,
     isDataLoading,
   } = useApp();
 
@@ -96,8 +96,8 @@ export default function AdminView() {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustDesc, setAdjustDesc] = useState('');
   const [resetPwdUserId, setResetPwdUserId] = useState(null);
-  const [userWalletEntries, setUserWalletEntries] = useState({});
-  const [userWalletLoading, setUserWalletLoading] = useState({});
+  const [usercarteiraEntries, setUsercarteiraEntries] = useState({});
+  const [usercarteiraLoading, setUsercarteiraLoading] = useState({});
 
   // Promo form
   const [promoForm, setPromoForm] = useState({
@@ -113,10 +113,10 @@ export default function AdminView() {
   const [txLoading, setTxLoading] = useState(false);
   const [txRefreshKey, setTxRefreshKey] = useState(0);
 
-  // Wallet overview state (dashboard tab)
-  const [walletRows, setWalletRows] = useState([]);       // [{ uid, name, roles, balance, history }]
-  const [walletExpanded, setWalletExpanded] = useState(null); // uid of expanded row
-  const [walletOverviewLoading, setWalletOverviewLoading] = useState(false);
+  // carteira overview state (dashboard tab)
+  const [walletRows, setcarteiraRows] = useState([]);       // [{ uid, name, roles, balance, history }]
+  const [walletExpanded, setcarteiraExpanded] = useState(null); // uid of expanded row
+  const [walletOverviewLoading, setcarteiraOverviewLoading] = useState(false);
 
   const loadAllUsers = async () => {
     const [profilesResult, walletsResult, rolesResult] = await Promise.all([
@@ -137,13 +137,13 @@ export default function AdminView() {
       email: p.email,
       phone: p.phone,
       banned: p.banned,
-      walletBalance: walletsMap[p.id] ?? globalWallets[p.id]?.balance ?? 0,
+      walletBalance: walletsMap[p.id] ?? globalcarteiras[p.id]?.balance ?? 0,
       roles: rolesMap[p.id] || ['customer'],
     })));
   };
 
-  const loadWalletOverview = async () => {
-    setWalletOverviewLoading(true);
+  const loadcarteiraOverview = async () => {
+    setcarteiraOverviewLoading(true);
     const [walletsResult, profilesResult, rolesResult] = await Promise.all([
       supabase.from('wallets').select('user_id, balance'),
       supabase.from('profiles').select('id, name, email'),
@@ -182,8 +182,8 @@ export default function AdminView() {
       }
     });
     rows.sort((a, b) => b.balance - a.balance);
-    setWalletRows(rows);
-    setWalletOverviewLoading(false);
+    setcarteiraRows(rows);
+    setcarteiraOverviewLoading(false);
   };
 
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function AdminView() {
 
   useEffect(() => {
     if (adminTab === 'users') loadAllUsers();
-    if (adminTab === 'dashboard') loadWalletOverview();
+    if (adminTab === 'dashboard') loadcarteiraOverview();
     // Refresh on entry in case a Realtime event was missed while the tab was closed.
     if (adminTab === 'approvals') {
       supabase.from('pending_requests').select('id, data').then(({ data }) => {
@@ -272,7 +272,7 @@ export default function AdminView() {
       if (opts.riders)          { tasks.push(purge('riders')); setRiders([]); }
       if (opts.wallets) {
         tasks.push(purge('wallets'));
-        setGlobalWallets({});
+        setGlobalcarteiras({});
       } else if (opts.walletEntries) {
         tasks.push(purge('wallet_history'));
       }
@@ -360,7 +360,7 @@ export default function AdminView() {
   // ── Chat groupings (admin sees ALL chats) ────────────────────────────────
   const allChatIds       = Object.keys(chats);
   const supportChats     = allChatIds.filter(k => k.startsWith('support-') || k.endsWith('-support'));
-  // -rider-merchant ต้องกรองก่อน -merchant และ -rider เพื่อป้องกัน false-match
+  // -rider-merchant ต้องกaguardarงก่อน -merchant และ -rider เพื่อป้องกัน false-match
   const riderMerchantChats = allChatIds.filter(k => k.endsWith('-rider-merchant'));
   const merchantChats    = allChatIds.filter(k => k.endsWith('-merchant') && !k.endsWith('-rider-merchant'));
   const riderChats       = allChatIds.filter(k => k.endsWith('-rider') && !k.endsWith('-rider-merchant'));
@@ -426,21 +426,21 @@ export default function AdminView() {
     { id: 'settings',    label: 'Definições',    icon: CreditCard },
   ];
 
-  // ── Wallet adjust ─────────────────────────────────────────────────────────
-  const loadUserWalletEntries = async (userId) => {
+  // ── carteira adjust ─────────────────────────────────────────────────────────
+  const loadUsercarteiraEntries = async (userId) => {
     if (!userId) return;
-    if (userWalletLoading[userId]) return;
-    setUserWalletLoading(prev => ({ ...prev, [userId]: true }));
+    if (usercarteiraLoading[userId]) return;
+    setUsercarteiraLoading(prev => ({ ...prev, [userId]: true }));
     const { data, error } = await supabase.from('wallets').select('history').eq('user_id', userId).maybeSingle();
     if (error) console.error('Failed to load wallet history:', error);
-    else setUserWalletEntries(prev => ({ ...prev, [userId]: data?.history || [] }));
-    setUserWalletLoading(prev => ({ ...prev, [userId]: false }));
+    else setUsercarteiraEntries(prev => ({ ...prev, [userId]: data?.history || [] }));
+    setUsercarteiraLoading(prev => ({ ...prev, [userId]: false }));
   };
 
-  const handleClearUserWalletHistory = async (userId, userName) => {
+  const handleClearUsercarteiraHistory = async (userId, userName) => {
     if (!window.confirm(`Limpar histórico da carteira de ${userName} Confirma?\n(Os registos serão ocultados — o saldo permanece igual)`)) return;
     await supabase.rpc('clear_wallet_history', { p_user_id: userId });
-    setUserWalletEntries(prev => ({ ...prev, [userId]: [] }));
+    setUsercarteiraEntries(prev => ({ ...prev, [userId]: [] }));
     notifySystem('Admin', `Limpar histórico da carteira de ${userName} concluído`, 'success');
   };
 
@@ -461,7 +461,7 @@ export default function AdminView() {
     if (!adjustUserId || isNaN(amt) || amt === 0 || !adjustDesc) {
       return notifySystem('Erro', 'Preencha todos os campos', 'error');
     }
-    await adminAdjustWallet(adjustUserId, amt, adjustDesc);
+    await adminAdjustcarteira(adjustUserId, amt, adjustDesc);
     setAdjustUserId(null);
     setAdjustAmount('');
     setAdjustDesc('');
@@ -583,7 +583,7 @@ export default function AdminView() {
           </div>
           {/* ── Carteira Admin (GP สะสม) ───────────────────────────────── */}
           {(() => {
-            const adminBal = userWallet ?? 0;
+            const adminBal = usercarteira ?? 0;
             const rawHistory = walletHistory?.length ? walletHistory : [];
             const displayHistory = [...rawHistory].sort((a, b) => {
               const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
@@ -593,7 +593,7 @@ export default function AdminView() {
               <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
                 <div className="p-4 border-b bg-green-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Wallet size={18} className="text-green-600" />
+                    <carteira size={18} className="text-green-600" />
                     <h2 className="font-bold text-gray-700">Carteira Admin — Platform GP</h2>
                   </div>
                   <div className="text-right">
@@ -603,7 +603,7 @@ export default function AdminView() {
                 </div>
                 {displayHistory.length === 0 ? (
                   <div className="p-8 text-center text-gray-400">
-                    <Wallet size={36} className="mx-auto mb-2 opacity-20" />
+                    <carteira size={36} className="mx-auto mb-2 opacity-20" />
                     <p className="text-sm">Ainda não existem transacções</p>
                     <p className="text-xs mt-1">O GP será creditado automaticamente quando o pedido for concluído</p>
                   </div>
@@ -613,7 +613,7 @@ export default function AdminView() {
                       <thead className="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0">
                         <tr>
                           <th className="p-3 text-left">Data / item</th>
-                          <th className="p-3 text-right">จำนวน</th>
+                          <th className="p-3 text-right">quantidade</th>
                           <th className="p-3 text-right">Saldo (aprox.)</th>
                         </tr>
                       </thead>
@@ -769,7 +769,7 @@ export default function AdminView() {
             <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><DollarSign size={20} className="text-green-600" /> Receita por tipo</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
-                // นับเฉพาะ orders ที่จบconcluído (ไม่นับCancelar/กำลังดำเนินการ)
+                // นับเฉพาะ orders ที่จบconcluído (ไม่นับCancelar/Aดำเนิน)
                 const doneStatus = ['completed', 'delivered'];
                 const food    = orders.filter(o => o.type === 'food'    && doneStatus.includes(o.status));
                 const parcel  = orders.filter(o => o.type === 'parcel'  && doneStatus.includes(o.status));
@@ -810,13 +810,13 @@ export default function AdminView() {
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b bg-purple-50 flex items-center justify-between">
               <h2 className="font-bold text-gray-700 flex items-center gap-2">
-                <Wallet size={18} className="text-purple-600" /> Carteiras do sistema
+                <carteira size={18} className="text-purple-600" /> Carteiras do sistema
               </h2>
               <div className="flex items-center gap-3">
                 {walletRows.length > 0 && (
-                  <span className="text-xs text-gray-400">{walletRows.length} Carteira · รวม Kz {walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
+                  <span className="text-xs text-gray-400">{walletRows.length} Carteira · total Kz {walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
                 )}
-                <button onClick={loadWalletOverview} className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200">
+                <button onClick={loadcarteiraOverview} className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200">
                   รีเฟรช
                 </button>
               </div>
@@ -830,7 +830,7 @@ export default function AdminView() {
               <div className="divide-y max-h-[480px] overflow-y-auto">
                 {walletRows.map(row => {
                   const isExpanded = walletExpanded === row.uid;
-                  const history = userWalletEntries[row.uid] || (row.uid === currentUser?.id ? walletHistory : []);
+                  const history = usercarteiraEntries[row.uid] || (row.uid === currentUser?.id ? walletHistory : []);
                   const roleCls = r => r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-violet-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500';
                   const gpEntries = history.filter(e => (e.desc||'').toLowerCase().includes('gp'));
                   const totalGP   = gpEntries.reduce((s,e)=>s+(e.amount||0), 0);
@@ -839,10 +839,10 @@ export default function AdminView() {
                       <div
                         className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
-                          if (isExpanded) setWalletExpanded(null);
+                          if (isExpanded) setcarteiraExpanded(null);
                           else {
-                            setWalletExpanded(row.uid);
-                            loadUserWalletEntries(row.uid);
+                            setcarteiraExpanded(row.uid);
+                            loadUsercarteiraEntries(row.uid);
                           }
                         }}
                       >
@@ -876,7 +876,7 @@ export default function AdminView() {
                       {/* Expanded history */}
                       {isExpanded && (
                         <div className="bg-gray-50 border-t px-4 py-3 space-y-1.5 max-h-60 overflow-y-auto">
-                          {userWalletLoading[row.uid] ? (
+                          {usercarteiraLoading[row.uid] ? (
                             <p className="text-xs text-gray-400 text-center py-2">A carregar histórico…</p>
                           ) : history.length === 0 ? (
                             <p className="text-xs text-gray-400 text-center py-2">Sem histórico de transacções</p>
@@ -1010,12 +1010,12 @@ export default function AdminView() {
                             <span className="text-gray-400 text-xs">Valor: </span>
                             <strong>Kz {(req.data.grandTotal || 0).toLocaleString()}</strong>
                             <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-semibold bg-gray-100 text-gray-600">
-                              {req.data.paymentMethod === 'wallet' ? '👛 Wallet' : '💵 Numerário'}
+                              {req.data.paymentMethod === 'wallet' ? '👛 carteira' : '💵 Numerário'}
                             </span>
                           </p>
                           {req.data.paymentMethod === 'wallet' && req.data.grandTotal > 0 && (
                             <p className="text-xs text-violet-600 font-semibold bg-orange-50 px-2 py-1 rounded border border-violet-200">
-                              ⚠️ Aprovações = คืนเงิน Kz {(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet Cliente
+                              ⚠️ Aprovações = คืนเงิน Kz {(req.data.grandTotal || 0).toLocaleString()} เข้า carteira Cliente
                             </p>
                           )}
                           {req.data.paymentMethod === 'cash' && (
@@ -1041,7 +1041,7 @@ export default function AdminView() {
                       )}
                       {req.type === 'topup' && req.data.slipImage && (
                         <div className="mt-2">
-                          <p className="text-xs text-gray-500 mb-1">สลิปโอนเงิน:</p>
+                          <p className="text-xs text-gray-500 mb-1">comprovativotransferência:</p>
                           {req.data.slipImage.startsWith('data:') || req.data.slipImage.startsWith('http') ? (
                             <img src={req.data.slipImage} alt="slip" className="w-24 h-24 object-cover rounded cursor-pointer border hover:border-blue-500" onClick={() => openImagePreview(req.data.slipImage)} />
                           ) : (
@@ -1051,9 +1051,9 @@ export default function AdminView() {
                       )}
                       {(req.type === 'merchant_reg' || req.type === 'rider_reg') && (
                         <div className="text-sm text-gray-600 mt-2 space-y-0.5">
-                          <p>ชื่อจริง: {req.data.realName}</p>
+                          <p>nomereal: {req.data.realName}</p>
                           <p>เลขบัตร: {req.data.idCard}</p>
-                          <p>เบอร์: {req.data.phone}</p>
+                          <p>número: {req.data.phone}</p>
                           <p>บัญชี: {req.data.bankName} – {req.data.bankAccount}</p>
                           {req.data.idCardImage && (
                             req.data.idCardImage.startsWith('data:') || req.data.idCardImage.startsWith('http') ? (
@@ -1073,14 +1073,14 @@ export default function AdminView() {
                       )}
                       <div className="text-xs text-gray-400 mt-2">โดย: {req.user}</div>
                       {(req.type === 'topup' || req.type === 'withdraw') && (() => {
-                        const walletEntry = globalWallets[req.userId];
+                        const walletEntry = globalcarteiras[req.userId];
                         return (
                           <div className="text-xs font-bold mt-1">
                             {walletEntry == null ? (
-                              <span className="text-gray-400 animate-pulse">กำลังโหลดยอด Wallet…</span>
+                              <span className="text-gray-400 animate-pulse">Acarregarยอด carteira…</span>
                             ) : (
                               <span className={`${req.type === 'withdraw' && walletEntry.balance < Number(req.data.amount) ? 'text-red-600' : 'text-blue-600'}`}>
-                                ยอด Wallet actual: Kz {walletEntry.balance.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ยอด carteira actual: Kz {walletEntry.balance.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 {req.type === 'withdraw' && walletEntry.balance < Number(req.data.amount) && (
                                   <span className="ml-1 text-red-500 font-bold"> ⚠️ ยอดไม่พอ</span>
                                 )}
@@ -1100,7 +1100,7 @@ export default function AdminView() {
                         disabled={!!approvingId}
                         className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId === req.id ? 'bg-green-300 text-white cursor-not-allowed' : approvingId ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
                       >
-                        {approvingId === req.id ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> กำลังAprovações...</> : <><Check size={16} /> Aprovações</>}
+                        {approvingId === req.id ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> AAprovações...</> : <><Check size={16} /> Aprovações</>}
                       </button>
                       <button onClick={() => initiateRejectRequest(req.id)} disabled={!!approvingId} className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}><XCircle size={16} /> Recusar</button>
                     </div>
@@ -1143,8 +1143,8 @@ export default function AdminView() {
                               <span key={r} className={`text-xs px-2 py-0.5 rounded-full font-bold ${r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-violet-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{r}</span>
                             ))}
                           </div>
-                          <div className="text-xs text-gray-400 mt-0.5">{user.email || user.phone || 'ไม่มีข้อมูล'}</div>
-                          <div className="text-sm font-bold text-green-600 mt-0.5">Wallet: Kz {(user.walletBalance || 0).toLocaleString()}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">{user.email || user.phone || 'ไม่มีdados'}</div>
+                          <div className="text-sm font-bold text-green-600 mt-0.5">carteira: Kz {(user.walletBalance || 0).toLocaleString()}</div>
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
@@ -1152,11 +1152,11 @@ export default function AdminView() {
                           onClick={() => {
                             const next = adjustUserId === user.id ? null : user.id;
                             setAdjustUserId(next);
-                            if (next) loadUserWalletEntries(next);
+                            if (next) loadUsercarteiraEntries(next);
                           }}
                           className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-bold hover:bg-green-200"
                         >
-                          <Wallet size={12} className="inline mr-1" /> Wallet
+                          <carteira size={12} className="inline mr-1" /> carteira
                         </button>
                         <button
                           onClick={() => { adminBanUser(user.id); setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, banned: !u.banned } : u)); }}
@@ -1201,25 +1201,25 @@ export default function AdminView() {
                     {resetPwdUserId === user.id && (
                       <div className="mt-3 bg-purple-50 p-3 rounded-lg border border-purple-200 animate-fade-in">
                         <p className="text-xs font-bold text-purple-700 mb-1">รีเซ็ตรหัสผ่านของ {user.name}</p>
-                        <p className="text-xs text-gray-500 mb-3">ระบบจะส่งลิงก์รีเซ็ตรหัสผ่านไปยัง <strong>{user.email}</strong> ทางอีเมล</p>
+                        <p className="text-xs text-gray-500 mb-3">ระบบจะentregaลิงก์รีเซ็ตรหัสผ่านไปยัง <strong>{user.email}</strong> ทางอีเมล</p>
                         <div className="flex gap-2">
                           <button onClick={() => setResetPwdUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">Cancelar</button>
-                          <button onClick={handleResetPassword} className="flex-1 bg-purple-600 text-white py-2 rounded text-sm font-bold">ส่งอีเมลรีเซ็ต</button>
+                          <button onClick={handleResetPassword} className="flex-1 bg-purple-600 text-white py-2 rounded text-sm font-bold">entregaอีเมลรีเซ็ต</button>
                         </div>
                       </div>
                     )}
 
-                    {/* Wallet adjust panel */}
+                    {/* carteira adjust panel */}
                     {adjustUserId === user.id && (
                       <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-200 animate-fade-in space-y-3">
-                        <p className="text-xs font-bold text-gray-600">ปรับยอด Wallet ของ {user.name}</p>
+                        <p className="text-xs font-bold text-gray-600">ปrecolhaยอด carteira ของ {user.name}</p>
                         <div className="flex gap-2">
                           <label htmlFor="admin-adjust-amount-input" className="sr-only">Valor</label>
                           <input
                             id="admin-adjust-amount-input"
                             name="adjustAmount"
                             type="number"
-                            placeholder="Valor (ใส่ - เพื่อหัก)"
+                            placeholder="Valor (introduza - เพื่อหัก)"
                             value={adjustAmount}
                             onChange={e => setAdjustAmount(e.target.value)}
                             className="flex-1 border p-2 rounded text-sm"
@@ -1241,33 +1241,33 @@ export default function AdminView() {
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => setAdjustUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">Cancelar</button>
-                          <button onClick={handleAdjust} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">ยืนยัน</button>
+                          <button onClick={handleAdjust} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">confirmar</button>
                         </div>
 
-                        {/* Wallet history */}
+                        {/* carteira history */}
                         <div className="border-t pt-3">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-bold text-gray-600">HistóricoTransacções</p>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => loadUserWalletEntries(user.id)}
+                                onClick={() => loadUsercarteiraEntries(user.id)}
                                 className="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold hover:bg-blue-200"
                               >รีเฟรช</button>
-                              {(userWalletEntries[user.id] || []).length > 0 && (
+                              {(usercarteiraEntries[user.id] || []).length > 0 && (
                                 <button
-                                  onClick={() => handleClearUserWalletHistory(user.id, user.name)}
+                                  onClick={() => handleClearUsercarteiraHistory(user.id, user.name)}
                                   className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold hover:bg-red-200"
-                                >ล้างHistórico</button>
+                                >limparHistórico</button>
                               )}
                             </div>
                           </div>
-                          {userWalletLoading[user.id] ? (
-                            <p className="text-xs text-gray-400 text-center py-3">กำลังโหลด...</p>
-                          ) : (userWalletEntries[user.id] || []).length === 0 ? (
+                          {usercarteiraLoading[user.id] ? (
+                            <p className="text-xs text-gray-400 text-center py-3">Acarregar...</p>
+                          ) : (usercarteiraEntries[user.id] || []).length === 0 ? (
                             <p className="text-xs text-gray-400 text-center py-2">Ainda não existem transacções</p>
                           ) : (
                             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                              {[...(userWalletEntries[user.id] || [])].sort((a, b) => {
+                              {[...(usercarteiraEntries[user.id] || [])].sort((a, b) => {
                                 const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
                                 return ms(b) - ms(a);
                               }).map((entry, idx) => {
@@ -1308,16 +1308,16 @@ export default function AdminView() {
                 <div key={rest.id} className="border rounded-xl p-3">
                   {editingShop === rest.id ? (
                     <div className="space-y-2">
-                      <label htmlFor="admin-shop-name-input" className="sr-only">ชื่อComerciante</label>
-                      <input id="admin-shop-name-input" name="shopName" value={shopEditForm.name || ''} onChange={e => setShopEditForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อComerciante" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="ชื่อComerciante" />
-                      <label htmlFor="admin-shop-phone-input" className="sr-only">เบอร์โทร</label>
-                      <input id="admin-shop-phone-input" name="shopPhone" value={shopEditForm.phone || ''} onChange={e => setShopEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="เบอร์โทร" className="w-full border p-2 rounded text-sm" autoComplete="tel" aria-label="เบอร์โทร" />
+                      <label htmlFor="admin-shop-name-input" className="sr-only">nomeComerciante</label>
+                      <input id="admin-shop-name-input" name="shopName" value={shopEditForm.name || ''} onChange={e => setShopEditForm(f => ({ ...f, name: e.target.value }))} placeholder="nomeComerciante" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="nomeComerciante" />
+                      <label htmlFor="admin-shop-phone-input" className="sr-only">telefone</label>
+                      <input id="admin-shop-phone-input" name="shopPhone" value={shopEditForm.phone || ''} onChange={e => setShopEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="telefone" className="w-full border p-2 rounded text-sm" autoComplete="tel" aria-label="telefone" />
                       <label htmlFor="admin-shop-category-select" className="sr-only">หมวดหมู่</label>
                       <select id="admin-shop-category-select" name="shopCategory" value={shopEditForm.category || ''} onChange={e => setShopEditForm(f => ({ ...f, category: e.target.value }))} className="w-full border p-2 rounded text-sm" aria-label="หมวดหมู่">
                         {['Street Food', 'Fast Food', 'Japanese', 'Italian', 'Dessert', 'Thai'].map(c => <option key={c}>{c}</option>)}
                       </select>
-                      <label htmlFor="admin-shop-time-input" className="sr-only">เวลาจัดส่ง</label>
-                      <input id="admin-shop-time-input" name="shopTime" value={shopEditForm.time || ''} onChange={e => setShopEditForm(f => ({ ...f, time: e.target.value }))} placeholder="เวลาจัดส่ง เช่น 20-30 min" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="เวลาจัดส่ง" />
+                      <label htmlFor="admin-shop-time-input" className="sr-only">เวลาจัดentrega</label>
+                      <input id="admin-shop-time-input" name="shopTime" value={shopEditForm.time || ''} onChange={e => setShopEditForm(f => ({ ...f, time: e.target.value }))} placeholder="เวลาจัดentrega เช่น 20-30 min" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="เวลาจัดentrega" />
                       <div className="flex gap-2">
                         <button onClick={() => setEditingShop(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm font-bold">Cancelar</button>
                         <button onClick={saveShopEdit} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">Guardar</button>
@@ -1336,10 +1336,10 @@ export default function AdminView() {
                         </div>
                       </div>
                       <div className="flex gap-1 ml-2 shrink-0">
-                        <button onClick={() => { setEditingShop(rest.id); setShopEditForm({ name: rest.name, phone: rest.phone, category: rest.category, time: rest.time }); }} className="p-1.5 bg-blue-100 text-blue-600 rounded" title="แก้ไข"><Edit size={14} /></button>
-                        <button onClick={() => toggleRestaurantStatus(rest.id, 'toggle_open')} className={`p-1.5 rounded ${rest.status === 'open' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'}`} title="เปิด/ปิด"><Power size={14} /></button>
+                        <button onClick={() => { setEditingShop(rest.id); setShopEditForm({ name: rest.name, phone: rest.phone, category: rest.category, time: rest.time }); }} className="p-1.5 bg-blue-100 text-blue-600 rounded" title="editar"><Edit size={14} /></button>
+                        <button onClick={() => toggleRestaurantStatus(rest.id, 'toggle_open')} className={`p-1.5 rounded ${rest.status === 'open' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'}`} title="abrir/fechar"><Power size={14} /></button>
                         <button onClick={() => toggleRestaurantStatus(rest.id, 'ban')} className={`p-1.5 rounded ${rest.status === 'banned' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`} title="แบน"><Ban size={14} /></button>
-                        <button onClick={() => { if (window.confirm(`ลบComerciante "${rest.name}" Sairจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="ลบComercianteค้า"><Trash2 size={14} /></button>
+                        <button onClick={() => { if (window.confirm(`eliminarComerciante "${rest.name}" Sairจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="eliminarComercianteค้า"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   )}
@@ -1378,10 +1378,10 @@ export default function AdminView() {
         <div className="space-y-6">
           {/* Create promo */}
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-purple-600"><PlusCircle size={20} /> สร้างโค้ดส่วนลดใหม่</h2>
+            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-purple-600"><PlusCircle size={20} /> สร้างโค้ดส่วนลดnovo</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><label htmlFor="admin-promo-code" className="block text-sm font-medium mb-1">โค้ดส่วนลด <span className="text-red-500">*</span></label><input id="admin-promo-code" name="code" value={promoForm.code} onChange={e => setPromoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="เช่น BOOM50" className="w-full border p-2 rounded-lg font-mono uppercase" maxLength={20} autoComplete="off" /></div>
-              <div><label htmlFor="admin-promo-desc" className="block text-sm font-medium mb-1">คำอธิบาย</label><input id="admin-promo-desc" name="description" value={promoForm.description} onChange={e => setPromoForm(f => ({ ...f, description: e.target.value }))} placeholder="เช่น ส่วนลด 10% สำหรับpedidosแรก" className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              <div><label htmlFor="admin-promo-desc" className="block text-sm font-medium mb-1">คำอธิบาย</label><input id="admin-promo-desc" name="description" value={promoForm.description} onChange={e => setPromoForm(f => ({ ...f, description: e.target.value }))} placeholder="เช่น ส่วนลด 10% สำหrecolhapedidosแรก" className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               <div>
                 <label htmlFor="admin-promo-type" className="block text-sm font-medium mb-1">ประเภทส่วนลด</label>
                 <select id="admin-promo-type" name="type" value={promoForm.type} onChange={e => setPromoForm(f => ({ ...f, type: e.target.value }))} className="w-full border p-2 rounded-lg">
@@ -1392,7 +1392,7 @@ export default function AdminView() {
               <div><label htmlFor="admin-promo-value" className="block text-sm font-medium mb-1">มูลค่า ({promoForm.type === 'percent' ? '%' : 'Kz '})</label><input id="admin-promo-value" name="value" type="number" value={promoForm.value} onChange={e => setPromoForm(f => ({ ...f, value: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               <div><label htmlFor="admin-promo-minorder" className="block text-sm font-medium mb-1">ยอดขั้นต่ำ (Kz )</label><input id="admin-promo-minorder" name="minOrder" type="number" value={promoForm.minOrder} onChange={e => setPromoForm(f => ({ ...f, minOrder: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               {promoForm.type === 'percent' && <div><label htmlFor="admin-promo-maxdiscount" className="block text-sm font-medium mb-1">ส่วนลดสูงสุด (Kz )</label><input id="admin-promo-maxdiscount" name="maxDiscount" type="number" value={promoForm.maxDiscount} onChange={e => setPromoForm(f => ({ ...f, maxDiscount: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>}
-              <div><label htmlFor="admin-promo-maxuses" className="block text-sm font-medium mb-1">จำนวนครั้งที่ใช้ได้</label><input id="admin-promo-maxuses" name="maxUses" type="number" value={promoForm.maxUses} onChange={e => setPromoForm(f => ({ ...f, maxUses: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              <div><label htmlFor="admin-promo-maxuses" className="block text-sm font-medium mb-1">quantidadeครั้งที่ใช้ได้</label><input id="admin-promo-maxuses" name="maxUses" type="number" value={promoForm.maxUses} onChange={e => setPromoForm(f => ({ ...f, maxUses: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               <div><label htmlFor="admin-promo-expiry" className="block text-sm font-medium mb-1">Esgotadoอายุ</label><input id="admin-promo-expiry" name="expiry" type="date" value={promoForm.expiry} onChange={e => setPromoForm(f => ({ ...f, expiry: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
             </div>
             <button onClick={handleCreatePromo} className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-700 flex items-center gap-2">
@@ -1426,10 +1426,10 @@ export default function AdminView() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={() => togglePromoCode(promo.id)} className={`p-2 rounded-lg ${promo.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`} title={promo.active ? 'ปิด' : 'เปิด'}>
+                      <button onClick={() => togglePromoCode(promo.id)} className={`p-2 rounded-lg ${promo.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`} title={promo.active ? 'fechar' : 'abrir'}>
                         {promo.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                       </button>
-                      <button onClick={() => deletePromoCode(promo.id)} className="p-2 rounded-lg bg-red-100 text-red-600" title="ลบ"><Trash2 size={16} /></button>
+                      <button onClick={() => deletePromoCode(promo.id)} className="p-2 rounded-lg bg-red-100 text-red-600" title="eliminar"><Trash2 size={16} /></button>
                     </div>
                   </div>
                 ))}
@@ -1454,22 +1454,22 @@ export default function AdminView() {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-purple-50 flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2 text-purple-700">
-                  <MessageSquare size={16} /> Cliente ↔ เจ้าหน้าที่ ({supportChats.length})
+                  <MessageSquare size={16} /> Cliente ↔ suporte ({supportChats.length})
                 </h3>
                 {unreadSupportCount > 0 && (
                   <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {unreadSupportCount} ใหม่
+                    {unreadSupportCount} novo
                   </span>
                 )}
               </div>
               <div className="divide-y">
                 {supportChats.map(chatId => {
-                  // รองรับทั้ง 'support-{userId}' และ '{orderId}-support'
+                  // aguardarงrecolhaทั้ง 'support-{userId}' และ '{orderId}-support'
                   const isOrderFormat = chatId.endsWith('-support');
                   const identifier   = isOrderFormat
                     ? chatId.replace('-support', '')
                     : chatId.replace('support-', '');
-                  // หาชื่อClienteจาก order (ถ้าเป็น orderId format)
+                  // หาnomeClienteจาก order (ถ้าเป็น orderId format)
                   const relatedOrder = isOrderFormat
                     ? orders.find(o => o.id === identifier)
                     : null;
@@ -1500,8 +1500,8 @@ export default function AdminView() {
                       >
                         ตอบกลับ
                       </button>
-                      <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
+                      <button onClick={() => { if(window.confirm('eliminarแชทนี้?')) deleteChat(chatId); }}
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="eliminarแชท">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1534,8 +1534,8 @@ export default function AdminView() {
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
                         <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
-                      <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
+                      <button onClick={() => { if(window.confirm('eliminarแชทนี้?')) deleteChat(chatId); }}
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="eliminarแชท">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1568,8 +1568,8 @@ export default function AdminView() {
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
                         <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
-                      <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
+                      <button onClick={() => { if(window.confirm('eliminarแชทนี้?')) deleteChat(chatId); }}
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="eliminarแชท">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1602,8 +1602,8 @@ export default function AdminView() {
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
                         <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
-                      <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
+                      <button onClick={() => { if(window.confirm('eliminarแชทนี้?')) deleteChat(chatId); }}
+                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="eliminarแชท">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1623,32 +1623,32 @@ export default function AdminView() {
 
           {/* Bank info */}
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-8">
-            <h3 className="font-bold text-blue-700 border-b border-blue-200 pb-2 mb-4 flex items-center gap-2"><CreditCard size={18} /> บัญชีรับเงิน</h3>
+            <h3 className="font-bold text-blue-700 border-b border-blue-200 pb-2 mb-4 flex items-center gap-2"><CreditCard size={18} /> บัญชีrecolhaเงิน</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label htmlFor="admin-bank-name" className="block text-sm font-medium mb-1">ชื่อธนาคาร</label><input id="admin-bank-name" name="adminBankName" type="text" value={editConfig.adminBankName || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminBankName: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-bank-name" className="block text-sm font-medium mb-1">nomebanco</label><input id="admin-bank-name" name="adminBankName" type="text" value={editConfig.adminBankName || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminBankName: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-bank-account" className="block text-sm font-medium mb-1">เลขที่บัญชี</label><input id="admin-bank-account" name="adminBankAccount" type="text" value={editConfig.adminBankAccount || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminBankAccount: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
-              <div><label htmlFor="admin-account-name" className="block text-sm font-medium mb-1">ชื่อบัญชี</label><input id="admin-account-name" name="adminAccountName" type="text" value={editConfig.adminAccountName || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminAccountName: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-account-name" className="block text-sm font-medium mb-1">nomeบัญชี</label><input id="admin-account-name" name="adminAccountName" type="text" value={editConfig.adminAccountName || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminAccountName: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-payment-reference" className="block text-sm font-medium mb-1">Referência de pagamento</label><input id="admin-payment-reference" name="adminPaymentReference" type="text" value={editConfig.adminPaymentReference || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminPaymentReference: e.target.value }); }} className="w-full border p-2 rounded" placeholder="Referência do provedor ou referência bancária" autoComplete="off" /></div>
-              <div><label htmlFor="admin-qr-code" className="block text-sm font-medium mb-1">QR Code URL (สำรอง)</label><input id="admin-qr-code" name="adminQrCode" type="text" value={editConfig.adminQrCode || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminQrCode: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-qr-code" className="block text-sm font-medium mb-1">QR Code URL (สำaguardarง)</label><input id="admin-qr-code" name="adminQrCode" type="text" value={editConfig.adminQrCode || ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, adminQrCode: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><MapIcon size={16} /> รัศมีให้Serviço (กม.)</h3>
+              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><MapIcon size={16} /> รัศมีให้Serviço (km)</h3>
               <div><label htmlFor="admin-app-radius" className="block text-sm font-medium mb-1">App Service Radius</label><input id="admin-app-radius" name="appRadius" type="number" value={editConfig.appRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, appRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-restaurant-radius" className="block text-sm font-medium mb-1">Restaurant Delivery Radius</label><input id="admin-restaurant-radius" name="restaurantRadius" type="number" value={editConfig.restaurantRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, restaurantRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-rider-radius" className="block text-sm font-medium mb-1">Rider Job Radius</label><input id="admin-rider-radius" name="riderRadius" type="number" value={editConfig.riderRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, riderRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าServiçoขนส่ง (comida/พัสดุ)</h3>
+              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าServiçoขนentrega (comida/encomenda)</h3>
               <div><label htmlFor="admin-base-fee" className="block text-sm font-medium mb-1">Base Fee (Kz )</label><input id="admin-base-fee" name="baseFee" type="number" value={editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, baseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
-              <div><label htmlFor="admin-per-km-fee" className="block text-sm font-medium mb-1">Per Km Fee (Kz /กม.)</label><input id="admin-per-km-fee" name="perKmFee" type="number" value={editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, perKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-per-km-fee" className="block text-sm font-medium mb-1">Per Km Fee (Kz /km)</label><input id="admin-per-km-fee" name="perKmFee" type="number" value={editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, perKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-purple-600 border-b pb-2 flex items-center gap-2"><Car size={16} /> ค่าServiçoViagemรับส่ง (Ride)</h3>
+              <h3 className="font-bold text-purple-600 border-b pb-2 flex items-center gap-2"><Car size={16} /> ค่าServiçoViagemrecolhaentrega (Ride)</h3>
               <div><label htmlFor="admin-ride-base-fee" className="block text-sm font-medium mb-1">Ride Base Fee (Kz )</label><input id="admin-ride-base-fee" name="rideBaseFee" type="number" value={editConfig.rideBaseFee ?? editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, rideBaseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
-              <div><label htmlFor="admin-ride-per-km-fee" className="block text-sm font-medium mb-1">Ride Per Km Fee (Kz /กม.)</label><input id="admin-ride-per-km-fee" name="ridePerKmFee" type="number" value={editConfig.ridePerKmFee ?? editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, ridePerKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-ride-per-km-fee" className="block text-sm font-medium mb-1">Ride Per Km Fee (Kz /km)</label><input id="admin-ride-per-km-fee" name="ridePerKmFee" type="number" value={editConfig.ridePerKmFee ?? editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, ridePerKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
           </div>
 
@@ -1656,14 +1656,14 @@ export default function AdminView() {
           <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mb-8">
             <div className="flex items-center justify-between border-b border-emerald-200 pb-2 mb-4">
               <h3 className="font-bold text-emerald-800 flex items-center gap-2">
-                <Sliders size={18} /> ตัวเลือกตัวเลือกServiçoทั่วไป (Service)
+                <Sliders size={18} /> ตัวseleccionarตัวseleccionarServiçogeral (Service)
               </h3>
               <button
                 type="button"
                 onClick={() => {
-                  const name = prompt('ระบุชื่อServiçoเพิ่มเติม:');
+                  const name = prompt('indiquenomeServiçoadicionarเติม:');
                   if (!name) return;
-                  const priceStr = prompt('ระบุราคาเริ่มต้น (บาท):', '300');
+                  const priceStr = prompt('indiquepreçoเริ่มต้น (บาท):', '300');
                   const price = parseFloat(priceStr) || 0;
                   const list = editConfig.extraServices ? [...editConfig.extraServices] : [];
                   list.push({ name, price });
@@ -1687,7 +1687,7 @@ export default function AdminView() {
                       setIsConfigDirty(true);
                       setEditConfig({ ...editConfig, extraServices: list });
                     }}
-                    placeholder="ชื่อServiço"
+                    placeholder="nomeServiço"
                     className="flex-1 border p-1.5 rounded text-sm"
                   />
                   <div className="flex items-center gap-1 w-32 shrink-0">
@@ -1701,7 +1701,7 @@ export default function AdminView() {
                         setIsConfigDirty(true);
                         setEditConfig({ ...editConfig, extraServices: list });
                       }}
-                      placeholder="ราคา"
+                      placeholder="preço"
                       className="w-full border p-1.5 rounded text-sm"
                     />
                   </div>
@@ -1713,14 +1713,14 @@ export default function AdminView() {
                       setEditConfig({ ...editConfig, extraServices: list });
                     }}
                     className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                    title="ลบตัวเลือก"
+                    title="eliminarตัวseleccionar"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               ))}
               {(!editConfig.extraServices || editConfig.extraServices.length === 0) && (
-                <p className="text-xs text-gray-400 text-center py-3">ยังไม่มีตัวเลือกServiçoเพิ่มเติม กด "Adicionar opçãoServiço" เพื่อสร้างใหม่</p>
+                <p className="text-xs text-gray-400 text-center py-3">ยังไม่มีตัวseleccionarServiçoadicionarเติม toque "Adicionar opçãoServiço" เพื่อสร้างnovo</p>
               )}
             </div>
           </div>
@@ -1729,7 +1729,7 @@ export default function AdminView() {
             <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><Percent size={16} /> ค่าคอมมิชชั่นตามหมวดหมู่หลัก (GP %)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-violet-600">GP ส่งcomida (Food)</label>
+                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-violet-600">GP entregacomida (Food)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-food" name="gpFood" type="number" value={editConfig.gpFood ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpFood: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
@@ -1743,14 +1743,14 @@ export default function AdminView() {
                 </div>
               </div>
               <div>
-                <label htmlFor="admin-gp-ride" className="block text-sm font-medium mb-1 text-purple-600">GP Viagemรับส่ง (Ride Hailing)</label>
+                <label htmlFor="admin-gp-ride" className="block text-sm font-medium mb-1 text-purple-600">GP Viagemrecolhaentrega (Ride Hailing)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-ride" name="gpRide" type="number" value={editConfig.gpRide ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpRide: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
                 </div>
               </div>
               <div>
-                <label htmlFor="admin-gp-service" className="block text-sm font-medium mb-1 text-emerald-600">GP Serviçoทั่วไป (Services)</label>
+                <label htmlFor="admin-gp-service" className="block text-sm font-medium mb-1 text-emerald-600">GP Serviçogeral (Services)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-service" name="gpService" type="number" value={editConfig.gpService ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpService: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
@@ -1760,7 +1760,7 @@ export default function AdminView() {
           </div>
 
           <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow hover:bg-green-700 flex items-center gap-2">
-            <Save size={18} /> GuardarการDefiniçõesทั้งEsgotado
+            <Save size={18} /> GuardarDefiniçõesทั้งEsgotado
           </button>
 
           {/* ── เครื่องมือระบบ ────────────────────────────────────────────── */}
@@ -1771,7 +1771,7 @@ export default function AdminView() {
             <div className="flex flex-wrap items-center gap-3">
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              ปัดเศษทศนิยม balance ทุก wallet ให้เป็น 2 ตำแหน่ง และแก้ไข floating-point artifact
+              ปัดเศษทศนิยม balance ทุก wallet ให้เป็น 2 localização และeditar floating-point artifact
             </p>
           </div>
 
@@ -1780,17 +1780,17 @@ export default function AdminView() {
             <h3 className="font-bold text-red-600 border-b border-red-100 pb-2 mb-4 flex items-center gap-2">
               <DatabaseZap size={16} /> Limpar dadosระบบ (ถาวร)
             </h3>
-            <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบSairจากระบบอย่างถาวร ข้อมูลที่ลบconcluídoไม่สามารถกู้คืนได้</p>
+            <p className="text-xs text-gray-500 mb-4">seleccionarประเภทdadosที่ต้องeliminarSairจากระบบอย่างถาวร dadosที่eliminarconcluídoไม่สามารถกู้คืนได้</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               {[
                 { key: 'orders',          label: 'Total de pedidos',                sub: 'Históricopedidosทุกregistos',                      color: 'red' },
-                { key: 'walletEntries',   label: 'HistóricoTransacções Wallet',          sub: 'ลบHistóricoเงินเข้า-Sair (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
-                { key: 'wallets',         label: 'ยอดเงิน + Históricoทุก Wallet',   sub: 'ล้างCarteiraทั้งระบบ รวม UID เก่าทั้งEsgotado',     color: 'rose' },
-                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'Carregamento / ถอน / Registo de comerciante / Estafeta',     color: 'purple' },
-                { key: 'restaurants',     label: 'Total de comerciantes',                sub: 'ลบComercianteค้าและMenucomidaทั้งEsgotado',                color: 'orange' },
-                { key: 'riders',          label: 'Estafetaทั้งEsgotado',                sub: 'ลบข้อมูลEstafetaทุกคน',                        color: 'blue' },
-                { key: 'users',           label: 'บัญชีUtilizadoresทั้งEsgotado',            sub: 'ลบ users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
+                { key: 'walletEntries',   label: 'HistóricoTransacções carteira',          sub: 'eliminarHistóricoเงินเข้า-Sair (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
+                { key: 'wallets',         label: 'ยอดเงิน + Históricoทุก carteira',   sub: 'limparCarteiraทั้งระบบ total UID anteriorทั้งEsgotado',     color: 'rose' },
+                { key: 'pendingRequests', label: 'pedidoaguardarดำเนิน',                sub: 'Carregamento / ถอน / Registo de comerciante / Estafeta',     color: 'purple' },
+                { key: 'restaurants',     label: 'Total de comerciantes',                sub: 'eliminarComercianteค้าและMenucomidaทั้งEsgotado',                color: 'orange' },
+                { key: 'riders',          label: 'Estafetaทั้งEsgotado',                sub: 'eliminardadosEstafetaทุกคน',                        color: 'blue' },
+                { key: 'users',           label: 'บัญชีUtilizadoresทั้งEsgotado',            sub: 'eliminar users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
               ].map(({ key, label, sub, color }) => {
                 const colorMap = {
                   red:    'border-red-200 bg-red-50',
@@ -1829,12 +1829,12 @@ export default function AdminView() {
               <button
                 onClick={() => {
                   const anySelected = Object.values(purgeOptions).some(Boolean);
-                  if (!anySelected) return notifySystem('Erro', 'กรุณาเลือกประเภทข้อมูลอย่างน้อย 1 registos', 'error');
+                  if (!anySelected) return notifySystem('Erro', 'por favorseleccionarประเภทdadosอย่างน้อย 1 registos', 'error');
                   setShowPurgeModal(true);
                 }}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm shadow hover:bg-red-700 transition-colors"
               >
-                <Trash2 size={15} /> Limpar dadosที่เลือก
+                <Trash2 size={15} /> Limpar dadosที่seleccionar
               </button>
               <button
                 onClick={() => setShowResetAllModal(true)}
@@ -1860,16 +1860,16 @@ export default function AdminView() {
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-full"><ShieldOff size={22} className="text-red-600" /></div>
               <div>
-                <h3 className="text-lg font-bold text-gray-800">ยืนยันการลบข้อมูล</h3>
-                <p className="text-xs text-red-500 font-medium">ข้อมูลจะถูกลบถาวร กู้คืนไม่ได้</p>
+                <h3 className="text-lg font-bold text-gray-800">confirmareliminardados</h3>
+                <p className="text-xs text-red-500 font-medium">dadosจะถูกeliminarถาวร กู้คืนไม่ได้</p>
               </div>
             </div>
 
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 space-y-1.5">
               {purgeOptions.orders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Total de pedidos</p>}
-              {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> HistóricoTransacções Wallet</p>}
-              {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + Históricoทุก Wallet</p>}
-              {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> คำขอรอดำเนินการทั้งEsgotado</p>}
+              {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> HistóricoTransacções carteira</p>}
+              {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + Históricoทุก carteira</p>}
+              {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> pedidoaguardarดำเนินทั้งEsgotado</p>}
               {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Total de comerciantes</p>}
               {purgeOptions.riders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Estafetaทั้งEsgotado</p>}
               {purgeOptions.users           && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> บัญชีUtilizadoresทั้งEsgotado</p>}
@@ -1889,9 +1889,9 @@ export default function AdminView() {
                 className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
               >
                 {purgeLoading ? (
-                  <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> กำลังลบ...</>
+                  <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Aeliminar...</>
                 ) : (
-                  <><Trash2 size={15} /> ยืนยันลบถาวร</>
+                  <><Trash2 size={15} /> confirmareliminarถาวร</>
                 )}
               </button>
             </div>
@@ -1906,19 +1906,19 @@ export default function AdminView() {
               <div className="p-2 bg-gray-900 rounded-full"><DatabaseZap size={22} className="text-white" /></div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">รีเซ็ตระบบทั้งEsgotado</h3>
-                <p className="text-xs text-red-500 font-medium">ข้อมูลทั้งEsgotadoจะถูกลบถาวร กู้คืนไม่ได้</p>
+                <p className="text-xs text-red-500 font-medium">dadosทั้งEsgotadoจะถูกeliminarถาวร กู้คืนไม่ได้</p>
               </div>
             </div>
             <div className="bg-gray-900 rounded-xl p-3 mb-5 space-y-1.5">
-              {['Total de pedidos','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','Total de comerciantes','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
+              {['Total de pedidos','ยอดเงิน + Históricoทุก carteira','pedidoaguardarดำเนิน','Total de comerciantes','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
                 <p key={t} className="text-sm text-red-300 flex items-center gap-2"><Trash2 size={13} /> {t}</p>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mb-4 text-center">แอดมินจะยังคง Login อยู่ แต่ข้อมูลทั้งEsgotadoในระบบจะหายไป</p>
+            <p className="text-xs text-gray-400 mb-4 text-center">แอดมินจะยังคง Login อยู่ แต่dadosทั้งEsgotadoในระบบจะหายไป</p>
             <div className="flex gap-2">
               <button onClick={() => setShowResetAllModal(false)} disabled={purgeLoading} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
               <button onClick={() => handlePurge(true)} disabled={purgeLoading} className="flex-1 bg-gray-900 text-white py-2.5 rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2">
-                {purgeLoading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> กำลังรีเซ็ต...</> : <><DatabaseZap size={15} /> ยืนยันรีเซ็ตทั้งEsgotado</>}
+                {purgeLoading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Aรีเซ็ต...</> : <><DatabaseZap size={15} /> confirmarรีเซ็ตทั้งEsgotado</>}
               </button>
             </div>
           </div>
@@ -1928,13 +1928,13 @@ export default function AdminView() {
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการCancelarpedidos</h3>
-            <p className="text-gray-600 mb-2 text-sm">กรุณาระบุMotivo:</p>
-            <label htmlFor="admin-cancel-reason-textarea" className="sr-only">เหตุผลการCancelar</label>
-            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, Comercianteปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> confirmarCancelarpedidos</h3>
+            <p className="text-gray-600 mb-2 text-sm">por favorindiqueMotivo:</p>
+            <label htmlFor="admin-cancel-reason-textarea" className="sr-only">motivoCancelar</label>
+            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, Comerciantefechar..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
             <div className="flex gap-2">
               <button onClick={() => setShowCancelModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
-              <button onClick={confirmCancelOrder} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยัน</button>
+              <button onClick={confirmCancelOrder} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">confirmar</button>
             </div>
           </div>
         </div>
@@ -1944,11 +1944,11 @@ export default function AdminView() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-xs text-center">
             <XCircle size={48} className="text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold mb-2">ยืนยันการRecusarคำขอ?</h3>
-            <p className="text-gray-500 mb-6 text-sm">ข้อมูลจะถูกลบSairจากระบบถาวร</p>
+            <h3 className="text-lg font-bold mb-2">confirmarRecusarpedido?</h3>
+            <p className="text-gray-500 mb-6 text-sm">dadosจะถูกeliminarSairจากระบบถาวร</p>
             <div className="flex gap-2">
               <button onClick={() => setShowRejectModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
-              <button onClick={confirmRejectRequest} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยันRecusar</button>
+              <button onClick={confirmRejectRequest} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">confirmarRecusar</button>
             </div>
           </div>
         </div>
@@ -2003,20 +2003,20 @@ export default function AdminView() {
                   <List size={18} className="text-green-600" /> Transacçõesทั้งระบบ
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {txLoading ? 'กำลังโหลด...' : `${filtered.length} registos`}
+                  {txLoading ? 'Acarregar...' : `${filtered.length} registos`}
                 </p>
               </div>
-              <label htmlFor="admin-search-ledger-input" className="sr-only">ค้นหาชื่อ / registos / pedidos</label>
+              <label htmlFor="admin-search-ledger-input" className="sr-only">pesquisanome / registos / pedidos</label>
               <input
                 id="admin-search-ledger-input"
                 name="searchLedger"
                 type="search"
-                placeholder="ค้นหาชื่อ / registos / pedidos..."
+                placeholder="pesquisanome / registos / pedidos..."
                 value={searchLedger}
                 onChange={e => setSearchLedger(e.target.value)}
                 className="border rounded-xl px-3 py-2 text-sm w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-green-400"
                 autoComplete="off"
-                aria-label="ค้นหาชื่อ / registos / pedidos"
+                aria-label="pesquisanome / registos / pedidos"
               />
               <button
                 onClick={handleClearTransactions}
@@ -2045,13 +2045,13 @@ export default function AdminView() {
             {txLoading ? (
               <div className="bg-white rounded-xl p-12 text-center text-gray-400 shadow-sm">
                 <div className="animate-spin w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full mx-auto mb-3" />
-                <p className="text-sm">กำลังโหลดข้อมูล...</p>
+                <p className="text-sm">Acarregardados...</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center text-gray-400 shadow-sm">
-                <Wallet size={40} className="mx-auto mb-3 opacity-20" />
+                <carteira size={40} className="mx-auto mb-3 opacity-20" />
                 <p className="font-semibold">Ainda não existem dadosTransacções</p>
-                <p className="text-xs mt-1">ข้อมูลจะแสดงเมื่อมีการสั่งซื้อ / Carregamento / Levantamento</p>
+                <p className="text-xs mt-1">dadosจะแสดงเมื่อมีสั่งซื้อ / Carregamento / Levantamento</p>
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -2063,7 +2063,7 @@ export default function AdminView() {
                         <th className="p-3 text-left">ประเภท</th>
                         <th className="p-3 text-left">Utilizadores</th>
                         <th className="p-3 text-left">registos</th>
-                        <th className="p-3 text-right">จำนวน</th>
+                        <th className="p-3 text-right">quantidade</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -2095,7 +2095,7 @@ export default function AdminView() {
                     </tbody>
                   </table>
                   {filtered.length > 300 && (
-                    <p className="text-center text-xs text-gray-400 py-3">แสดง 300 registosแรก — ใช้ช่องค้นหาเพื่อกรอง</p>
+                    <p className="text-center text-xs text-gray-400 py-3">แสดง 300 registosแรก — ใช้ช่องpesquisaเพื่อกaguardarง</p>
                   )}
                 </div>
               </div>
