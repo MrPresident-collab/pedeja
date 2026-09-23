@@ -478,60 +478,164 @@ export function AppProvider({ children }) {
     const promise = Promise.resolve().then(async () => {
       setIsDataLoading(true);
       try {
-        const [restsResult, menusResult, ridersResult, ordersResult, pendingResult, configResult, promosResult] = await Promise.all([
-          supabase.from('restaurants').select('id, data'),
-          supabase.from('menu_items').select('restaurant_id, items'),
-          supabase.from('riders').select('id, data, current_lat, current_lng, is_available'),
-          supabase.from('orders').select('id, data', { count: 'exact' }).order('created_at', { ascending: false }).limit(200),
-          supabase.from('pending_requests').select('id, data'),
-          supabase.from('app_config').select('data').eq('id', 1),
-          supabase.from('promo_codes').select('id, data'),
+        // The live Supabase schema is the source of truth. Do not query the
+        // retired BoomRider JSON tables (restaurants/menu_items/orders.data).
+        const [businessesResult, productsResult, ridersResult, ordersResult, orderItemsResult] = await Promise.all([
+          supabase
+            .from('businesses')
+            .select('id, name, description, status, address_id, marketplace_category, created_by'),
+          supabase
+            .from('products')
+            .select('id, business_id, sku, name, description, image_url, price, currency_code, status, sort_order')
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('riders')
+            .select('id, user_id, availability_status, current_location, last_location_at'),
+          supabase
+            .from('orders')
+            .select('id, customer_id, business_id, status, payment_status, currency_code, subtotal, delivery_fee, service_fee, discount_amount, total_amount, delivery_address_id, delivery_address_line_1, delivery_address_line_2, delivery_neighborhood, delivery_municipality, delivery_city, delivery_province, delivery_country_code, recipient_name, recipient_phone, delivery_instructions, customer_note, placed_at, accepted_at, delivered_at, cancelled_at, created_at, updated_at, payment_method, order_reference')
+            .order('created_at', { ascending: false })
+            .limit(200),
+          supabase
+            .from('order_items')
+            .select('id, order_id, product_id, product_name_snapshot, sku_snapshot, unit_price_snapshot, quantity, line_total'),
         ]);
 
-        if (!restsResult.error) {
-          const rows = (restsResult.data || []).map(r => r.data).filter(Boolean);
-          persistedRowsRef.current.restaurants = new Map(rows.map(r => [r.id, JSON.stringify({ id: r.id, owner_id: r.ownerId || null, data: r })]));
-          setRestaurants(rows);
-        }
-        if (!menusResult.error) {
-          const obj = {};
-          (menusResult.data || []).forEach(m => { obj[m.restaurant_id] = m.items; });
-          persistedRowsRef.current.menuItems = new Map(Object.entries(obj).map(([restaurantId, items]) => [restaurantId, JSON.stringify({ restaurant_id: restaurantId, items })]));
-          setMenuItems(obj);
-        }
-        if (!ridersResult.error) {
-          const rows = (ridersResult.data || []).filter(r => r.data).map(r => ({
-            ...r.data,
-            location: Number.isFinite(r.current_lat) && Number.isFinite(r.current_lng)
-              ? { lat: r.current_lat, lng: r.current_lng }
-              : r.data.location,
-            current_lat: r.current_lat ?? r.data.current_lat,
-            current_lng: r.current_lng ?? r.data.current_lng,
-            is_available: r.is_available ?? r.data.is_available,
-          }));
-          persistedRowsRef.current.riders = new Map(rows.map(r => [r.id, riderProfileSignature({ id: r.id, user_id: r.userId || null, data: r })]));
-          setRiders(rows);
-        }
-        if (!ordersResult.error) {
-          setOrders((ordersResult.data || []).map(o => o.data));
-          setTotalOrdersCount(ordersResult.count || 0);
-        }
-        if (!pendingResult.error) setPendingRequests((pendingResult.data || []).map(r => r.data));
+        if (businessesResult.error) throw businessesResult.error;
+        if (productsResult.error) throw productsResult.error;
+        if (ridersResult.error) throw ridersResult.error;
+        if (ordersResult.error) throw ordersResult.error;
+        if (orderItemsResult.error) throw orderItemsResult.error;
 
-        if (!configResult.error) {
-          const configRow = Array.isArray(configResult.data) ? configResult.data[0] : configResult.data;
-          if (configRow?.data) {
-            setAppConfig(prev => ({ ...INITIAL_CONFIG, ...prev, ...configRow.data }));
-            if (!isConfigDirtyRef.current) {
-              setEditConfig(prev => ({ ...INITIAL_CONFIG, ...prev, ...configRow.data }));
-            }
-          }
-        } else {
-          console.warn('Failed to load app_config from Supabase:', configResult.error);
+        const addressIds = (businessesResult.data || []).map(b => b.address_id).filter(Boolean);
+        let addressMap = new Map();
+        if (addressIds.length) {
+          const { data: addresses, error: addressesError } = await supabase
+            .from('addresses')
+            .select('id, address_line_1, address_line_2, neighborhood, municipality, city, province, country_code')
+            .in('id', addressIds);
+          if (addressesError) throw addressesError;
+          addressMap = new Map((addresses || []).map(a => [a.id, a]));
         }
-        if (!promosResult.error) setPromoCodes((promosResult.data || []).map(p => p.data));
+
+        const rows = (businessesResult.data || []).map(b => {
+          const address = addressMap.get(b.address_id);
+          const category = b.marketplace_category || 'comida';
+          return {
+            id: b.id,
+            name: b.name,
+            description: b.description || '',
+            ownerId: b.created_by || null,
+            category,
+            serviceType: category === 'comida' ? PEDEJA_SERVICE_TYPES.FOME : PEDEJA_SERVICE_TYPES.COMPRAS,
+            status: b.status === 'ACTIVE' ? 'open' : 'closed',
+            image: '',
+            rating: 5,
+            ratingCount: 0,
+            featured: false,
+            time: '30-45 min',
+            deliveryTimeMin: 30,
+            deliveryTimeMax: 45,
+            location: address?.location || null,
+            address: address ? [address.address_line_1, address.address_line_2, address.neighborhood, address.municipality, address.city].filter(Boolean).join(', ') : '',
+            priceLabel: '$$',
+          };
+        });
+        persistedRowsRef.current.restaurants = new Map(rows.map(row => [row.id, JSON.stringify(row)]));
+        setRestaurants(rows);
+
+        const productMap = {};
+        (productsResult.data || []).forEach(p => {
+          const item = {
+            id: p.id,
+            businessId: p.business_id,
+            restaurantId: p.business_id,
+            sku: p.sku,
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price || 0),
+            image: p.image_url || '',
+            available: p.status === 'ACTIVE',
+            category: '',
+            options: [],
+          };
+          if (!productMap[p.business_id]) productMap[p.business_id] = [];
+          productMap[p.business_id].push(item);
+        });
+        persistedRowsRef.current.menuItems = new Map(
+          Object.entries(productMap).map(([businessId, items]) => [
+            businessId,
+            JSON.stringify({ business_id: businessId, items }),
+          ]),
+        );
+        setMenuItems(productMap);
+
+        const riderRows = (ridersResult.data || []).map(r => ({
+          id: r.id,
+          userId: r.user_id,
+          status: r.availability_status,
+          availabilityStatus: r.availability_status,
+          location: null,
+          lastLocationAt: r.last_location_at || null,
+        }));
+        persistedRowsRef.current.riders = new Map(
+          riderRows.map(row => [row.id, riderProfileSignature({ id: row.id, user_id: row.userId, data: row })]),
+        );
+        setRiders(riderRows);
+
+        const itemsByOrder = new Map();
+        (orderItemsResult.data || []).forEach(item => {
+          const list = itemsByOrder.get(item.order_id) || [];
+          list.push({
+            id: item.product_id || item.id,
+            name: item.product_name_snapshot,
+            price: Number(item.unit_price_snapshot || 0),
+            qty: item.quantity,
+            quantity: item.quantity,
+            lineTotal: Number(item.line_total || 0),
+            sku: item.sku_snapshot || null,
+          });
+          itemsByOrder.set(item.order_id, list);
+        });
+
+        const liveOrders = (ordersResult.data || []).map(o => ({
+          id: o.id,
+          orderReference: o.order_reference,
+          customerId: o.customer_id,
+          businessId: o.business_id,
+          status: o.status,
+          paymentStatus: o.payment_status,
+          paymentMethod: o.payment_method,
+          currency: o.currency_code || 'AOA',
+          subtotal: Number(o.subtotal || 0),
+          deliveryFee: Number(o.delivery_fee || 0),
+          serviceFee: Number(o.service_fee || 0),
+          discount: Number(o.discount_amount || 0),
+          total: Number(o.total_amount || 0),
+          totalAmount: Number(o.total_amount || 0),
+          items: itemsByOrder.get(o.id) || [],
+          location: null,
+          deliveryAddress: [o.delivery_address_line_1, o.delivery_address_line_2, o.delivery_neighborhood, o.delivery_municipality, o.delivery_city, o.delivery_province].filter(Boolean).join(', '),
+          recipientName: o.recipient_name || '',
+          recipientPhone: o.recipient_phone || '',
+          notes: o.customer_note || o.delivery_instructions || '',
+          createdAt: o.created_at,
+          placedAt: o.placed_at,
+          acceptedAt: o.accepted_at,
+          deliveredAt: o.delivered_at,
+          cancelledAt: o.cancelled_at,
+          rated: false,
+        }));
+        setOrders(liveOrders);
+        setTotalOrdersCount(liveOrders.length);
+
+        // These retired client-owned stores do not exist in the live schema.
+        // Keep the corresponding UI state empty/default until their live
+        // command/query contracts are wired.
+        setPendingRequests([]);
+        setPromoCodes([]);
       } catch (e) {
-        console.error('fetchAppData error', e);
+        console.error('fetchAppData error:', e);
       } finally {
         setIsDataLoading(false);
         dataLoadedRef.current = true;
