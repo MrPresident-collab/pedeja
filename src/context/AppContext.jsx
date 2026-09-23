@@ -1049,7 +1049,7 @@ export function AppProvider({ children }) {
   const handleMapLocationSelect = async (loc) => {
     setNewAddr(prev => ({ ...prev, location: loc, fullAddr: `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}` }));
     const addr = await reverseGeocode(loc.lat, loc.lng);
-    setNewAddr(prev => ({ ...prev, location: loc, fullAddr: addr }));
+    setNewAddr(prev => ({ ...prev, location: loc, latitude: loc.lat, longitude: loc.lng, addressLine1: prev.addressLine1 || addr }));
   };
 
   const handleParcelMapSelect = async (loc) => {
@@ -1066,7 +1066,7 @@ export function AppProvider({ children }) {
     notifySystem('A obter localização', 'Aguarde...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
-      setNewAddr(prev => ({ ...prev, location: loc }));
+      setNewAddr(prev => ({ ...prev, location: loc, latitude: loc.lat, longitude: loc.lng }));
       const addr = await reverseGeocode(loc.lat, loc.lng);
       setNewAddr(prev => ({ ...prev, location: loc, fullAddr: addr }));
       notifySystem('Concluído', 'Localização e morada actualizadas.', 'success');
