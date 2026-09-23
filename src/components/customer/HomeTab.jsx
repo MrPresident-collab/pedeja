@@ -7,7 +7,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
-import { DEFAULT_CATEGORIES, PEDEJA_BUSINESS_CATEGORIES } from '../../constants';
+import { DEFAULT_CATEGORIES, PEDEJA_BUSINESS_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 
@@ -34,9 +34,9 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
   // Auto-GPS: pull current pickup location when parcel tab opens (only if not already set)
   useEffect(() => {
-    if (serviceType !== 'parcel' || parcelDetails.pickupLocation) return;
+    if (serviceType !== PEDEJA_SERVICE_TYPES.ENVIAR || parcelDetails.pickupLocation) return;
     getCurrentLocationForParcel('pickup');
-  }, [serviceType]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [serviceType, parcelDetails.pickupLocation, getCurrentLocationForParcel]);
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [orderNotes, setOrderNotes]   = useState('');
@@ -171,8 +171,8 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
   const visibleRestaurants = useMemo(() => {
     let list = restaurantsWithDistance.filter(r => r.status === 'open');
-    if (serviceType !== 'food' && serviceType !== 'parcel') {
-      const allowed = PEDEJA_BUSINESS_CATEGORIES[serviceType] || [];
+    const allowed = PEDEJA_BUSINESS_CATEGORIES[serviceType];
+    if (allowed) {
       list = list.filter(r => allowed.includes(String(r.category || '').toLowerCase().trim()));
     }
     if (selectedCategory !== 'Todos') list = list.filter(r => r.category === selectedCategory);
@@ -187,7 +187,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
       });
     }
     return list;
-  }, [restaurantsWithDistance, selectedCategory, searchQuery, menuItems]);
+  }, [restaurantsWithDistance, selectedCategory, searchQuery, menuItems, serviceType]);
 
   // ── Menu detail view ────────────────────────────────────────────────────────
   if (selectedRestaurant) {
@@ -432,20 +432,20 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     <div className="px-4 py-3">
       <div className="grid grid-cols-3 gap-2 mb-4">
         <button
-          onClick={() => { setServiceType('food'); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'food' ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+          onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setSelectedCategory('Todos'); }}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Utensils size={16} /> {t('service_food')}</button>
         <button
-          onClick={() => { setServiceType('shopping'); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'shopping' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+          onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS); setSelectedCategory('Todos'); }}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.COMPRAS ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Package size={16} /> {t('service_shopping')}</button>
         <button
-          onClick={() => setServiceType('parcel')}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'parcel' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+          onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR)}
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === PEDEJA_SERVICE_TYPES.ENVIAR ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Package size={16} /> {t('service_parcel')}</button>
       </div>
 
-      {(serviceType === 'food' || serviceType === 'shopping' || serviceType === 'stores') ? (
+      {(serviceType === PEDEJA_SERVICE_TYPES.FOME || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS) ? (
         <>
           {!searchQuery && (
             <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1 scrollbar-hide">
@@ -465,7 +465,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               <h2 className="text-xl font-black text-white leading-tight mb-1">Fome, Compras e ENVIAR</h2>
               <p className="text-orange-100 text-xs mb-3">Comida, compras e entregas em Luanda</p>
               <button
-                onClick={() => setServiceType('parcel')}
+                onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR)}
                 className="bg-white text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full"
               >Enviar agora →</button>
             </div>
@@ -512,8 +512,8 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             ))}
           </div>
         </>
-      ) : serviceType === 'parcel' ? (
-        /* ── Parcel form ── */
+      ) : serviceType === PEDEJA_SERVICE_TYPES.ENVIAR ? (
+        /* ── ENVIAR form (legacy parcel implementation, pending backend logistics expansion) ── */
         <div className="bg-white p-5 rounded-xl shadow-sm">
           <h2 className="font-bold text-lg mb-4 text-blue-600 flex items-center"><Package className="mr-2" /> Entrega rápida de encomendas</h2>
           <div className="space-y-3">
