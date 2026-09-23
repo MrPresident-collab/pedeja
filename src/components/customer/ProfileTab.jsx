@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatDateTimeFromMs } from '../../utils';
-import InteractiveMap from '../InteractiveMap';
 
 export default function ProfileTab() {
   const {
@@ -46,25 +45,6 @@ export default function ProfileTab() {
   const [userPinSaving, setUserPinSaving] = useState(false);
   const [merchantSubmitting, setMerchantSubmitting] = useState(false);
   const [riderSubmitting, setRiderSubmitting] = useState(false);
-
-  // Auto-GPS: pull current location when entering pin_location subview
-  useEffect(() => {
-    if (profileSubView !== 'pin_location' || !navigator.geolocation) return;
-    notifySystem('A obter localização GPS', 'A procurar a sua localização...', 'info');
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        notifySystem('concluído', 'Localização GPS encontrada', 'success');
-      },
-      () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
-  }, [profileSubView]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-GPS: pull current location when adding a new address
-  useEffect(() => {
-    if (newAddrMode) getCurrentLocationForForm();
-  }, [newAddrMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const MERCHANT_FORM_INIT = { shopName: '', category: 'Street Food', realName: '', idCard: '', phone: '', bankName: '', bankAccount: '', idCardImage: null, shopImage: null, location: null };
   const RIDER_FORM_INIT    = { realName: '', vehicle: 'Motorcycle', idCard: '', phone: '', bankName: '', bankAccount: '', idCardImage: null, profileImage: null };
@@ -187,7 +167,7 @@ export default function ProfileTab() {
               <div className="flex items-center">
                 <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3"><MapPin size={20} /></div>
                 <div className="text-left">
-                  <div className="font-medium">A minha localização</div>
+                  <div className="font-medium">As minhas moradas</div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {userProfile.location
                       ? `${userProfile.location.lat.toFixed(4)}, ${userProfile.location.lng.toFixed(4)}`
