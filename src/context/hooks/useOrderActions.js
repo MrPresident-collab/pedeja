@@ -475,32 +475,8 @@ export function useOrderActions(deps) {
 
       setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, ...patch } : o)));
 
-      const getFeeLabel = (type) => {
-        if (type === 'parcel') return 'ค่าส่งพัสดุ';
-        return 'ค่าส่ง';
-      };
-      const getGpLabel = (type) => {
-        if (type === 'parcel') return 'พัสดุ(สด)';
-        return 'GP(สด)';
-      };
-
-      if (rpcResult && !rpcResult.skipped) {
-        const riderEarned    = r2(rpcResult.riderIncome    ?? calcRiderIncome);
-        const merchantEarned = r2(rpcResult.merchantIncome ?? merchantIncome);
-        const gpEarned       = r2(rpcResult.gpAmount       ?? gpAmount);
-        if (order.paymentMethod === 'cash') {
-          if (order.type === 'parcel') {
-            if (riderUid && gpEarned > 0) creditWalletLocal(riderUid, -gpEarned, `หัก GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
-            if (gpEarned > 0)             creditWalletLocal(user?.id, gpEarned,  `GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
-          } else {
-            if (riderUid && foodTotal > 0)          creditWalletLocal(riderUid,     -foodTotal,     `หักค่าอาหาร(สด) ออเดอร์ #${orderId.slice(-6)}`);
-            if (shopOwnerUid && merchantEarned > 0) creditWalletLocal(shopOwnerUid, merchantEarned, `รายได้ร้าน(สด) ออเดอร์ #${orderId.slice(-6)}`);
-          }
-        } else {
-          if (shopOwnerUid && merchantEarned > 0) creditWalletLocal(shopOwnerUid, merchantEarned, `รายได้ร้านค้า ออเดอร์ #${orderId.slice(-6)}`);
-          if (riderUid && riderEarned > 0)        creditWalletLocal(riderUid,     riderEarned,    `${getFeeLabel(order.type)} ออเดอร์ #${orderId.slice(-6)}`);
-        }
-      }
+      // Settlement is already committed by the server RPC above.
+      // Do not mutate wallet balances from the customer client.
 
       // Mark rider as available again
       const riderRow = riders.find(r => r.userId === riderUid);
