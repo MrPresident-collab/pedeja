@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Check, Receipt } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import PromptPayQR from '../PromptPayQR';
+import PaymentQR from '../PaymentQR';
 
 export default function TopUpModal() {
   const {
@@ -23,15 +23,15 @@ export default function TopUpModal() {
           <X size={20} />
         </button>
         <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-green-600">เติมเงินเข้า Wallet</h3>
-          <p className="text-xs text-gray-500">สแกน QR หรือโอนตามเลขบัญชี</p>
+          <h3 className="text-lg font-bold text-green-600">Carregar a carteira</h3>
+          <p className="text-xs text-gray-500">Digitalize o QR ou transfira para a referência indicada</p>
         </div>
         <div className="bg-gray-100 p-3 rounded-xl mb-4 border border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <div className="bg-white p-1.5 rounded-lg shadow-sm border flex items-center justify-center min-w-[96px] min-h-[96px]">
-              {appConfig.adminPromptPayId ? (
-                <PromptPayQR
-                  promptPayId={appConfig.adminPromptPayId}
+              {appConfig.adminPaymentReference ? (
+                <PaymentQR
+                  promptPayId={appConfig.adminPaymentReference}
                   amount={parseFloat(withdrawAmount) || 0}
                   size={96}
                 />
@@ -42,7 +42,7 @@ export default function TopUpModal() {
                   className="w-24 h-24 object-contain"
                 />
               ) : (
-                <PromptPayQR
+                <PaymentQR
                   promptPayId=""
                   amount={parseFloat(withdrawAmount) || 0}
                   size={96}
@@ -57,9 +57,9 @@ export default function TopUpModal() {
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 font-bold">฿</span>
+              <span className="text-gray-500 font-bold">Kz </span>
             </div>
-            <label htmlFor="topup-amount-input" className="sr-only">จำนวนเงิน</label>
+            <label htmlFor="topup-amount-input" className="sr-only">Valor</label>
             <input
               id="topup-amount-input"
               name="withdrawAmount"
@@ -69,7 +69,7 @@ export default function TopUpModal() {
               className="w-full pl-8 pr-4 py-2 text-right text-xl font-bold bg-white border border-gray-200 rounded-lg focus:border-green-500 focus:outline-none"
               placeholder="0.00"
               autoComplete="off"
-              aria-label="จำนวนเงิน"
+              aria-label="Valor"
             />
           </div>
         </div>
@@ -77,8 +77,8 @@ export default function TopUpModal() {
           <label htmlFor="topup-slip-input" className={`w-full border-2 border-dashed p-2 rounded-lg text-center cursor-pointer flex items-center justify-center transition-colors ${topUpSlip ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}>
             <input id="topup-slip-input" name="topupSlip" type="file" accept="image/*" className="hidden" onChange={handleTopUpSlipSelect} />
             {topUpSlip
-              ? <><Check size={16} className="mr-1" /> สลิปพร้อมส่ง</>
-              : <><Receipt size={16} className="mr-1" /> แนบสลิปโอนเงิน</>
+              ? <><Check size={16} className="mr-1" /> Comprovativo pronto</>
+              : <><Receipt size={16} className="mr-1" /> Anexar comprovativo da transferência</>
             }
           </label>
           {topUpSlip && (
@@ -96,15 +96,15 @@ export default function TopUpModal() {
         <button
           onClick={() => {
             if (withdrawAmount > 0) {
-              if (!topUpSlip) return alert('กรุณาแนบสลิปการโอนเงิน');
+              if (!topUpSlip) return alert('Anexe o comprovativo da transferência');
               requestTopUp(parseFloat(withdrawAmount), topUpSlip);
             } else {
-              alert('กรุณาระบุจำนวนเงิน');
+              alert('กรุณาระบุValor');
             }
           }}
           className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center"
         >
-          แจ้งโอนเงิน
+          Informar transferência
         </button>
       </div>
     </div>
