@@ -167,7 +167,7 @@ export const safeLocalSet = (key, value) => {
   }
 };
 
-const _NOTIF_SOUND_KEY = 'boomrider_merchant_notif_sound';
+const _NOTIF_SOUND_KEY = 'pedeja_merchant_notif_sound';
 
 export const getMerchantNotifSound = () => {
   try { return localStorage.getItem(_NOTIF_SOUND_KEY); } catch { return null; }
@@ -199,7 +199,7 @@ export const isDefaultFallbackLocation = (loc) => {
   const lat = Number(loc.lat);
   const lng = Number(loc.lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-  return Math.abs(lat - 13.7563) < 0.0001 && Math.abs(lng - 100.5018) < 0.0001;
+  return Math.abs(lat + 8.8383) < 0.0001 && Math.abs(lng - 13.2344) < 0.0001;
 };
 
 export const isValidCoordinate = (loc, options = {}) => {
