@@ -17,8 +17,8 @@ const AdminView    = lazy(() => import('./views/AdminView'));
 
 function ViewLoader() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600">
-      <div className="text-white text-2xl font-black tracking-tight mb-6">🛵 BoomRider</div>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-violet-600 to-violet-800">
+      <div className="text-white text-2xl font-black tracking-tight mb-6">Pedejá.</div>
       <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
     </div>
   );
@@ -29,9 +29,9 @@ function RoleSwitcher() {
   const { activeRole, setActiveRole, pendingRequests, isAdmin, isDarkMode, toggleDarkMode } = useApp();
 
   const toggleLang = () => {
-    const nextLang = i18n.language === 'th' ? 'en' : 'th';
+    const nextLang = i18n.language === 'pt' ? 'en' : 'pt';
     i18n.changeLanguage(nextLang);
-    localStorage.setItem('boomrider_lang', nextLang);
+    localStorage.setItem('pedeja_lang', nextLang);
   };
 
   return (
@@ -43,10 +43,10 @@ function RoleSwitcher() {
           <button
             onClick={toggleLang}
             className="bg-gray-700 hover:bg-gray-600 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-full font-bold text-xs flex items-center gap-1 transition-all"
-            title={i18n.language === 'th' ? 'Switch to English' : 'เปลี่ยนเป็นภาษาไทย'}
+            title={i18n.language === 'pt' ? 'Switch to English' : 'Mudar para Português'}
           >
             <Globe size={13} />
-            <span>{i18n.language === 'th' ? 'EN' : 'TH'}</span>
+            <span>{i18n.language === 'pt' ? 'EN' : 'PT'}</span>
           </button>
 
           <button
@@ -85,7 +85,7 @@ function AppRouter() {
   return (
     <div
       id="app-scroll"
-      style={{ fontFamily: "'Noto Sans Thai', 'Inter', sans-serif" }}
+      style={{ fontFamily: "'Ubuntu', 'Inter', sans-serif" }}
     >
       <RoleSwitcher />
       <InstallBanner />
@@ -102,10 +102,10 @@ function AppRouter() {
             type="button"
             onClick={() => setAiChatOpen(true)}
             className="fixed bottom-20 right-4 z-[9999] bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-3.5 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-1.5 group border border-purple-300/40"
-            title="คุยกับน้องบูม AI"
+            title="Falar com o assistente Pedejá"
           >
             <Bot size={22} className="group-hover:rotate-12 transition-transform" />
-            <span className="text-xs font-bold pr-1 hidden sm:inline">น้องบูม AI</span>
+            <span className="text-xs font-bold pr-1 hidden sm:inline">Assistente Pedejá</g/span>
           </button>
 
           <Suspense fallback={<ViewLoader />}>
