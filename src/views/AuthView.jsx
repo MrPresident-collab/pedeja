@@ -129,8 +129,9 @@ export default function AuthView() {
       p_municipality: addressValue.municipality.trim(),
       p_city: addressValue.city.trim(),
       p_province: addressValue.province.trim(),
-      p_latitude: addressValue.latitude,
-      p_longitude: addressValue.longitude,
+      p_reference: addressValue.reference?.trim() || null,
+      p_latitude: Number.isFinite(Number(addressValue.latitude)) ? Number(addressValue.latitude) : null,
+      p_longitude: Number.isFinite(Number(addressValue.longitude)) ? Number(addressValue.longitude) : null,
       p_delivery_instructions: addressValue.reference.trim() || null,
     });
     if (error) throw error;
@@ -150,8 +151,6 @@ export default function AuthView() {
 
     if (!name) return notifySystem('Erro', 'Indique o nome completo', 'error');
     if (!address.addressLine1.trim()) return notifySystem('Erro', 'Indique a rua/avenida e o número da casa', 'error');
-    if (!address.neighborhood.trim()) return notifySystem('Erro', 'Indique o bairro', 'error');
-    if (!address.municipality.trim()) return notifySystem('Erro', 'Indique o município', 'error');
     if (!phone) return notifySystem('Erro', 'Indique o telefone', 'error');
     if (!registerForm.password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
     if (registerForm.password.length < 6) return notifySystem('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
