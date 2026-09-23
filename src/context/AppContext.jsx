@@ -3,9 +3,8 @@ import {
   INITIAL_CONFIG, INITIAL_RESTAURANTS, INITIAL_RIDERS, INITIAL_MENU_ITEMS,
   USER_LOCATION, ADMIN_EMAIL, PEDEJA_SERVICE_TYPES,
 } from '../constants';
-import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrderNotificationSound, r2, initPushNotifications } from '../utils';
+import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrderNotificationSound, initPushNotifications } from '../utils';
 import { supabase } from '../lib/supabase';
-import { canApplyOrderUpdate, ORDER_STATUS_RANK } from '../domain/orderStatus';
 
 import { useCarteiraActions }  from './hooks/usecarteiraActions';
 import { useOrderActions }   from './hooks/useOrderActions';
@@ -15,15 +14,6 @@ import { useRegistration }   from './hooks/useRegistration';
 import { usePromoActions }   from './hooks/usePromoActions';
 
 const AppContext = createContext(null);
-
-const riderProfileSignature = (row) => {
-  const profile = { ...row.data };
-  delete profile.location;
-  delete profile.current_lat;
-  delete profile.current_lng;
-  delete profile.is_available;
-  return JSON.stringify({ id: row.id, user_id: row.user_id, data: profile });
-};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
@@ -155,7 +145,6 @@ export function AppProvider({ children }) {
   const isAdmin = userRoles.includes('admin');
 
   // --- Refs ---
-  const restaurantsRef = React.useRef(INITIAL_RESTAURANTS);
   const currentUserRef = React.useRef(null);
   const fetchAppDataPromiseRef = useRef(null);
   const fetchAppDataAuthKeyRef = useRef(null);
@@ -163,11 +152,6 @@ export function AppProvider({ children }) {
   const lastLoadedAuthUserIdRef = useRef(null);
   const lastcarteiraHistorySyncAtRef = useRef(0);
   const persistedProfileRef = useRef(null);
-  // Keep a per-row snapshot of data read from or written to Supabase. This
-  // prevents initial hydration and unrelated state updates from auto-saving
-  // unchanged rows back to the database.
-  const persistedRowsRef = useRef({ restaurants: null, menuItems: null, riders: null });
-  useEffect(() => { restaurantsRef.current = restaurants; }, [restaurants]);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   const seenOrderIdsRef         = React.useRef(new Set());
@@ -273,50 +257,11 @@ export function AppProvider({ children }) {
 
   // ── Fetch current user wallet from Supabase ─────────────────────────────
   const fetchUsercarteira = useCallback(async (targetUid) => {
-    const uid = targetUid || currentUser?.id;
-    if (!uid) return;
-    try {
-      const walletKey = (ADMIN_EMAIL && currentUser?.email === ADMIN_EMAIL) ? ADMIN_EMAIL : uid;
-      const { data: wallet, error: walletError } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', walletKey)
-        .maybeSingle();
-      if (walletError) {
-        console.error('fetchUsercarteira error:', walletError);
-        return;
-      }
-
-      if (wallet) {
-        const bal = r2(wallet.balance || 0);
-        setUsercarteira(bal);
-        setGlobalcarteiras(prev => ({
-          ...prev,
-          [walletKey]: { ...prev[walletKey], balance: bal },
-          [uid]: { ...prev[uid], balance: bal },
-        }));
-        // Realtime normally carries the updated history. Restore the full
-        // history only when that event has not reached this client.
-        if (Date.now() - lastcarteiraHistorySyncAtRef.current > 5000) {
-          const { data: historyRow, error } = await supabase
-            .from('wallets').select('history').eq('user_id', walletKey).maybeSingle();
-          if (error) console.error('carteira history fallback error:', error);
-          else if (historyRow) {
-            const history = historyRow.history || [];
-            setcarteiraAllEntries(history);
-            setGlobalcarteiras(prev => ({
-              ...prev,
-              [walletKey]: { ...prev[walletKey], balance: bal, history },
-              [uid]: { ...prev[uid], balance: bal, history },
-            }));
-            lastcarteiraHistorySyncAtRef.current = Date.now();
-          }
-        }
-      }
-    } catch (e) {
-      console.error('fetchUsercarteira error', e);
-    }
-  }, [currentUser?.id, currentUser?.email]);
+    void targetUid;
+    // The live financial model is payments + ledger RPCs, not a client-readable
+    // wallets table. Leave the legacy wallet UI unchanged but never query a
+    // table that does not exist.
+  }, []);
 
   // ── carteira hook ─────────────────────────────────────────────────────────────
   const { creditcarteira, creditcarteiraLocal, processTransaction, requestTopUp, requestWithdraw, adminAdjustcarteira } = useCarteiraActions({
@@ -541,7 +486,6 @@ export function AppProvider({ children }) {
             priceLabel: '$$',
           };
         });
-        persistedRowsRef.current.restaurants = new Map(rows.map(row => [row.id, JSON.stringify(row)]));
         setRestaurants(rows);
 
         const productMap = {};
@@ -562,12 +506,6 @@ export function AppProvider({ children }) {
           if (!productMap[p.business_id]) productMap[p.business_id] = [];
           productMap[p.business_id].push(item);
         });
-        persistedRowsRef.current.menuItems = new Map(
-          Object.entries(productMap).map(([businessId, items]) => [
-            businessId,
-            JSON.stringify({ business_id: businessId, items }),
-          ]),
-        );
         setMenuItems(productMap);
 
         const riderRows = (ridersResult.data || []).map(r => ({
@@ -578,9 +516,6 @@ export function AppProvider({ children }) {
           location: null,
           lastLocationAt: r.last_location_at || null,
         }));
-        persistedRowsRef.current.riders = new Map(
-          riderRows.map(row => [row.id, riderProfileSignature({ id: row.id, user_id: row.userId, data: row })]),
-        );
         setRiders(riderRows);
 
         const itemsByOrder = new Map();
@@ -638,7 +573,6 @@ export function AppProvider({ children }) {
         console.error('fetchAppData error:', e);
       } finally {
         setIsDataLoading(false);
-        dataLoadedRef.current = true;
         fetchAppDataPromiseRef.current = null;
         fetchAppDataAuthKeyRef.current = null;
       }
@@ -730,28 +664,23 @@ export function AppProvider({ children }) {
 
     const promise = Promise.resolve().then(async () => {
       try {
-        const [profileResult, rolesResult, walletResult] = await Promise.all([
-          supabase.from('profiles').select('id, name, phone, email, location, avatar, addresses, banned').eq('id', authUser.id).maybeSingle(),
-          supabase.from('user_roles').select('role').eq('user_id', authUser.id),
-          supabase.from('wallets').select('balance, history').eq('user_id', authUser.id).maybeSingle(),
+        const [profileResult] = await Promise.all([
+          supabase.from('profiles').select('id, full_name, phone, avatar_url, account_status').eq('id', authUser.id).maybeSingle(),
         ]);
 
         const profile = profileResult.data || {};
-        const roles   = rolesResult.data?.map(r => r.role) || ['customer'];
-        const wallet  = walletResult.data;
-
-        const mergedRoles = roles;
+        const mergedRoles = ['customer'];
 
         const prof = {
           id: authUser.id,
-          name: profile.name || '',
+          name: profile.full_name || '',
           phone: profile.phone || '',
-          email: authUser.email || profile.email || '',
-          location: profile.location || USER_LOCATION,
-          image: profile.avatar || null,
+          email: authUser.email || '',
+          location: USER_LOCATION,
+          image: profile.avatar_url || null,
         };
 
-        const addresses = profile.addresses || [{ id: 1, label: 'Casa', address: 'Adicione uma morada', location: USER_LOCATION }];
+        const addresses = [{ id: 1, label: 'Casa', address: 'Adicione uma morada', location: USER_LOCATION }];
         persistedProfileRef.current = profileResult.error || !profileResult.data ? null : {
           userId: authUser.id,
           signature: JSON.stringify({
@@ -763,22 +692,7 @@ export function AppProvider({ children }) {
         setUserProfile(prof);
         setTempProfile(prof);
         setUserRoles(mergedRoles);
-        if (!walletResult.error) {
-          setUsercarteira(r2(wallet?.balance || 0));
-          setcarteiraAllEntries(wallet?.history || []);
-          if (wallet) lastcarteiraHistorySyncAtRef.current = Date.now();
-        } else {
-          console.warn('Failed to load wallet from Supabase:', walletResult.error);
-        }
         setUserAddresses(addresses);
-        // Use email key for admin so it stays consistent with creditcarteira(ADMIN_EMAIL,...) calls
-        const walletKey = (ADMIN_EMAIL && authUser.email === ADMIN_EMAIL) ? ADMIN_EMAIL : authUser.id;
-        if (!walletResult.error) {
-          setGlobalcarteiras(prev => ({
-            ...prev,
-            [walletKey]: { balance: r2(wallet?.balance || 0), history: wallet?.history || [] },
-          }));
-        }
       } catch (e) {
         console.error('loadUserSession error', e);
       } finally {
@@ -848,91 +762,17 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!isLoggedIn) return;
     const channel = supabase.channel('orders-rt')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
-        const o = payload.new?.data;
-        if (o) {
-          setOrders(prev => {
-            if (prev.some(x => x.id === o.id)) return prev;
-            setTotalOrdersCount(count => count + 1);
-            return [o, ...prev];
-          });
-        } else if (payload.new?.id) {
-          const { data: row } = await supabase.from('orders').select('id, data').eq('id', payload.new.id).maybeSingle();
-          if (row?.data) setOrders(prev => {
-            if (prev.some(x => x.id === row.data.id)) return prev;
-            setTotalOrdersCount(count => count + 1);
-            return [row.data, ...prev];
-          });
-        }
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, async (payload) => {
-        const applyUpdate = (incoming) => {
-          if (!incoming?.id) return;
-          setOrders(prev => {
-            const idx = prev.findIndex(x => x.id === incoming.id);
-            if (idx === -1) return [...prev, incoming]; // order not yet in state — add it
-            if (!canApplyOrderUpdate(prev[idx], incoming)) return prev;
-            const next = [...prev];
-            next[idx] = incoming;
-            return next;
-          });
-          if (incoming.status === 'completed') {
-            fetchUsercarteira();
-          }
-        };
-        const o = payload.new?.data;
-        if (o) {
-          applyUpdate(o);
-        } else if (payload.new?.id) {
-          // REPLICA IDENTITY DEFAULT — data column not in payload; fetch directly
-          const { data: row } = await supabase.from('orders').select('id, data').eq('id', payload.new.id).maybeSingle();
-          if (row?.data) applyUpdate(row.data);
-        }
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, (payload) => {
-        setOrders(prev => {
-          const exists = prev.some(x => x.id === payload.old?.id);
-          if (exists) setTotalOrdersCount(count => Math.max(0, count - 1));
-          return prev.filter(x => x.id !== payload.old?.id);
-        });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        // Rehydrate through the relational projection. The live orders table
+        // has no legacy `data` JSON document to read from Realtime payloads.
+        fetchAppData(currentUserRef.current?.id || null);
       })
       .subscribe();
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [isLoggedIn, fetchUsercarteira]);
-
-  // ── Realtime: Pending Requests ──────────────────────────────────────────
-  useEffect(() => {
-    if (!isAdmin) return;
-    const channel = supabase.channel('pending-rt')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pending_requests' }, async (payload) => {
-        const r = payload.new?.data;
-        if (r) {
-          setPendingRequests(prev => prev.some(x => x.id === r.id) ? prev : [r, ...prev]);
-        } else {
-          // payload.new.data may be null if Supabase RLS filters row-level data in Realtime
-          // Fall back to a direct fetch for the specific row (or full list if id missing)
-          const rowId = payload.new?.id;
-          if (rowId) {
-            const { data: row } = await supabase.from('pending_requests').select('id, data').eq('id', rowId).maybeSingle();
-            if (row?.data) setPendingRequests(prev => prev.some(x => x.id === row.data.id) ? prev : [row.data, ...prev]);
-          } else {
-            const { data: rows } = await supabase.from('pending_requests').select('id, data');
-            if (rows) setPendingRequests(rows.map(row => row.data).filter(Boolean));
-          }
-        }
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'pending_requests' }, (payload) => {
-        setPendingRequests(prev => prev.filter(x => x.id !== payload.old?.id));
-      })
-      .subscribe();
-    return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [isAdmin]);  
+  }, [isLoggedIn, fetchAppData]);
 
   // ── Realtime: Admin notifications ───────────────────────────────────────
   useEffect(() => {
@@ -973,124 +813,13 @@ export function AppProvider({ children }) {
     };
   }, [isLoggedIn]);
 
-  // ── Realtime: carteiras ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isLoggedIn || !currentUser?.id) return;
-    const uid = currentUser.id;
-    const walletKey = (ADMIN_EMAIL && currentUser.email === ADMIN_EMAIL) ? ADMIN_EMAIL : uid;
-
-    const channel = supabase.channel('wallets-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets' }, (payload) => {
-        const updated = payload.new;
-        if (!updated) return;
-        if (updated.user_id === uid || updated.user_id === walletKey) {
-          const bal = r2(updated.balance || 0);
-          const hist = updated.history || [];
-          setUsercarteira(bal);
-          setcarteiraAllEntries(hist);
-          lastcarteiraHistorySyncAtRef.current = Date.now();
-          setGlobalcarteiras(prev => ({
-            ...prev,
-            [walletKey]: { balance: bal, history: hist },
-            [uid]: { balance: bal, history: hist },
-          }));
-        } else if (isAdmin) {
-          const bal = r2(updated.balance || 0);
-          const hist = updated.history || [];
-          setGlobalcarteiras(prev => ({
-            ...prev,
-            [updated.user_id]: { balance: bal, history: hist },
-          }));
-        }
-      })
-      .subscribe();
-    return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [isLoggedIn, currentUser?.id, currentUser?.email, isAdmin]);
-
-  // ── Auto-save mutable app data to Supabase ──────────────────────────────
+  // Wallets, pending requests, and client-owned JSON stores are not part of
+  // the live Pedejá schema. Do not subscribe to or write those retired tables.
   const debounceRef = useRef({});
-  const dataLoadedRef = useRef(false);
   const debouncedUpsert = useCallback((key, fn, delay = 1500) => {
     clearTimeout(debounceRef.current[key]);
     debounceRef.current[key] = setTimeout(fn, delay);
   }, []);
-
-  useEffect(() => {
-    if (!dataLoadedRef.current || !restaurants.length) return;
-    const uid = currentUser?.id;
-    if (!uid) return;
-    const ownedRows = restaurants.filter(r => isAdmin || r.ownerId === uid);
-    if (!ownedRows.length) return;
-
-    debouncedUpsert('restaurants', async () => {
-      const currentUid = currentUserRef.current?.id;
-      if (!currentUid) return;
-      const rows = restaurantsRef.current
-        .filter(r => isAdmin || r.ownerId === currentUid)
-        .map(r => ({ id: r.id, owner_id: r.ownerId || null, data: r }));
-      const snapshots = persistedRowsRef.current.restaurants;
-      if (!snapshots) return;
-      const changedRows = rows.filter(row => snapshots.get(row.id) !== JSON.stringify(row));
-      if (changedRows.length) {
-        const { error } = await supabase.from('restaurants').upsert(changedRows);
-        if (error) console.error('Auto-save restaurants error:', error);
-        else changedRows.forEach(row => snapshots.set(row.id, JSON.stringify(row)));
-      }
-    });
-  }, [restaurants, currentUser?.id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!dataLoadedRef.current) return;
-    const uid = currentUser?.id;
-    if (!uid) return;
-    const ownedRestIds = new Set(restaurants.filter(r => isAdmin || r.ownerId === uid).map(r => r.id));
-    const ownedItems = Object.entries(menuItems).filter(([rid]) => ownedRestIds.has(rid));
-    if (!ownedItems.length) return;
-
-    debouncedUpsert('menu_items', async () => {
-      const currentUid = currentUserRef.current?.id;
-      if (!currentUid) return;
-      const activeOwnedRestIds = new Set(restaurantsRef.current.filter(r => isAdmin || r.ownerId === currentUid).map(r => r.id));
-      const rows = Object.entries(menuItems)
-        .filter(([rid]) => activeOwnedRestIds.has(rid))
-        .map(([rid, items]) => ({ restaurant_id: rid, items }));
-      const snapshots = persistedRowsRef.current.menuItems;
-      if (!snapshots) return;
-      const changedRows = rows.filter(row => snapshots.get(row.restaurant_id) !== JSON.stringify(row));
-      if (changedRows.length) {
-        const { error } = await supabase.from('menu_items').upsert(changedRows);
-        if (error) console.error('Auto-save menu_items error:', error);
-        else changedRows.forEach(row => snapshots.set(row.restaurant_id, JSON.stringify(row)));
-      }
-    });
-  }, [menuItems, restaurants, currentUser?.id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!dataLoadedRef.current || !riders.length) return;
-    const uid = currentUser?.id;
-    if (!uid) return;
-    const ownedRiders = riders.filter(r => isAdmin || r.userId === uid);
-    if (!ownedRiders.length) return;
-
-    debouncedUpsert('riders', async () => {
-      const currentUid = currentUserRef.current?.id;
-      if (!currentUid) return;
-      const rows = riders
-        .filter(r => isAdmin || r.userId === currentUid)
-        .map(r => ({ id: r.id, user_id: r.userId || null, data: r }));
-      const snapshots = persistedRowsRef.current.riders;
-      if (!snapshots) return;
-      const changedRows = rows.filter(row => snapshots.get(row.id) !== riderProfileSignature(row));
-      if (changedRows.length) {
-        const { error } = await supabase.from('riders').upsert(changedRows);
-        if (error) console.error('Auto-save riders error:', error);
-        else changedRows.forEach(row => snapshots.set(row.id, riderProfileSignature(row)));
-      }
-    });
-  }, [riders, currentUser?.id, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-capture GPS location on login ──────────────────────────────────
   useEffect(() => {
@@ -1231,11 +960,9 @@ export function AppProvider({ children }) {
     if (!isLoggedIn || !currentUser?.id) return;
     debouncedUpsert('profile', async () => {
       const profileData = {
-        name: userProfile.name,
+        full_name: userProfile.name,
         phone: userProfile.phone,
-        avatar: userProfile.image || null,
-        location: userProfile.location,
-        addresses: userAddresses,
+        avatar_url: userProfile.image || null,
       };
       const signature = JSON.stringify(profileData);
       const snapshot = persistedProfileRef.current;
@@ -1246,93 +973,8 @@ export function AppProvider({ children }) {
     }, 2000);
   }, [userProfile, userAddresses]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Real-time Rider Location Simulation ─────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setOrders(prevOrders => prevOrders.map(order => {
-        if (['rider_accepted', 'picking_up', 'delivering'].includes(order.status) && order.riderId) {
-          const currentPos = order.riderLocation || order.pickupLocation || USER_LOCATION;
-          const targetPos  = ['delivering'].includes(order.status)
-            ? (order.location || USER_LOCATION)
-            : (order.pickupLocation || USER_LOCATION);
-          const step   = 0.05;
-          const newLat = currentPos.lat + (targetPos.lat - currentPos.lat) * step;
-          const newLng = currentPos.lng + (targetPos.lng - currentPos.lng) * step;
-          return { ...order, riderLocation: { lat: newLat, lng: newLng } };
-        }
-        return order;
-      }));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ── Polling fallback for active orders (every 60s) ─────────────────────
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const poll = setInterval(async () => {
-      const activeStatuses = ['pending','preparing','ready_to_pickup','rider_accepted','picking_up','delivering','delivered'];
-      const { data } = await supabase
-        .from('orders')
-        .select('id, status, data')
-        .in('status', activeStatuses)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (!data?.length) return;
-
-      // Auto-complete 'delivered' orders older than 15 min (customer didn't confirm)
-      // Only the rider who delivered OR admin triggers — prevents every client from firing simultaneously
-      const AUTO_COMPLETE_MS = 15 * 60 * 1000;
-      const _uid   = currentUserRef.current?.id;
-      const _email = currentUserRef.current?.email;
-      data.filter(r => r.status === 'delivered').forEach(r => {
-        const o = r.data;
-        let deliveredMs = o?.deliveredAtMs;
-        if (!deliveredMs && o?.deliveredAt) {
-          const parsed = new Date(o.deliveredAt.includes(' ') && !o.deliveredAt.includes('T') ? o.deliveredAt.replace(' ', 'T') : o.deliveredAt).getTime();
-          if (!isNaN(parsed)) deliveredMs = parsed;
-        }
-        if (!deliveredMs) return;
-        if (Date.now() - deliveredMs < AUTO_COMPLETE_MS) return;
-        const isOrderRider = _uid && o.riderUserId === _uid;
-        const isAdminUser  = !!ADMIN_EMAIL && _email === ADMIN_EMAIL;
-        if (!isOrderRider && !isAdminUser) return;
-        const gpFoodRate    = (appConfig?.gpFood ?? 30) / 100;
-        const gpDelivRate   = (appConfig?.gpDelivery ?? 15) / 100;
-        const gpRideRate    = (appConfig?.gpRide ?? 15) / 100;
-        const gpServiceRate = (appConfig?.gpService ?? 15) / 100;
-        supabase.rpc('process_order_settlement', {
-          p_order_id: r.id,
-          p_gp_food_rate: gpFoodRate,
-          p_gp_delivery_rate: gpDelivRate,
-          p_gp_ride_rate: gpRideRate,
-          p_gp_service_rate: gpServiceRate,
-        });
-      });
-
-      setOrders(prev => {
-        const incoming = data.map(r => r.data).filter(Boolean);
-        const map = new Map(prev.map(o => [o.id, o]));
-        let changed = false;
-        incoming.forEach(o => {
-          const existing = map.get(o.id);
-          if (canApplyOrderUpdate(existing, o)) {
-            // Preserve animated local riderLocation if incoming record lacks it
-            const merged = existing?.riderLocation && !o.riderLocation
-              ? { ...o, riderLocation: existing.riderLocation }
-              : o;
-            const rank    = ORDER_STATUS_RANK[merged.status] ?? -1;
-            const oldRank = ORDER_STATUS_RANK[existing?.status] ?? -1;
-            if (rank > oldRank || JSON.stringify(existing) !== JSON.stringify(merged)) {
-              map.set(merged.id, merged);
-              changed = true;
-            }
-          }
-        });
-        return changed ? Array.from(map.values()) : prev;
-      });
-    }, 60000);
-    return () => clearInterval(poll);
-  }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Order state is refreshed from the relational projection on Realtime
+  // events. Never simulate rider movement or settle orders in the browser.
 
   // ── Update Parcel Estimate ───────────────────────────────────────────────
   useEffect(() => {
@@ -1482,28 +1124,15 @@ export function AppProvider({ children }) {
   // ── Address management ───────────────────────────────────────────────────
   const handleUpdateUserLocation = useCallback(async (location) => {
     if (!location) return;
-    const uid = currentUser?.id || userProfile?.id;
     const nextAddresses = !userAddresses?.length
       ? [{ id: 1, label: 'Casa', address: 'Morada actual', location }]
       : userAddresses.map((a, idx) => idx === 0 ? { ...a, location } : a);
     setUserProfile(prev => ({ ...prev, location }));
     setUserAddresses(nextAddresses);
-    if (uid) {
-      const { error } = await supabase.from('profiles')
-        .update({ location, addresses: nextAddresses }).eq('id', uid);
-      if (error) console.error('Location update error:', error);
-      else if (persistedProfileRef.current?.userId === uid) {
-        persistedProfileRef.current = {
-          userId: uid,
-          signature: JSON.stringify({
-            name: userProfile.name, phone: userProfile.phone,
-            avatar: userProfile.image || null, location, addresses: nextAddresses,
-          }),
-        };
-      }
-    }
-    notifySystem('📍 Localização guardada', 'A localização principal foi actualizada', 'success');
-  }, [currentUser?.id, userProfile, userAddresses]);
+    // Address persistence belongs to the customer-address RPC surface. Keep
+    // this UI update local until that flow supplies a real address id.
+    notifySystem('📍 Localização actualizada', 'A localização foi actualizada nesta sessão', 'success');
+  }, [userAddresses]);
 
   const handleAddAddress = (addr) => {
     const loc = addr.location || USER_LOCATION;
@@ -1528,7 +1157,7 @@ export function AppProvider({ children }) {
     // 1. Update local riders state immediately
     setRiders(prev => prev.map(r =>
       r.id === riderId
-        ? { ...r, location, current_lat: location.lat, current_lng: location.lng, is_available: isAvailable }
+        ? { ...r, location, lastLocationAt: new Date().toISOString(), availabilityStatus: isAvailable ? 'AVAILABLE' : 'OFFLINE' }
         : r,
     ));
 
@@ -1536,32 +1165,13 @@ export function AppProvider({ children }) {
     if (now - _lastGpsWriteRef.current < 5000) return; // throttle
     _lastGpsWriteRef.current = now;
 
-    // 2. Persist GPS and availability to riders table (columns added by migration 001)
-    supabase.from('riders').update({
-      is_available: isAvailable,
-      current_lat: location.lat,
-      current_lng: location.lng,
-      last_location_at: new Date().toISOString(),
-    }).eq('id', riderId).then(() => {});
-
-    // 3. Update riderLocation on any active order so customers see real-time movement
-    setOrders(prev => {
-      const activeStatuses = ['rider_accepted', 'picking_up', 'delivering'];
-      let changed = false;
-      const next = prev.map(o => {
-        if (!activeStatuses.includes(o.status) || o.riderId !== riderId) return o;
-        changed = true;
-        const updated = { ...o, riderLocation: location };
-        const riderLocationPatch = { riderLocation: location };
-        supabase.rpc('update_order_metadata', {
-          p_order_id: o.id,
-          p_patch: riderLocationPatch,
-        }).then(({ error, data }) => {
-          if (error || !data?.ok) console.error('rider location order update error:', error || data?.reason);
-        });
-        return updated;
-      });
-      return changed ? next : prev;
+    // The live RPC derives the authenticated rider from auth.uid(); the
+    // rider id is intentionally not sent to the database.
+    supabase.rpc('rider_update_location', {
+      p_latitude: location.lat,
+      p_longitude: location.lng,
+    }).then(({ error }) => {
+      if (error) console.error('rider_update_location error:', error);
     });
   }, []);  
 
@@ -1569,14 +1179,10 @@ export function AppProvider({ children }) {
   const syncRoles = useCallback(async () => {
     const uid = currentUser?.id || userProfile?.id;
     if (!uid) return;
-    const [rolesResult, pendingResult] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', uid),
-      supabase.from('pending_requests').select('id, data'),
-    ]);
-    const latest = rolesResult.data?.map(r => r.role) || [];
-    // An empty result is meaningful: a previously granted role was revoked.
+    const { data: contextResult, error } = await supabase.rpc('get_current_staff_context');
+    if (error) console.error('get_current_staff_context error:', error);
+    const latest = contextResult?.roles || [];
     setUserRoles(latest.length > 0 ? latest : ['customer']);
-    if (pendingResult.data?.length) setPendingRequests(pendingResult.data.map(r => r.data));
     await fetchAppData();
     notifySystem('Actualizar', 'Dados actualizados', 'success');
   }, [currentUser?.id, userProfile?.id, fetchAppData]);
@@ -1619,8 +1225,8 @@ export function AppProvider({ children }) {
         }
         return notifySystem('Erro', 'E-mail/palavra-passe inválidos', 'error');
       }
-      const { data: profile } = await supabase.from('profiles').select('banned').eq('id', signInRes.data.user.id).maybeSingle();
-      if (profile?.banned) {
+      const { data: profile } = await supabase.from('profiles').select('account_status').eq('id', signInRes.data.user.id).maybeSingle();
+      if (profile?.account_status && profile.account_status !== 'ACTIVE') {
         await supabase.auth.signOut();
         return notifySystem('Erro', 'Esta conta está suspensa', 'error');
       }
@@ -1680,46 +1286,15 @@ export function AppProvider({ children }) {
   const submitRating = useCallback(async ({ orderId, restaurantId, riderId, restaurantRating, riderRating, comment }) => {
     const orderToRate = orders.find(o => o.id === orderId);
     if (!orderToRate) return;
-    if (restaurantId && restaurantRating) {
-      let updatedRest;
-      setRestaurants(prev => prev.map(r => {
-        if (r.id !== restaurantId) return r;
-        const prevCount = r.ratingCount || 0;
-        const count = prevCount + 1;
-        const avg = parseFloat((((r.rating || 5) * prevCount + restaurantRating) / count).toFixed(1));
-        updatedRest = { ...r, rating: avg, ratingCount: count };
-        return updatedRest;
-      }));
-      if (updatedRest) supabase.from('restaurants').update({ data: updatedRest }).eq('id', restaurantId).then(() => {});
-    }
-    if (riderId && riderRating) {
-      let updatedRider;
-      setRiders(prev => prev.map(r => {
-        if (r.id !== riderId) return r;
-        const prevCount = r.ratingCount || 0;
-        const count = prevCount + 1;
-        const avg = parseFloat((((r.avgRating || 5) * prevCount + riderRating) / count).toFixed(1));
-        updatedRider = { ...r, avgRating: avg, ratingCount: count };
-        return updatedRider;
-      }));
-      if (updatedRider) supabase.from('riders').update({ data: updatedRider }).eq('id', riderId).then(() => {});
-    }
-    const ratedOrder = { ...orderToRate, rated: true, ratingComment: comment };
-    const ratingPatch = { rated: true, ratingComment: comment || null };
-    const { error: ratingError, data: ratingResult } = await supabase.rpc('update_order_metadata', {
-      p_order_id: orderId,
-      p_patch: ratingPatch,
-    });
-    if (ratingError || !ratingResult?.ok) {
-      console.error('order rating update error:', ratingError || ratingResult?.reason);
-      notifySystem('Não foi possível', 'A avaliação do pedido não foi guardada', 'error');
-      return;
-    }
-    setOrders(prev => prev.map(o => o.id === orderId ? ratedOrder : o));
-    setShowRatingModal(false);
-    setRatingOrderData(null);
-    notifySystem('Obrigado! 🌟', 'A sua avaliação foi guardada', 'success');
-  }, [orders]);  
+    // The live database currently exposes no review/rating relation or RPC.
+    // Do not fabricate aggregates or persist UI-only fields into orders.
+    void restaurantId;
+    void riderId;
+    void restaurantRating;
+    void riderRating;
+    void comment;
+    notifySystem('Avaliações indisponíveis', 'A avaliação ficará disponível quando o backend de avaliações for criado.', 'warning');
+  }, [orders]);
 
   // --- Context Value ---
   const value = {
