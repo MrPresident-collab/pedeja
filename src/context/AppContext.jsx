@@ -1403,11 +1403,8 @@ export function AppProvider({ children }) {
     addToCart,
     calculateFoodTotal,
     calculateDeliveryFee,
-    calculateRideFee,
     placeOrder,
     placeParcelOrder,
-    placeRideOrder,
-    placeServiceOrder,
     acceptOrder,
     updateOrderStatus,
 
