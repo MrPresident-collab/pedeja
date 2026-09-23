@@ -24,7 +24,7 @@ export const INITIAL_CONFIG = {
   adminBankAccount: "",
   adminAccountName: "",
   adminQrCode: "",
-  adminPromptPayId: ""
+  adminPaymentReference: ""
 };
 
 export const USER_LOCATION = { lat: -8.8383, lng: 13.2344 };
