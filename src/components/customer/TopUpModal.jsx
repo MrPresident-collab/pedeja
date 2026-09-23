@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Check, Receipt } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import PaymentQR from '../PaymentQR';
+import PaymentQR from '../PromptPayQR';
 
 export default function TopUpModal() {
   const {
