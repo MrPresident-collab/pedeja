@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
+import SplashScreen from './components/SplashScreen';
 
 const AppShell = lazy(() => import('./AppShell'));
 
@@ -14,6 +15,12 @@ function BootSpinner() {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onContinue={() => setShowSplash(false)} />;
+  }
+
   return (
     <Suspense fallback={<BootSpinner />}>
       <AppShell />
