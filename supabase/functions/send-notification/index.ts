@@ -3,7 +3,7 @@ type WebhookPayload = { type: 'INSERT' | 'UPDATE' | 'DELETE'; table: string; rec
 type ServiceAccount = { project_id: string; client_email: string; private_key: string };
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') || 'https://pedeja.app',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') || 'http://localhost:5173',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-webhook-secret',
 };
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
