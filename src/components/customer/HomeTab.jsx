@@ -35,7 +35,7 @@ export default function HomeTab() {
     userProfile, userAddresses,
     cart, setCart,
     parcelDetails, setParcelDetails,
-    paymentMethod, setPaymentMethod,
+    setPaymentMethod,
     parcelMapTarget, setParcelMapTarget,
     parcelDistance, parcelEstimate,
     placeOrder, placeParcelOrder,
@@ -132,7 +132,7 @@ export default function HomeTab() {
     }));
   };
 
-  const useCurrentLocation = async (target) => {
+  const handleUseCurrentLocation = async (target) => {
     setParcelMapTarget(target);
     await getCurrentLocationForParcel(target);
   };
@@ -253,8 +253,8 @@ export default function HomeTab() {
             <div><h2 className="font-black text-lg">Enviar uma encomenda</h2><p className="text-sm text-gray-500">Use uma morada normal. Coordenadas nunca são digitadas pelo cliente.</p></div>
           </div>
 
-          <AddressPoint title="Ponto de recolha" value={parcelDetails.pickup || ''} onChange={value => setParcelDetails(previous => ({ ...previous, pickup: value, pickupLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.pickupLocation} active={parcelMapTarget === 'pickup'} onActivate={() => setParcelMapTarget('pickup')} onUseCurrent={() => useCurrentLocation('pickup')} />
-          <AddressPoint title="Ponto de entrega" value={parcelDetails.dropoff || ''} onChange={value => setParcelDetails(previous => ({ ...previous, dropoff: value, dropoffLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.dropoffLocation} active={parcelMapTarget === 'dropoff'} onActivate={() => setParcelMapTarget('dropoff')} onUseCurrent={() => useCurrentLocation('dropoff')} />
+          <AddressPoint title="Ponto de recolha" value={parcelDetails.pickup || ''} onChange={value => setParcelDetails(previous => ({ ...previous, pickup: value, pickupLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.pickupLocation} active={parcelMapTarget === 'pickup'} onActivate={() => setParcelMapTarget('pickup')} onUseCurrent={() => handleUseCurrentLocation('pickup')} />
+          <AddressPoint title="Ponto de entrega" value={parcelDetails.dropoff || ''} onChange={value => setParcelDetails(previous => ({ ...previous, dropoff: value, dropoffLocation: null }))} placeholder="Rua, bairro, referência..." location={parcelDetails.dropoffLocation} active={parcelMapTarget === 'dropoff'} onActivate={() => setParcelMapTarget('dropoff')} onUseCurrent={() => handleUseCurrentLocation('dropoff')} />
 
           <div className="flex gap-2 mb-4">
             <button type="button" onClick={usePrimaryAddress} disabled={!primaryAddress} className="flex-1 text-xs font-bold py-2 rounded-xl bg-gray-100 text-gray-700 disabled:opacity-40">Usar minha morada</button>
