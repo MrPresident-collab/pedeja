@@ -7,7 +7,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
-import { DEFAULT_CATEGORIES, PEDEJA_BUSINESS_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
+import { DEFAULT_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
+import { filterPedejaMarketplaceBusinesses } from '../../domain/pedejaMarketplace';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 
@@ -171,10 +172,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
 
   const visibleRestaurants = useMemo(() => {
     let list = restaurantsWithDistance.filter(r => r.status === 'open');
-    const allowed = PEDEJA_BUSINESS_CATEGORIES[serviceType];
-    if (allowed) {
-      list = list.filter(r => allowed.includes(String(r.category || '').toLowerCase().trim()));
-    }
+    list = filterPedejaMarketplaceBusinesses(list, serviceType);
     if (selectedCategory !== 'Todos') list = list.filter(r => r.category === selectedCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -445,7 +443,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
         ><Package size={16} /> {t('service_parcel')}</button>
       </div>
 
-      {(serviceType === PEDEJA_SERVICE_TYPES.FOME || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS) ? (
+      {(serviceType === PEDEJA_SERVICE_TYPES.FOME || serviceType === PEDEJA_SERVICE_TYPES.COMPRAS) ? (
         <>
           {!searchQuery && (
             <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1 scrollbar-hide">
