@@ -547,7 +547,7 @@ DECLARE
   v_bal               NUMERIC := 0;
   v_entry             JSONB;
   v_final_order       JSONB;
-  v_now_bangkok       TEXT;
+  v_now_luanda       TEXT;
   v_now_epoch_ms      BIGINT;
 
   i                   INT;
@@ -775,15 +775,15 @@ BEGIN
       );
     END IF;
 
-    v_now_bangkok  := to_char(now() AT TIME ZONE 'Asia/Bangkok', 'DD/MM/YYYY HH24:MI:SS');
+    v_now_luanda  := to_char(now() AT TIME ZONE 'Africa/Luanda', 'DD/MM/YYYY HH24:MI:SS');
     v_now_epoch_ms := (extract(epoch FROM now()) * 1000)::BIGINT;
 
     v_entry := jsonb_build_object(
       'id', gen_random_uuid()::text,
       'type', 'withdraw',
       'amount', -v_calc_grand_total,
-      'date', v_now_bangkok,
-      'desc', 'ชำระค่าสินค้า/บริการ ออเดอร์ #' || right(v_order_id, 6),
+      'date', v_now_luanda,
+      'desc', 'Pagamento de produto/serviço — pedido #' || right(v_order_id, 6),
       'refOrderId', v_order_id,
       'createdAtMs', v_now_epoch_ms,
       'actorUserId', v_caller_uid
@@ -810,7 +810,7 @@ BEGIN
     'grandTotal', v_calc_grand_total,
     'adminGP', v_admin_gp,
     'riderIncome', v_rider_income,
-    'createdAt', COALESCE(p_order->>'createdAt', to_char(now() AT TIME ZONE 'Asia/Bangkok', 'DD/MM/YYYY HH24:MI:SS'))
+    'createdAt', COALESCE(p_order->>'createdAt', to_char(now() AT TIME ZONE 'Africa/Luanda', 'DD/MM/YYYY HH24:MI:SS'))
   );
 
   IF v_type = 'food' THEN
@@ -1039,13 +1039,13 @@ BEGIN
     END IF;
   END IF;
 
-  v_now_str := to_char(now() AT TIME ZONE 'Asia/Bangkok', 'YYYY-MM-DD HH24:MI:SS');
+  v_now_str := to_char(now() AT TIME ZONE 'Africa/Luanda', 'YYYY-MM-DD HH24:MI:SS');
 
   v_updated_order := v_order.data || jsonb_build_object(
     'status', 'rider_accepted',
     'riderId', p_rider_id,
     'riderUserId', p_rider_user_id,
-    'riderName', COALESCE(v_rider.data->>'name', 'ไรเดอร์'),
+    'riderName', COALESCE(v_rider.data->>'name', 'Estafeta'),
     'riderPhone', COALESCE(v_rider.data->>'phone', ''),
     'riderAcceptedAt', v_now_str,
     'riderIncome', v_rider_income,
@@ -1237,7 +1237,7 @@ BEGIN
     'id',          gen_random_uuid()::text,
     'type',        CASE WHEN p_amount >= 0 THEN 'deposit' ELSE 'withdraw' END,
     'amount',      p_amount,
-    'date',        to_char(now() AT TIME ZONE 'Asia/Bangkok', 'DD/MM/YYYY HH24:MI:SS'),
+    'date',        to_char(now() AT TIME ZONE 'Africa/Luanda', 'DD/MM/YYYY HH24:MI:SS'),
     'desc',        p_note,
     'refOrderId',  p_order_id,
     'createdAtMs', (extract(epoch from now()) * 1000)::bigint
@@ -1306,7 +1306,7 @@ BEGIN
 
     PERFORM public._wallet_credit(
       v_user_id, v_amt, NULL,
-      'เติมเงิน ฿' || trim(to_char(v_amt, '999,999,990.00')) || ' (Admin อนุมัติ)'
+      'Carregamento Kz ' || trim(to_char(v_amt, '999,999,990.00')) || ' (aprovado pelo Admin)'
     );
 
   ELSIF v_req_type = 'withdraw' THEN
@@ -1337,7 +1337,7 @@ BEGIN
 
     PERFORM public._wallet_credit(
       v_user_id, -v_amt, NULL,
-      'ถอนเงิน ฿' || trim(to_char(v_amt, '999,999,990.00')) || ' (Admin อนุมัติ)'
+      'Levantamento Kz ' || trim(to_char(v_amt, '999,999,990.00')) || ' (aprovado pelo Admin)'
     );
   END IF;
 
