@@ -227,7 +227,7 @@ export default function MerchantView() {
         {/* รายได้วันนี้ */}
         <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 flex justify-between items-center mb-3">
           <span className="text-gray-600 text-sm">Receita líquida (concluída)</span>
-          <span className="text-xl font-bold text-green-700">฿{myRevenue.toFixed(0)}</span>
+          <span className="text-xl font-bold text-green-700">Kz {myRevenue.toFixed(0)}</span>
         </div>
 
         {/* Tab bar */}
@@ -370,7 +370,7 @@ export default function MerchantView() {
                       </div>
                       <div className="text-right">
                         <span className={`text-xs font-bold ${isDone ? 'text-green-600' : inTransit ? 'text-blue-500' : 'text-red-400'}`}>
-                          {isDone ? `+฿${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 กำลังส่ง' : 'Cancelar'}
+                          {isDone ? `+Kz ${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 กำลังส่ง' : 'Cancelar'}
                         </span>
                       </div>
                     </div>
@@ -407,7 +407,7 @@ export default function MerchantView() {
                       </div>
                       <p className="text-gray-500 text-xs mb-2 line-clamp-1">{item.desc}</p>
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-green-600">฿{item.price}</span>
+                        <span className="font-bold text-green-600">Kz {item.price}</span>
                         <button
                           onClick={() => handleToggleItemAvailability(myShop.id, item.id)}
                           className={`px-3 py-1 rounded-full text-xs font-bold ${item.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
@@ -622,7 +622,7 @@ export default function MerchantView() {
               <Wallet size={18} />
               <span className="text-green-100 text-sm">ยอดเงินคงเหลือ</span>
             </div>
-            <div className="text-3xl font-bold">฿{(userWallet ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold">Kz {(userWallet ?? 0).toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div className="text-green-200 text-xs mt-1">รายได้จากออเดอร์จะเข้าCarteiraอัตโนมัติ</div>
           </div>
 
@@ -649,7 +649,7 @@ export default function MerchantView() {
                       <div className="text-xs text-gray-400 mt-0.5">{tx.createdAtMs ? formatDateTimeFromMs(tx.createdAtMs) : (tx.date || '')}</div>
                     </div>
                     <span className={`font-bold text-sm flex-shrink-0 ${isIncome ? 'text-green-600' : 'text-red-500'}`}>
-                      {isIncome ? '+' : '-'}฿{Math.abs(amt).toLocaleString()}
+                      {isIncome ? '+' : '-'}Kz {Math.abs(amt).toLocaleString()}
                     </span>
                   </div>
                 );
@@ -697,17 +697,17 @@ export default function MerchantView() {
             <div className="grid grid-cols-2 gap-3 mt-2">
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <p className="text-xs text-gray-400 mb-1">วันนี้</p>
-                <p className="text-xl font-black text-green-600">฿{todayRevenue.toFixed(0)}</p>
+                <p className="text-xl font-black text-green-600">Kz {todayRevenue.toFixed(0)}</p>
                 <p className="text-xs text-gray-400">{todayDone.length} ออเดอร์</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <p className="text-xs text-gray-400 mb-1">รวมทั้งEsgotado</p>
-                <p className="text-xl font-black text-purple-600">฿{allRevenue.toLocaleString()}</p>
+                <p className="text-xl font-black text-purple-600">Kz {allRevenue.toLocaleString()}</p>
                 <p className="text-xs text-gray-400">{done.length} ออเดอร์สำเร็จ</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <p className="text-xs text-gray-400 mb-1">ออเดอร์เฉลี่ย</p>
-                <p className="text-xl font-black text-blue-600">฿{avgOrder.toFixed(0)}</p>
+                <p className="text-xl font-black text-blue-600">Kz {avgOrder.toFixed(0)}</p>
                 <p className="text-xs text-gray-400">ต่อออเดอร์</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
@@ -900,12 +900,12 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         {(order.items || []).map((item, idx) => (
           <div key={idx} className="flex justify-between text-xs">
             <span>{item?.qty}× {item?.name}</span>
-            <span className="text-gray-500">฿{((item?.price ?? 0) * (item?.qty ?? 0)).toFixed(0)}</span>
+            <span className="text-gray-500">Kz {((item?.price ?? 0) * (item?.qty ?? 0)).toFixed(0)}</span>
           </div>
         ))}
         <div className="border-t mt-1.5 pt-1.5 flex justify-between font-bold text-sm">
           <span>รวม</span>
-          <span className="text-green-600">฿{order.grandTotal}</span>
+          <span className="text-green-600">Kz {order.grandTotal}</span>
         </div>
       </div>
 
