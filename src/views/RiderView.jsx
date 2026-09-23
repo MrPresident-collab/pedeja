@@ -55,7 +55,10 @@ function formatAddress(parts) {
 
 function getOrderKind(job) {
   if (job?.source_type === 'ENVIAR' || job?.enviar_shipment_id) return 'ENVIAR';
-  if (job?.source_type === 'ORDER') return job?.order?.business_id ? 'FOME' : 'COMPRAS';
+  if (job?.source_type === 'ORDER') {
+    const category = String(job?.business?.marketplace_category || '').toLowerCase();
+    return category === 'comida' || category === 'food' ? 'FOME' : 'COMPRAS';
+  }
   return job?.kind || 'FOME';
 }
 
@@ -68,7 +71,7 @@ function getOrderTypeIcon(kind) {
 function mapJob(job, order, shipment, business) {
   const pickup = formatAddress(addressParts(job, 'pickup'));
   const destination = formatAddress(addressParts(job, 'destination'));
-  const kind = getOrderKind({ ...job, order, enviar_shipment_id: job?.enviar_shipment_id });
+  const kind = getOrderKind({ ...job, order, business, enviar_shipment_id: job?.enviar_shipment_id });
   return {
     ...job,
     order,
@@ -83,7 +86,7 @@ function mapJob(job, order, shipment, business) {
     senderName: shipment?.sender_name || business?.name || order?.business_name || '',
     senderPhone: shipment?.sender_phone || business?.phone || '',
     instructions: job?.delivery_instructions || shipment?.customer_note || order?.delivery_instructions || order?.customer_note || '',
-    paymentMethod: order?.payment_method || (shipment ? 'PREPAID' : null),
+    paymentMethod: String(order?.payment_method || (shipment ? 'PREPAID' : '')).toUpperCase(),
     totalAmount: Number(order?.total_amount ?? shipment?.total_amount ?? 0),
     riderPay: Number(job?.rider_total_pay_aoa ?? 0),
     pickupKm: Number(job?.pickup_distance_km ?? 0),
@@ -150,7 +153,7 @@ export default function RiderView() {
       if (order?.business_id) {
         const businessResult = await supabase
           .from('businesses')
-          .select('id,name,phone')
+          .select('id,name,phone,marketplace_category')
           .eq('id', order.business_id)
           .maybeSingle();
         if (!businessResult.error) business = businessResult.data;
@@ -199,21 +202,45 @@ export default function RiderView() {
 
   const loadHistory = useCallback(async () => {
     if (!rider?.id) return;
+
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('delivery_assignments')
+      .select('delivery_job_id,status,accepted_at,updated_at')
+      .eq('rider_id', rider.id)
+      .order('updated_at', { ascending: false })
+      .limit(100);
+
+    if (assignmentError) throw assignmentError;
+
+    const jobIds = [...new Set((assignments || []).map((row) => row.delivery_job_id).filter(Boolean))];
+    if (!jobIds.length) {
+      setHistory([]);
+      setTodayPay(0);
+      return;
+    }
+
     const { data: jobs, error: jobsError } = await supabase
       .from('delivery_jobs')
-      .select('id,status,rider_total_pay_aoa,created_at,updated_at,delivered_at')
+      .select('id,status,rider_total_pay_aoa,created_at,updated_at,pickup_distance_km,delivery_distance_km')
+      .in('id', jobIds)
       .eq('status', 'DELIVERED')
-      .order('delivered_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(50);
+
     if (jobsError) throw jobsError;
+
     const rows = (jobs || []).map((job) => ({
       ...job,
       pay: Number(job.rider_total_pay_aoa || 0),
     }));
+
     setHistory(rows);
     const today = new Date().toDateString();
-    setTodayPay(rows.filter((row) => new Date(row.delivered_at || row.updated_at || row.created_at).toDateString() === today)
-      .reduce((sum, row) => sum + row.pay, 0));
+    setTodayPay(
+      rows
+        .filter((row) => new Date(row.updated_at || row.created_at).toDateString() === today)
+        .reduce((sum, row) => sum + row.pay, 0),
+    );
   }, [rider?.id, supabase]);
 
   const loadState = useCallback(async () => {
@@ -491,7 +518,7 @@ export default function RiderView() {
     if (!offer) return null;
     const job = offer.job;
     const TypeIcon = getOrderTypeIcon(job.kind);
-    const cash = job.paymentMethod === 'CASH';
+    const cash = ['CASH', 'NUMERARIO', 'CASH_ON_DELIVERY'].includes(job.paymentMethod);
     const tip = Number(job.order?.tip_amount || job.shipment?.tip_amount || 0);
 
     return (
@@ -641,7 +668,7 @@ export default function RiderView() {
 
     const pickupPhase = ['ACCEPTED', 'ARRIVED_PICKUP'].includes(activeJob.status);
     const destinationPhase = ['PICKED_UP', 'IN_TRANSIT', 'ARRIVED_DESTINATION'].includes(activeJob.status);
-    const cash = activeJob.paymentMethod === 'CASH';
+    const cash = ['CASH', 'NUMERARIO', 'CASH_ON_DELIVERY'].includes(activeJob.paymentMethod);
     const targetLocation = pickupPhase ? activeJob.pickup_location : activeJob.destination_location;
     const targetAddress = pickupPhase ? activeJob.pickupAddress : activeJob.destinationAddress;
     const contactName = pickupPhase ? activeJob.senderName : activeJob.recipientName;
