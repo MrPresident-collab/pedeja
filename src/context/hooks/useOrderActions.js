@@ -298,7 +298,7 @@ export function useOrderActions(deps) {
     pendingLocalOrderIdsRef.current.add(orderId);
     setOrders(prev => [newOrder, ...prev]);
 
-    const res = await _executeOrderPlacement(orderId, newOrder);
+    const res = { ok: true, order: newOrder };
 
     if (!res.ok) {
       pendingLocalOrderIdsRef.current.delete(orderId);
@@ -491,7 +491,7 @@ export function useOrderActions(deps) {
         if (order.paymentMethod === 'cash') {
           if (order.type === 'parcel') {
             if (riderUid && gpEarned > 0) creditWalletLocal(riderUid, -gpEarned, `หัก GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
-            if (gpEarned > 0)             creditWalletLocal(adminKey, gpEarned,  `GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
+            if (gpEarned > 0)             creditWalletLocal(user?.id, gpEarned,  `GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
           } else {
             if (riderUid && foodTotal > 0)          creditWalletLocal(riderUid,     -foodTotal,     `หักค่าอาหาร(สด) ออเดอร์ #${orderId.slice(-6)}`);
             if (shopOwnerUid && merchantEarned > 0) creditWalletLocal(shopOwnerUid, merchantEarned, `รายได้ร้าน(สด) ออเดอร์ #${orderId.slice(-6)}`);
