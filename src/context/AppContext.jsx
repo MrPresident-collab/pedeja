@@ -1214,9 +1214,15 @@ export function AppProvider({ children }) {
   }, []);
 
   const handleUpdateAddress = useCallback(async (id, location, label, fullAddr) => {
+    if (!id || !location) return false;
     const addr = fullAddr || await reverseGeocode(location.lat, location.lng).catch(() => `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`);
     setUserAddresses(prev => prev.map(a => a.id === id ? { ...a, location, address: addr, ...(label ? { label } : {}) } : a));
-    notifySystem('📍 Localização actualizada', 'A nova localização da morada foi guardada', 'success');
+    notifySystem(
+      'Localização actualizada',
+      'A alteração foi aplicada nesta sessão. As coordenadas da morada existente ainda não têm suporte no RPC live.',
+      'info',
+    );
+    return true;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteAddress = useCallback(async (id) => {
