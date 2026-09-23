@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Download, Share } from 'lucide-react';
 
-const DISMISSED_KEY = 'boomrider_install_dismissed';
+const DISMISSED_KEY = 'pedeja_install_dismissed';
 const DISMISSED_TTL = 7 * 24 * 60 * 60 * 1000; // 7 วัน
 
 function isIOS() {
@@ -83,20 +83,20 @@ export default function InstallBanner() {
             {/* ไอคอนแอป */}
             <img
               src="/icons/icon-96.png"
-              alt="BoomRider"
+              alt="Pedejá"
               className="w-14 h-14 rounded-2xl shadow-md flex-shrink-0"
             />
 
             {/* ข้อความ */}
             <div className="flex-1 min-w-0">
               <p className="font-bold text-gray-900 text-sm leading-tight">
-                BoomRider
+                Pedejá
               </p>
               <p className="text-gray-500 text-xs mt-0.5 leading-tight">
-                ติดตั้งแอปเพื่อประสบการณ์ที่ดีกว่า
+                Instale a aplicação para uma experiência melhor
               </p>
               <p className="text-orange-500 text-xs mt-0.5">
-                ฟรี · ไม่ใช้พื้นที่เยอะ · เร็วกว่าเบราว์เซอร์
+                Grátis · leve · mais rápido que o navegador
               </p>
             </div>
 
@@ -107,21 +107,21 @@ export default function InstallBanner() {
                 className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 <Download size={14} />
-                ติดตั้ง
+                Instalar
               </button>
               <button
                 onClick={handleDismiss}
                 className="text-gray-400 text-xs text-center hover:text-gray-600 transition-colors"
               >
-                ไม่ขอบคุณ
+                Agora não
               </button>
             </div>
 
-            {/* ปุ่มปิด */}
+            {/* ปุ่มFechar */}
             <button
               onClick={handleDismiss}
               className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors"
-              aria-label="ปิด"
+              aria-label="Fechar"
             >
               <X size={16} />
             </button>
@@ -136,7 +136,7 @@ export default function InstallBanner() {
             <div className="h-1 bg-gradient-to-r from-orange-400 to-orange-600" />
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
-                <p className="font-bold text-gray-900">วิธีติดตั้งบน iPhone / iPad</p>
+                <p className="font-bold text-gray-900">วิธีInstalarบน iPhone / iPad</p>
                 <button onClick={handleDismiss} className="text-gray-400 hover:text-gray-600">
                   <X size={20} />
                 </button>
@@ -145,24 +145,24 @@ export default function InstallBanner() {
                 <li className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
                   <span>
-                    แตะปุ่ม <Share size={14} className="inline text-blue-500 mx-0.5" />
-                    <strong> แชร์</strong> ที่แถบเมนูด้านล่างของ Safari
+                    Toque no botão <Share size={14} className="inline text-blue-500 mx-0.5" />
+                    <strong> Partilhar</strong> na barra de menu inferior do Safari
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                  <span>เลื่อนลงแล้วเลือก <strong>"เพิ่มในหน้าจอโฮม"</strong></span>
+                  <span>Deslize para baixo e seleccione <strong>"Adicionar ao ecrã principal"</strong></span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                  <span>แตะ <strong>"เพิ่ม"</strong> ที่มุมขวาบน</span>
+                  <span>แตะ <strong>"เพิ่ม"</strong> no canto superior direito</span>
                 </li>
               </ol>
               <button
                 onClick={handleDismiss}
                 className="mt-5 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
               >
-                เข้าใจแล้ว
+                Entendido
               </button>
             </div>
           </div>
