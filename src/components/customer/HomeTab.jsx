@@ -333,9 +333,12 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               </div>
             )}
             <div className="flex justify-between items-center mb-3 font-black text-lg">
-              <span>Total</span>
+              <span>Estimativa</span>
               <span className="text-orange-600">Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}</span>
             </div>
+            <p className="text-[11px] text-gray-400 mb-3">
+              O total final, incluindo taxas e descontos aplicáveis, será calculado pelo servidor no checkout.
+            </p>
 
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><Banknote size={13} /> Pagamento:</span>
@@ -359,7 +362,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               disabled={!hasSavedDeliveryAddress}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-xl shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Fazer pedido · Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}
+              Fazer pedido
             </button>
           </div>
         )}
