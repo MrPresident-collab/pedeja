@@ -56,7 +56,7 @@ export default function RiderView() {
     },
   });
 
-  // ── state สำหรับปุ่ม "รับงาน" ──────────────────────────────────────────────
+  // ── state สำหรับปุ่ม "Aceitar entrega" ──────────────────────────────────────────────
   const [acceptingId, setAcceptingId] = useState(null);
   const [savingLocation, setSavingLocation] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
@@ -186,17 +186,17 @@ export default function RiderView() {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6 text-center">
         <AlertCircle size={56} className="text-yellow-400 mb-4" />
-        <h2 className="text-xl font-bold mb-2">ยังไม่มีข้อมูลไรเดอร์</h2>
-        <p className="text-gray-400 text-sm mb-2">Admin ยังไม่อนุมัติ หรืออาจต้องโหลดข้อมูลใหม่</p>
+        <h2 className="text-xl font-bold mb-2">Ainda não existem dados do estafeta</h2>
+        <p className="text-gray-400 text-sm mb-2">O Admin ainda não aprovou ou os dados precisam de ser actualizados</p>
         <p className="text-xs text-gray-500 mb-6">UID: {userProfile.id || currentUser?.id || '—'}</p>
         <button
           onClick={() => window.location.reload()}
           className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-        >🔄 โหลดข้อมูลใหม่</button>
+        >🔄 Actualizar dados</button>
         <button
           onClick={() => { setActiveRole('customer'); setProfileSubView('reg_rider'); setActiveTab('profile'); }}
           className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-        >📋 สมัครไรเดอร์</button>
+        >📋 Registar estafeta</button>
         <button onClick={() => setActiveRole('customer')} className="text-gray-400 text-sm underline mt-2">กลับหน้าหลัก</button>
       </div>
     );
@@ -206,8 +206,8 @@ export default function RiderView() {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6 text-center">
         <AlertCircle size={56} className="text-red-400 mb-4" />
-        <h2 className="text-xl font-bold mb-2">บัญชีถูกระงับ</h2>
-        <p className="text-gray-400 text-sm mb-6">กรุณาติดต่อเจ้าหน้าที่</p>
+        <h2 className="text-xl font-bold mb-2">Conta suspensa</h2>
+        <p className="text-gray-400 text-sm mb-6">Contacte o suporte</p>
         <button onClick={() => setActiveRole('customer')} className="text-gray-400 text-sm underline">กลับหน้าหลัก</button>
       </div>
     );
@@ -217,7 +217,7 @@ export default function RiderView() {
   const myUid = userProfile.id || currentUser?.id;
   const availableJobs = isOnline ? orders.filter(o => {
     if (o.status !== 'ready_to_pickup' || o.riderId) return false;
-    // ห้ามรับงานที่ตัวเองสั่ง
+    // ห้ามAceitar entregaที่ตัวเองสั่ง
     if (o.customerId && o.customerId === myUid) return false;
     // ตรวจสอบระยะทาง — ถ้าไม่มี pickupLocation ก็แสดงงานนั้นด้วย (พิมพ์ที่อยู่เอง)
     if (!o.pickupLocation) return true;
@@ -257,15 +257,15 @@ export default function RiderView() {
                   <Bell size={20} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white font-black text-base">🛵 มีงานใหม่เข้ามา!</p>
-                  <p className="text-gray-400 text-xs">กรุณาตอบรับภายใน {offerCountdown} วินาที</p>
+                  <p className="text-white font-black text-base">🛵 Nova entrega disponível!</p>
+                  <p className="text-gray-400 text-xs">Responda dentro de {offerCountdown} segundos</p>
                 </div>
                 {/* Countdown ring */}
                 <div className="ml-auto text-center">
                   <div className={`text-3xl font-black ${offerCountdown <= 5 ? 'text-red-400 animate-pulse' : 'text-green-400'}`}>
                     {offerCountdown}
                   </div>
-                  <div className="text-[10px] text-gray-500">วินาที</div>
+                  <div className="text-[10px] text-gray-500">segundos</div>
                 </div>
               </div>
 
@@ -282,14 +282,14 @@ export default function RiderView() {
                 <div className="bg-gray-800 rounded-xl p-3 mb-4 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="text-white font-bold text-sm">
-                      {offerOrder.type === 'parcel' ? '📦 ส่งพัสดุ' : offerOrder.type === 'ride' ? '🚗 เรียกรถรับส่ง' : offerOrder.type === 'service' ? `🛠️ งานบริการ: ${offerOrder.serviceCategory || ''}` : offerOrder.restaurantName}
+                      {offerOrder.type === 'parcel' ? '📦 Entregar encomenda' : offerOrder.type === 'ride' ? '🚗 Viagem' : offerOrder.type === 'service' ? `🛠️ Serviço: ${offerOrder.serviceCategory || ''}` : offerOrder.restaurantName}
                     </span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       offerOrder.paymentMethod === 'cash'
                         ? 'bg-yellow-900/60 text-yellow-300'
                         : 'bg-green-900/60 text-green-300'
                     }`}>
-                      {offerOrder.paymentMethod === 'cash' ? '💰 เงินสด' : '👛 Wallet'}
+                      {offerOrder.paymentMethod === 'cash' ? '💰 Numerário' : '👛 Wallet'}
                     </span>
                   </div>
                   {offerOrder.type === 'food' && offerOrder.address && (
@@ -300,18 +300,18 @@ export default function RiderView() {
                   )}
                   {offerOrder.type === 'service' && (
                     <div className="text-xs text-gray-300 space-y-0.5">
-                      <p className="text-emerald-400 font-semibold">🛠️ ประเภทบริการ: {offerOrder.serviceCategory || 'ไม่ระบุ'}</p>
+                      <p className="text-emerald-400 font-semibold">🛠️ ประเภทบริการ: {offerOrder.serviceCategory || 'Não especificado'}</p>
                       {(offerOrder.preferredDate || offerOrder.preferredTime) && (
-                        <p className="text-gray-400">📅 นัดหมาย: {offerOrder.preferredDate || ''} {offerOrder.preferredTime || ''}</p>
+                        <p className="text-gray-400">📅 Agendamento: {offerOrder.preferredDate || ''} {offerOrder.preferredTime || ''}</p>
                       )}
                       {offerOrder.notes && (
-                        <p className="text-yellow-200 text-[11px]">📝 หมายเหตุ: {offerOrder.notes}</p>
+                        <p className="text-yellow-200 text-[11px]">📝 Observação: {offerOrder.notes}</p>
                       )}
                     </div>
                   )}
                   <div className="flex gap-3 pt-1 text-xs text-gray-300">
-                    <span>💵 ฿{(offerOrder.grandTotal || 0).toLocaleString()}</span>
-                    <span>🛵 ค่าส่ง ฿{(offerOrder.deliveryFee || 0).toLocaleString()}</span>
+                    <span>💵 Kz {(offerOrder.grandTotal || 0).toLocaleString()}</span>
+                    <span>🛵 Taxa de entrega Kz {(offerOrder.deliveryFee || 0).toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -323,7 +323,7 @@ export default function RiderView() {
                   disabled={offerAccepting}
                   className="flex-1 py-3 rounded-xl border border-red-700 text-red-400 font-bold text-sm hover:bg-red-900/20 active:scale-95 transition-all disabled:opacity-40"
                 >
-                  ✕ ปฏิเสธ
+                  ✕ Recusar
                 </button>
                 <button
                   onClick={async () => {
@@ -340,8 +340,8 @@ export default function RiderView() {
                   className="flex-2 flex-grow py-3 rounded-xl bg-green-500 text-white font-black text-base hover:bg-green-400 active:scale-95 transition-all shadow-lg shadow-green-900/50 disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   {offerAccepting
-                    ? <><Loader size={16} className="animate-spin" /> กำลังรับ...</>
-                    : '✅ รับงาน!'}
+                    ? <><Loader size={16} className="animate-spin" /> A aceitar...</>
+                    : '✅ Aceitar!'}
                 </button>
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function RiderView() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
               </span>
-              GPS ติดตามตำแหน่งแบบ Real-time
+              Localização GPS em tempo real
               {riderGPS && (
                 <span className="text-gray-500 ml-1">
                   ({riderGPS.lat.toFixed(4)}, {riderGPS.lng.toFixed(4)})
@@ -441,12 +441,12 @@ export default function RiderView() {
         <div className="grid grid-cols-3 gap-2 mt-3">
           <div className="bg-gray-700 rounded-xl p-2.5 text-center">
             <DollarSign size={14} className="text-green-400 mx-auto mb-0.5" />
-            <div className="text-sm font-bold text-green-400">฿{todayEarning.toFixed(0)}</div>
+            <div className="text-sm font-bold text-green-400">Kz {todayEarning.toFixed(0)}</div>
             <div className="text-[10px] text-gray-500">{t('rider_today')}</div>
           </div>
           <div className="bg-gray-700 rounded-xl p-2.5 text-center">
             <TrendingUp size={14} className="text-blue-400 mx-auto mb-0.5" />
-            <div className="text-sm font-bold text-blue-400">฿{totalEarning.toFixed(0)}</div>
+            <div className="text-sm font-bold text-blue-400">Kz {totalEarning.toFixed(0)}</div>
             <div className="text-[10px] text-gray-500">{t('rider_total')}</div>
           </div>
           <div className="bg-gray-700 rounded-xl p-2.5 text-center">
@@ -486,23 +486,23 @@ export default function RiderView() {
       <div key={riderTab} className="px-4 space-y-4">
         {riderTab === 'jobs' && availableJobs.map(job => (
           <div key={job.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-            {/* Header: ร้าน / ประเภทงาน + รายได้ */}
+            {/* Header: Comerciante / ประเภทงาน + รายได้ */}
             <div className="flex justify-between items-start mb-2">
               <div>
-                <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 ส่งพัสดุ' : job.type === 'ride' ? '🚗 เรียกรถรับส่ง' : job.type === 'service' ? `🛠️ งานบริการ: ${job.serviceCategory || ''}` : 'งาน')}</span>
+                <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'งาน')}</span>
                 <div className="text-xs text-gray-500 mt-0.5">#{job.id.slice(-6)}</div>
               </div>
               <div className="text-right">
                 {job.paymentMethod === 'cash' ? (
                   <>
-                    <div className="text-yellow-400 font-bold text-base">฿{(job.grandTotal || 0).toFixed(0)}</div>
-                    <div className="text-xs text-gray-500">เก็บเงินสด</div>
-                    <div className="text-xs text-green-400">สุทธิ ฿{(job.riderIncome || 0).toFixed(0)}</div>
+                    <div className="text-yellow-400 font-bold text-base">Kz {(job.grandTotal || 0).toFixed(0)}</div>
+                    <div className="text-xs text-gray-500">เก็บNumerário</div>
+                    <div className="text-xs text-green-400">สุทธิ Kz {(job.riderIncome || 0).toFixed(0)}</div>
                   </>
                 ) : (
                   <>
-                    <div className="text-green-400 font-bold text-base">฿{(job.riderIncome || 0).toFixed(0)}</div>
-                    <div className="text-xs text-gray-500">เข้ากระเป๋า</div>
+                    <div className="text-green-400 font-bold text-base">Kz {(job.riderIncome || 0).toFixed(0)}</div>
+                    <div className="text-xs text-gray-500">entra na carteira</div>
                   </>
                 )}
               </div>
@@ -512,17 +512,17 @@ export default function RiderView() {
             {job.paymentMethod === 'cash' ? (
               <div className="mb-2 bg-yellow-900/40 border border-yellow-700/40 rounded-lg px-3 py-2 space-y-0.5">
                 <div className="text-xs text-yellow-300 font-bold flex items-center gap-1.5">
-                  💰 เก็บเงินสดจาก{job.type === 'parcel' ? 'ผู้รับ' : 'ลูกค้า'}: <strong>฿{(job.grandTotal || 0).toLocaleString()}</strong>
+                  💰 เก็บNumerárioจาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}: <strong>Kz {(job.grandTotal || 0).toLocaleString()}</strong>
                 </div>
                 {(job.adminGP || 0) > 0 && (
                   <div className="text-[11px] text-orange-300">
-                    ⚠️ หลังส่งสำเร็จ −฿{(job.adminGP || 0).toFixed(0)} จะหักจากกระเป๋า (ค่า GP platform)
+                    ⚠️ Após a entrega −Kz {(job.adminGP || 0).toFixed(0)} จะหักจากกระเป๋า (ค่า GP platform)
                   </div>
                 )}
               </div>
             ) : (
               <div className="mb-2 text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 bg-gray-700 text-gray-300">
-                👛 <span>ชำระผ่าน Wallet · ยอดรวม: ฿{(job.grandTotal || 0).toLocaleString()}</span>
+                👛 <span>ชำระผ่าน Wallet · ยอดรวม: Kz {(job.grandTotal || 0).toLocaleString()}</span>
               </div>
             )}
 
@@ -533,7 +533,7 @@ export default function RiderView() {
 
             {/* ที่อยู่ */}
             <div className="text-sm text-gray-400 mb-1.5 space-y-1">
-              <div>📍 {job.type === 'parcel' ? `รับที่: ${job.pickup}` : `ร้าน: ${job.restaurantName}`}</div>
+              <div>📍 {job.type === 'parcel' ? `รับที่: ${job.pickup}` : `Comerciante: ${job.restaurantName}`}</div>
               {job.type === 'parcel' && job.dropoff && (
                 <div>🏁 ส่งที่: {job.dropoff}</div>
               )}
@@ -550,7 +550,7 @@ export default function RiderView() {
                   target="_blank" rel="noopener noreferrer"
                   className="flex-1 bg-blue-900/50 text-blue-300 border border-blue-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
                 >
-                  🗺️ นำทางไป{job.type === 'parcel' ? 'จุดรับ' : 'ร้าน'}
+                  🗺️ นำทางไป{job.type === 'parcel' ? 'จุดรับ' : 'Comerciante'}
                 </a>
               )}
               {(job.location || job.address) && (
@@ -574,14 +574,14 @@ export default function RiderView() {
               </div>
             )}
 
-            {/* รายการอาหาร (food orders) */}
+            {/* รายการcomida (food orders) */}
             {job.type === 'food' && job.items && job.items.length > 0 && (
               <div className="bg-gray-700/50 rounded-lg px-3 py-2 mb-2">
                 <p className="text-xs text-gray-400 font-bold mb-1">🍱 รายการสั่ง ({job.items.length} รายการ)</p>
                 {job.items.slice(0, 3).map((item, i) => (
                   <div key={i} className="text-xs text-gray-300 flex justify-between">
                     <span>· {item.name} {item.qty > 1 ? `x${item.qty}` : ''}</span>
-                    <span>฿{((item.price || 0) * (item.qty || 1)).toFixed(0)}</span>
+                    <span>Kz {((item.price || 0) * (item.qty || 1)).toFixed(0)}</span>
                   </div>
                 ))}
                 {job.items.length > 3 && (
@@ -594,11 +594,11 @@ export default function RiderView() {
             {job.type === 'service' && (
               <div className="bg-emerald-950/40 border border-emerald-700/40 rounded-lg px-3 py-2 mb-2 space-y-1">
                 <p className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
-                  🛠️ บริการ: {job.serviceCategory || 'ไม่ระบุประเภท'}
+                  🛠️ บริการ: {job.serviceCategory || 'Não especificadoประเภท'}
                 </p>
                 {(job.preferredDate || job.preferredTime) && (
                   <p className="text-xs text-gray-300">
-                    📅 นัดหมาย: {job.preferredDate || ''} {job.preferredTime || ''}
+                    📅 Agendamento: {job.preferredDate || ''} {job.preferredTime || ''}
                   </p>
                 )}
                 {job.notes && (
@@ -624,14 +624,14 @@ export default function RiderView() {
                 {job.customerPhone && (
                   <a href={`tel:${job.customerPhone}`} className="flex items-center gap-2 text-xs text-green-300 hover:text-green-200">
                     <span className="bg-gray-600 px-2 py-0.5 rounded text-gray-400">ผู้ส่ง</span>
-                    <span className="font-bold">{job.customerName || 'ลูกค้า'}</span>
+                    <span className="font-bold">{job.customerName || 'cliente'}</span>
                     <span className="underline">{job.customerPhone}</span>
                   </a>
                 )}
                 {job.receiverPhone && (
                   <a href={`tel:${job.receiverPhone}`} className="flex items-center gap-2 text-xs text-blue-300 hover:text-blue-200">
-                    <span className="bg-gray-600 px-2 py-0.5 rounded text-gray-400">ผู้รับ</span>
-                    <span className="font-bold">{job.receiverName || 'ผู้รับ'}</span>
+                    <span className="bg-gray-600 px-2 py-0.5 rounded text-gray-400">destinatário</span>
+                    <span className="font-bold">{job.receiverName || 'destinatário'}</span>
                     <span className="underline">{job.receiverPhone}</span>
                   </a>
                 )}
@@ -648,18 +648,18 @@ export default function RiderView() {
                 const shortfall = Math.ceil(Math.abs((userWallet ?? 0) + netChange));
                 return (
                   <div className="bg-red-900/40 border border-red-700/50 rounded-xl px-3 py-2.5 mb-3">
-                    <p className="text-red-300 text-xs font-bold">⚠️ กระเป๋าจะติดลบหลังส่งสำเร็จ</p>
+                    <p className="text-red-300 text-xs font-bold">⚠️ กระเป๋าจะติดลบApós a entrega</p>
                     <p className="text-red-400 text-xs mt-0.5">
-                      กระเป๋าปัจจุบัน ฿{(userWallet ?? 0).toLocaleString()} — ขาด ฿{shortfall.toLocaleString()} เพื่อชำระยอดอาหาร+GP ให้ platform
+                      Carteira actual Kz {(userWallet ?? 0).toLocaleString()} — Falta Kz {shortfall.toLocaleString()} para pagar a comida + GP da plataforma
                     </p>
-                    <p className="text-gray-500 text-[10px] mt-0.5">ยังรับงานได้ แต่กระเป๋าจะติดลบ</p>
+                    <p className="text-gray-500 text-[10px] mt-0.5">ยังAceitar entregaได้ แต่กระเป๋าจะติดลบ</p>
                   </div>
                 );
               }
               return null;
             })()}
 
-            {/* ปุ่มรับงาน */}
+            {/* ปุ่มAceitar entrega */}
             <button
               disabled={acceptingId === job.id}
               onClick={async () => {
@@ -680,11 +680,11 @@ export default function RiderView() {
               }`}
             >
               {acceptingId === job.id ? (
-                <><Loader size={16} className="animate-spin" /> กำลังรับงาน...</>
+                <><Loader size={16} className="animate-spin" /> กำลังAceitar entrega...</>
               ) : job.paymentMethod === 'cash' ? (
-                <>✅ รับงาน — เก็บเงินสด ฿{(job.grandTotal || 0).toFixed(0)}</>
+                <>✅ Aceitar entrega — เก็บNumerário Kz {(job.grandTotal || 0).toFixed(0)}</>
               ) : (
-                <>✅ รับงาน — รับ ฿{(job.riderIncome || 0).toFixed(0)} เข้ากระเป๋า</>
+                <>✅ Aceitar entrega — รับ Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira</>
               )}
             </button>
           </div>
@@ -714,7 +714,7 @@ export default function RiderView() {
                   <ToggleLeft size={40} className="mx-auto mb-2 opacity-30" />
                   <p className="font-bold text-gray-400">คุณอยู่ใน Offline mode</p>
                   <button onClick={toggleOnline} className="mt-3 bg-green-500 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-green-600">
-                    เปิดรับงาน
+                    เปิดAceitar entrega
                   </button>
                 </div>
               ) : (
@@ -728,20 +728,20 @@ export default function RiderView() {
           )
         )}
 
-        {/* ── Map tab — ปักหมุดจุดรับงาน ─── */}
+        {/* ── Map tab — ปักหมุดจุดAceitar entrega ─── */}
         {riderTab === 'map' && (
           <div>
             <div className="bg-gray-800 rounded-xl p-4 mb-4 border border-blue-500/30">
               <h3 className="font-bold text-white mb-1 flex items-center gap-2">
-                <MapPin size={16} className="text-blue-400" /> ตั้งจุดรับงานของคุณ
+                <MapPin size={16} className="text-blue-400" /> ตั้งจุดAceitar entregaของคุณ
               </h3>
               <p className="text-xs text-gray-400 mb-3">
-                แตะบนแผนที่เพื่อปักหมุดจุดที่คุณต้องการรับงาน — งานที่อยู่ในรัศมี {appConfig.riderRadius || 5} กม. จากจุดนี้จะปรากฏในแท็บ "งานใหม่"
+                แตะบนแผนที่เพื่อปักหมุดจุดที่คุณต้องการAceitar entrega — งานที่อยู่ในรัศมี {appConfig.riderRadius || 5} กม. จากจุดนี้จะปรากฏในแท็บ "งานใหม่"
               </p>
 
-              {/* แสดงจุดปัจจุบัน */}
+              {/* แสดงจุดactual */}
               <div className="text-xs text-gray-400 mb-3 space-y-0.5">
-                <div>📍 จุดปัจจุบัน: {me.location ? `${me.location.lat.toFixed(4)}, ${me.location.lng.toFixed(4)}` : 'ยังไม่ได้ตั้ง'}</div>
+                <div>📍 จุดactual: {me.location ? `${me.location.lat.toFixed(4)}, ${me.location.lng.toFixed(4)}` : 'ยังไม่ได้ตั้ง'}</div>
                 {riderGPS && <div>📡 GPS จริง: {riderGPS.lat.toFixed(4)}, {riderGPS.lng.toFixed(4)}</div>}
                 {pendingLocation && <div className="text-blue-300">🔵 เลือกใหม่: {pendingLocation.lat.toFixed(4)}, {pendingLocation.lng.toFixed(4)}</div>}
               </div>
@@ -769,7 +769,7 @@ export default function RiderView() {
                 }}
                 className="w-full py-2 rounded-lg bg-gray-700 text-gray-300 text-sm font-bold mb-2 hover:bg-gray-600 active:scale-95 transition-all"
               >
-                📡 ใช้ตำแหน่ง GPS ปัจจุบัน
+                📡 ใช้ตำแหน่ง GPS actual
               </button>
 
               {/* ปุ่มบันทึก */}
@@ -791,7 +791,7 @@ export default function RiderView() {
                 {savingLocation ? (
                   <><Loader size={16} className="animate-spin" /> กำลังบันทึก...</>
                 ) : (
-                  <><MapPin size={16} /> บันทึกจุดรับงาน</>
+                  <><MapPin size={16} /> บันทึกจุดAceitar entrega</>
                 )}
               </button>
             </div>
@@ -799,8 +799,8 @@ export default function RiderView() {
             {/* แสดงรัศมีจากจุดปักหมุด */}
             <div className="bg-gray-800 rounded-xl p-3 border border-gray-700 text-xs text-gray-400">
               <p className="font-bold text-white mb-1">📋 สรุปการตั้งค่า</p>
-              <p>รัศมีรับงาน: <span className="text-green-400 font-bold">{appConfig.riderRadius || 5} กม.</span></p>
-              <p className="mt-1 text-gray-500">หมายเหตุ: GPS จะอัปเดตตำแหน่งคุณเองอัตโนมัติ ส่วนจุดรับงานช่วยให้คำนวณงานที่ใกล้คุณได้เมื่อ GPS ไม่พร้อมใช้งาน</p>
+              <p>รัศมีAceitar entrega: <span className="text-green-400 font-bold">{appConfig.riderRadius || 5} กม.</span></p>
+              <p className="mt-1 text-gray-500">Observação: GPS จะอัปเดตตำแหน่งคุณเองอัตโนมัติ ส่วนจุดAceitar entregaช่วยให้คำนวณงานที่ใกล้คุณได้เมื่อ GPS ไม่พร้อมใช้งาน</p>
             </div>
           </div>
         )}
@@ -813,7 +813,7 @@ export default function RiderView() {
               <div className="text-center text-gray-500 mt-16 px-4">
                 <Bike size={48} className="mx-auto mb-3 opacity-20" />
                 <p className="font-bold text-gray-400 text-lg">ไม่มีงานที่กำลังทำอยู่</p>
-                <p className="text-sm text-gray-600 mt-1">กดแท็บ "งานใหม่" เพื่อรับงาน</p>
+                <p className="text-sm text-gray-600 mt-1">กดแท็บ "งานใหม่" เพื่อAceitar entrega</p>
                 <button
                   onClick={() => setRiderTab('jobs')}
                   className="mt-4 bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-green-400"
@@ -828,11 +828,11 @@ export default function RiderView() {
                     {/* Header */}
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 ส่งพัสดุ' : job.type === 'ride' ? '🚗 เรียกรถรับส่ง' : job.type === 'service' ? `🛠️ งานบริการ: ${job.serviceCategory || ''}` : 'งาน')}</span>
+                        <span className="font-bold text-white">{job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'งาน')}</span>
                         <div className="text-xs text-gray-400 mt-0.5">#{job.id}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-green-400 font-bold">฿{(job.riderIncome || 0).toFixed(0)}</div>
+                        <div className="text-green-400 font-bold">Kz {(job.riderIncome || 0).toFixed(0)}</div>
                         <div className={`text-xs mt-0.5 px-2 py-0.5 rounded-full font-bold ${
                           job.status === 'rider_accepted' ? 'bg-indigo-900 text-indigo-300' :
                           job.status === 'picking_up' ? 'bg-yellow-900 text-yellow-300' :
@@ -848,18 +848,18 @@ export default function RiderView() {
                     {job.paymentMethod === 'cash' && (
                       <div className="mb-3 bg-yellow-900/30 border border-yellow-700/40 rounded-xl p-3 space-y-1">
                         <div className="text-sm font-bold text-yellow-300">
-                          💰 เก็บเงินสดจาก{job.type === 'parcel' ? 'ผู้รับ' : 'ลูกค้า'}: ฿{(job.grandTotal || 0).toLocaleString()}
+                          💰 เก็บNumerárioจาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}: Kz {(job.grandTotal || 0).toLocaleString()}
                         </div>
                         {job.type === 'parcel' ? (
                           (job.riderIncome || 0) > 0 && (
                             <div className="text-[11px] text-green-300">
-                              ✅ หลังส่งสำเร็จ +฿{(job.riderIncome || 0).toFixed(0)} เข้ากระเป๋า (GP ฿{(job.adminGP || 0).toFixed(0)} รวมหักแล้ว)
+                              ✅ Após a entrega +Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira (GP Kz {(job.adminGP || 0).toFixed(0)} já descontado)
                             </div>
                           )
                         ) : (
                           (job.foodTotal || 0) > 0 && (
                             <div className="text-[11px] text-orange-300">
-                              ⚠️ หลังส่งสำเร็จ หัก −฿{(job.foodTotal || 0).toFixed(0)} (ยอดอาหาร) รับค่าส่ง +฿{(job.deliveryFee || 0).toFixed(0)}
+                              ⚠️ Após a entrega หัก −Kz {(job.foodTotal || 0).toFixed(0)} (ยอดcomida) รับTaxa de entrega +Kz {(job.deliveryFee || 0).toFixed(0)}
                             </div>
                           )
                         )}
@@ -882,18 +882,18 @@ export default function RiderView() {
                     <div className="text-xs text-gray-400 mb-3 space-y-1">
                       {job.type === 'food' && <div>🏪 รับที่: {job.restaurantName}</div>}
                       {job.type === 'parcel' && <div>📦 รับที่: {job.pickup}</div>}
-                      {job.type === 'service' && <div>🛠️ ประเภทบริการ: <span className="text-emerald-300 font-bold">{job.serviceCategory || 'ไม่ระบุประเภท'}</span></div>}
+                      {job.type === 'service' && <div>🛠️ ประเภทบริการ: <span className="text-emerald-300 font-bold">{job.serviceCategory || 'Não especificadoประเภท'}</span></div>}
                       {job.type === 'service' && (job.preferredDate || job.preferredTime) && (
-                        <div>📅 นัดหมาย: {job.preferredDate || ''} {job.preferredTime || ''}</div>
+                        <div>📅 Agendamento: {job.preferredDate || ''} {job.preferredTime || ''}</div>
                       )}
-                      <div>📍 {job.type === 'service' ? 'สถานที่ให้บริการ' : 'ส่งที่'}: {job.address || job.dropoff || 'ที่อยู่ลูกค้า'}</div>
+                      <div>📍 {job.type === 'service' ? 'สถานที่ให้บริการ' : 'ส่งที่'}: {job.address || job.dropoff || 'ที่อยู่cliente'}</div>
                       <div>👤 {job.type === 'service' ? 'ผู้ใช้บริการ' : 'ผู้ส่ง'}: {job.customerName} {job.customerPhone ? `· ${job.customerPhone}` : ''}</div>
                       {job.type === 'parcel' && job.receiverName && (
-                        <div>📬 ผู้รับ: {job.receiverName} {job.receiverPhone ? `· ${job.receiverPhone}` : ''}</div>
+                        <div>📬 destinatário: {job.receiverName} {job.receiverPhone ? `· ${job.receiverPhone}` : ''}</div>
                       )}
                     </div>
 
-                    {/* หมายเหตุจากลูกค้า */}
+                    {/* หมายเหตุจากcliente */}
                     {job.notes && (
                       <div className="bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-3 py-1.5 mb-3 flex items-start gap-2">
                         <span className="text-yellow-400 text-xs">📝</span>
@@ -909,7 +909,7 @@ export default function RiderView() {
                           target="_blank" rel="noopener noreferrer"
                           className="flex-1 bg-blue-900/50 text-blue-300 border border-blue-700/50 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"
                         >
-                          🗺️ นำทางไป{job.type === 'parcel' ? 'จุดรับ' : 'ร้าน'}
+                          🗺️ นำทางไป{job.type === 'parcel' ? 'จุดรับ' : 'Comerciante'}
                         </a>
                       )}
                       {(job.location || job.address) && (
@@ -1003,18 +1003,18 @@ export default function RiderView() {
                         {job.paymentMethod === 'cash' && (
                           <div className="bg-yellow-900/40 border border-yellow-600/50 rounded-xl p-3 mb-3">
                             <p className="text-yellow-300 text-sm font-bold mb-0.5">
-                              💰 อย่าลืมเก็บเงินสด ฿{(job.grandTotal || 0).toLocaleString()} จาก{job.type === 'parcel' ? 'ผู้รับ' : 'ลูกค้า'}!
+                              💰 อย่าลืมเก็บNumerário Kz {(job.grandTotal || 0).toLocaleString()} จาก{job.type === 'parcel' ? 'destinatário' : 'cliente'}!
                             </p>
                             {job.type === 'parcel' ? (
                               (job.riderIncome || 0) > 0 && (
                                 <p className="text-green-300 text-[11px]">
-                                  ✅ หลังกดยืนยัน +฿{(job.riderIncome || 0).toFixed(0)} เข้ากระเป๋า (GP ฿{(job.adminGP || 0).toFixed(0)} รวมหักแล้ว)
+                                  ✅ หลังกดยืนยัน +Kz {(job.riderIncome || 0).toFixed(0)} entra na carteira (GP Kz {(job.adminGP || 0).toFixed(0)} já descontado)
                                 </p>
                               )
                             ) : (
                               (job.foodTotal || 0) > 0 && (
                                 <p className="text-orange-300 text-[11px]">
-                                  ⚠️ หลังกดยืนยัน หัก −฿{(job.foodTotal || 0).toFixed(0)} (ยอดอาหาร) รับค่าส่ง +฿{(job.deliveryFee || 0).toFixed(0)}
+                                  ⚠️ หลังกดยืนยัน หัก −Kz {(job.foodTotal || 0).toFixed(0)} (ยอดcomida) รับTaxa de entrega +Kz {(job.deliveryFee || 0).toFixed(0)}
                                 </p>
                               )
                             )}
@@ -1042,7 +1042,7 @@ export default function RiderView() {
                                 <X size={14} />
                               </button>
                               <span className="absolute bottom-1.5 left-1.5 bg-green-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                ✓ อัปโหลดสำเร็จ
+                                ✓ อัปโหลดConcluído
                               </span>
                             </div>
                           ) : proofUploading[job.id] ? (
@@ -1128,12 +1128,12 @@ export default function RiderView() {
                 <span className="text-sm text-green-300 font-bold">กระเป๋าเงินหลัก</span>
               </div>
               <div className="text-4xl font-black text-green-400 my-2">
-                ฿{Number(userWallet ?? 0).toLocaleString()}
+                Kz {Number(userWallet ?? 0).toLocaleString()}
               </div>
               {pendingWithdrawTotal > 0 && (
                 <div className="flex flex-col items-center gap-0.5 mb-1">
-                  <span className="text-[11px] text-violet-400">⏳ รอถอน −฿{pendingWithdrawTotal.toLocaleString()}</span>
-                  <span className="text-xs font-bold text-white">คงเหลือถอนได้ ฿{effectiveBalance.toLocaleString()}</span>
+                  <span className="text-[11px] text-violet-400">⏳ A aguardar levantamento −Kz {pendingWithdrawTotal.toLocaleString()}</span>
+                  <span className="text-xs font-bold text-white">Saldo disponível para levantamento Kz {effectiveBalance.toLocaleString()}</span>
                 </div>
               )}
               <p className="text-[11px] text-gray-500 text-center">รายได้จากการส่ง · ถอนเมื่อ Admin อนุมัติ</p>
@@ -1177,22 +1177,22 @@ export default function RiderView() {
                 )}
                 {walletAction === 'withdraw' && effectiveBalance <= 0 && (
                   <div className="bg-red-900/20 border border-red-700/30 rounded-xl p-3 mb-3 text-xs text-red-300">
-                    ⚠️ ยอดที่ถอนได้ = ฿0 ยังไม่สามารถถอนได้
+                    ⚠️ Saldo disponível = Kz 0. Não é possível levantar.
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label htmlFor="rider-wallet-amount-input" className="sr-only">จำนวนเงิน</label>
+                  <label htmlFor="rider-wallet-amount-input" className="sr-only">Valor</label>
                   <input
                     id="rider-wallet-amount-input"
                     name="walletAmount"
                     type="number"
-                    placeholder={walletAction === 'withdraw' ? `จำนวนเงิน (สูงสุด ฿${effectiveBalance.toLocaleString()})` : 'จำนวนเงิน (฿) *'}
+                    placeholder={walletAction === 'withdraw' ? `Valor (สูงสุด Kz ${effectiveBalance.toLocaleString()})` : 'Valor (Kz ) *'}
                     value={walletAmount}
                     onChange={e => setWalletAmount(e.target.value)}
                     className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500"
                     autoComplete="off"
-                    aria-label="จำนวนเงิน"
+                    aria-label="Valor"
                   />
                   <label htmlFor="rider-wallet-bank-input" className="sr-only">ชื่อธนาคาร</label>
                   <input id="rider-wallet-bank-input" name="walletBank" type="text" placeholder="ชื่อธนาคาร (เช่น กสิกร, SCB) *" value={walletBank}
@@ -1251,7 +1251,7 @@ export default function RiderView() {
                           }`}>
                             {req.type === 'topup' ? '💰 เติมเงิน' : '💸 ถอนเงิน'}
                           </span>
-                          <span className="font-bold text-white text-sm">฿{Number(amt).toLocaleString()}</span>
+                          <span className="font-bold text-white text-sm">Kz {Number(amt).toLocaleString()}</span>
                         </div>
                       );
                     })}
@@ -1265,7 +1265,7 @@ export default function RiderView() {
             {!walletHistory || walletHistory.length === 0 ? (
               <div className="text-center text-gray-600 py-8">
                 <Wallet size={32} className="mx-auto mb-2 opacity-20" />
-                <p className="text-sm text-gray-500">ยังไม่มีประวัติ — รายได้จะแสดงเมื่อส่งงานสำเร็จ</p>
+                <p className="text-sm text-gray-500">ยังไม่มีประวัติ — รายได้จะแสดงเมื่อส่งงานConcluído</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1282,7 +1282,7 @@ export default function RiderView() {
                           <div className="text-[10px] text-gray-500 mt-0.5">{entry.createdAtMs ? formatDateTimeFromMs(entry.createdAtMs) : (entry.date || '')}</div>
                         </div>
                         <div className={`font-bold text-sm flex-shrink-0 ${amt >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {amt >= 0 ? '+' : '-'}฿{Math.abs(amt).toLocaleString()}
+                          {amt >= 0 ? '+' : '-'}Kz {Math.abs(amt).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -1308,13 +1308,13 @@ export default function RiderView() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
                 <h3 className="text-gray-400 text-xs mb-1">รายได้วันนี้</h3>
-                <div className="text-2xl font-bold text-green-400">฿{todayEarning.toFixed(0)}</div>
+                <div className="text-2xl font-bold text-green-400">Kz {todayEarning.toFixed(0)}</div>
                 <div className="text-xs text-gray-500 mt-1">{todayJobs.length} งาน</div>
               </div>
               <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
                 <h3 className="text-gray-400 text-xs mb-1">รายได้รวมทั้งหมด</h3>
-                <div className="text-2xl font-bold text-blue-400">฿{totalEarning.toFixed(0)}</div>
-                <div className="text-xs text-gray-500 mt-1">{completedJobs.length} งานสำเร็จ</div>
+                <div className="text-2xl font-bold text-blue-400">Kz {totalEarning.toFixed(0)}</div>
+                <div className="text-xs text-gray-500 mt-1">{completedJobs.length} งานConcluído</div>
               </div>
             </div>
 
@@ -1336,21 +1336,21 @@ export default function RiderView() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0 mr-3">
                         <div className="font-bold text-sm text-white truncate">
-                          {job.restaurantName || (job.type === 'parcel' ? '📦 ส่งพัสดุ' : job.type === 'ride' ? '🚗 เรียกรถรับส่ง' : job.type === 'service' ? `🛠️ งานบริการ: ${job.serviceCategory || ''}` : 'งาน')}
+                          {job.restaurantName || (job.type === 'parcel' ? '📦 Entregar encomenda' : job.type === 'ride' ? '🚗 Viagem' : job.type === 'service' ? `🛠️ Serviço: ${job.serviceCategory || ''}` : 'งาน')}
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">{job.deliveredAt || job.completedAt || job.createdAt || job.timestamp}</div>
                         {job.status === 'cancelled' && (
                           <div className="text-xs text-red-400 mt-0.5">
-                            ยกเลิก: {job.cancelReason || 'ไม่ระบุเหตุผล'}
+                            ยกเลิก: {job.cancelReason || 'Não especificadoเหตุผล'}
                           </div>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
                         {isSuccess ? (
                           <>
-                            <div className="text-green-400 font-bold">+฿{income.toFixed(0)}</div>
+                            <div className="text-green-400 font-bold">+Kz {income.toFixed(0)}</div>
                             <div className="text-[10px] text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full mt-0.5">
-                              ✓ จัดส่งสำเร็จ
+                              ✓ จัดส่งConcluído
                             </div>
                           </>
                         ) : (
@@ -1384,11 +1384,11 @@ export default function RiderView() {
             <div className="p-5">
               <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-xl px-3 py-2 mb-4 flex items-start gap-2">
                 <span className="text-yellow-400 mt-0.5">⚠️</span>
-                <p className="text-xs text-yellow-300">คำขอยกเลิกจะถูกส่งให้ <strong>Admin</strong> อนุมัติก่อน Admin อาจปฏิเสธหรืออนุมัติการยกเลิก</p>
+                <p className="text-xs text-yellow-300">คำขอยกเลิกจะถูกส่งให้ <strong>Admin</strong> อนุมัติก่อน Admin อาจRecusarหรืออนุมัติการยกเลิก</p>
               </div>
               <p className="text-sm text-gray-300 mb-3">ระบุเหตุผลที่ต้องการยกเลิกงาน</p>
               <div className="space-y-2 mb-3">
-                {['ไม่สามารถเข้าถึงจุดรับสินค้า', 'รถเสีย / เกิดอุบัติเหตุ', 'ลูกค้าไม่รับสาย', 'อื่นๆ'].map(preset => (
+                {['ไม่สามารถเข้าถึงจุดรับสินค้า', 'รถเสีย / เกิดอุบัติเหตุ', 'clienteไม่รับสาย', 'อื่นๆ'].map(preset => (
                   <button
                     key={preset}
                     onClick={() => setRiderCancelReason(preset)}
