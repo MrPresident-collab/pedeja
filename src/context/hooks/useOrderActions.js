@@ -13,7 +13,7 @@ export function useOrderActions(deps) {
     paymentMethod,
     pendingRequests, setPendingRequests,
     selectedOrderToCancel, setSelectedOrderToCancel,
-    cancelReasonInput, setCancelReasonInput,
+    setCancelReasonInput,
     setShowCancelModal,
     setSelectedRestaurant, setActiveTab,
     setParcelMapTarget, setParcelEstimate, setParcelDistance,
@@ -81,24 +81,99 @@ export function useOrderActions(deps) {
     };
   };
 
-  const _executeOrderPlacement = async (orderId, newOrder) => {
-    const { data: rpcRes, error: rpcErr } = await supabase.rpc('place_customer_order', { p_order: newOrder });
+  const _rpcErrorMessage = (error) => error?.message || 'A operação não foi concluída no servidor.';
 
-    if (!rpcErr && rpcRes && rpcRes.ok) {
-      return { ok: true, order: rpcRes.order || newOrder };
-    }
-
-    if (rpcRes && !rpcRes.ok) {
-      const reason = rpcRes.reason === 'INSUFFICIENT_CUSTOMER_WALLET'
-        ? `ยอดเงินในกระเป๋าไม่เพียงพอ (มี ฿${rpcRes.currentBalance} ต้องการ ฿${rpcRes.requiredBalance})`
-        : (rpcRes.reason || 'ไม่สามารถสั่งซื้อได้');
-      return { ok: false, reason };
-    }
-
-    return {
-      ok: false,
-      reason: rpcErr?.message || 'เกิดข้อผิดพลาดในการสั่งซื้อ'
+  const _mapAuthoritativeOrder = (detail) => {
+    if (!detail?.orderId) return null;
+    const statusMap = {
+      DRAFT: 'pending',
+      PENDING_PAYMENT: 'pending',
+      PAID: 'pending',
+      ACCEPTED: 'accepted',
+      PREPARING: 'preparing',
+      READY: 'ready_to_pickup',
+      ASSIGNED: 'rider_accepted',
+      PICKED_UP: 'picking_up',
+      DELIVERING: 'delivering',
+      DELIVERED: 'delivered',
+      CANCELLED: 'cancelled',
+      FAILED: 'cancelled',
     };
+    return {
+      id: detail.orderId,
+      orderReference: detail.orderReference,
+      type: 'food',
+      status: statusMap[detail.status] || String(detail.status || '').toLowerCase(),
+      paymentStatus: detail.paymentStatus,
+      paymentMethod: String(detail.paymentMethod || 'CASH').toLowerCase(),
+      customerId: currentUser?.id || userProfile?.id || '',
+      businessId: detail.businessId,
+      restaurantId: detail.businessId,
+      restaurantName: detail.businessName || 'Comerciante',
+      currency: detail.currencyCode || 'AOA',
+      subtotal: Number(detail.subtotal || 0),
+      foodTotal: Number(detail.subtotal || 0),
+      deliveryFee: Number(detail.deliveryFee || 0),
+      serviceFee: Number(detail.serviceFee || 0),
+      discount: Number(detail.discountAmount || 0),
+      grandTotal: Number(detail.totalAmount || 0),
+      totalAmount: Number(detail.totalAmount || 0),
+      items: (detail.items || []).map(item => ({
+        id: item.productId || item.id,
+        originalId: item.productId || item.id,
+        name: item.name,
+        price: Number(item.unitPrice || 0),
+        qty: item.quantity,
+        quantity: item.quantity,
+        lineTotal: Number(item.lineTotal || 0),
+      })),
+      deliveryAddress: detail.deliveryAddress
+        ? Object.values(detail.deliveryAddress).filter(Boolean).join(', ')
+        : '',
+      recipientName: detail.recipientName || '',
+      recipientPhone: detail.recipientPhone || '',
+      notes: detail.customerNote || detail.deliveryInstructions || '',
+      riderId: detail.delivery?.riderId || null,
+      riderName: detail.delivery?.riderName || null,
+      createdAt: detail.placedAt || new Date().toISOString(),
+      placedAt: detail.placedAt || null,
+      acceptedAt: detail.acceptedAt || null,
+      deliveredAt: detail.deliveredAt || null,
+      cancelledAt: detail.cancelledAt || null,
+      rated: false,
+    };
+  };
+
+  const _fetchAuthoritativeOrder = async (orderId) => {
+    const { data, error } = await supabase.rpc('get_customer_order_detail', { p_order_id: orderId });
+    if (error) return { ok: false, reason: _rpcErrorMessage(error) };
+    const order = _mapAuthoritativeOrder(data);
+    return order ? { ok: true, order } : { ok: false, reason: 'O servidor não devolveu o pedido criado.' };
+  };
+
+  // Parcel, ride, and service creation are outside this vertical slice. Keep
+  // their callers explicit and fail closed rather than recreating a legacy
+  // JSON-order insert against the live relational schema.
+  const _executeOrderPlacement = async () => ({
+    ok: false,
+    reason: 'Este tipo de pedido ainda não está ligado ao backend live.',
+  });
+
+  const _createCustomerFoodOrder = async ({ businessId, addressId, items, notes, deliveryInstructions }) => {
+    const idempotencyKey = typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${generateId()}`;
+    const { data: orderId, error } = await supabase.rpc('create_customer_order', {
+      p_business_id: businessId,
+      p_delivery_address_id: addressId,
+      p_items: items,
+      p_customer_note: notes || null,
+      p_delivery_instructions: deliveryInstructions || null,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) return { ok: false, reason: _rpcErrorMessage(error) };
+    if (!orderId) return { ok: false, reason: 'O servidor não devolveu o identificador do pedido.' };
+    return _fetchAuthoritativeOrder(orderId);
   };
 
   const addToCart = (item, restaurantId, restaurantName, distance, selectedOptions = [], optionsExtraPrice = 0) => {
@@ -139,117 +214,45 @@ export function useOrderActions(deps) {
   const placeOrder = async (promoDiscount = 0, notes = '') => {
     if (placingOrderRef.current || cart.length === 0) return;
     placingOrderRef.current = true;
-    setTimeout(() => { placingOrderRef.current = false; }, 3000);
+    try {
+      void promoDiscount;
+      if (paymentMethod !== 'cash') {
+        return notifySystem('Método indisponível', 'O pagamento pela carteira ainda não está disponível no backend live. Escolha Numerário.', 'error');
+      }
 
-    const foodTotal    = calculateFoodTotal();
-    const distance     = cart[0]?.distance || 1;
-    const deliveryFee  = calculateDeliveryFee(distance);
-    const grandTotal   = Math.max(0, foodTotal + deliveryFee - promoDiscount);
-    const restaurant   = restaurants.find(r => r.id === cart[0].restaurantId);
+      const primaryAddr = userAddresses?.find(address => address.isDefault) || userAddresses?.[0];
+      const isUuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+      if (!isUuid(primaryAddr?.id)) {
+        return notifySystem('Morada necessária', 'Adicione e guarde uma morada de entrega válida antes de fazer o pedido.', 'error');
+      }
 
-    if (paymentMethod === 'wallet' && userWallet < grandTotal) {
+      const businessId = cart[0]?.restaurantId;
+      const items = cart.map(item => ({
+        product_id: item.originalId || item.id,
+        quantity: item.qty,
+      }));
+      if (!isUuid(businessId) || items.some(item => !isUuid(item.product_id) || !Number.isInteger(item.quantity) || item.quantity <= 0)) {
+        return notifySystem('Carrinho inválido', 'Actualize o menu antes de tentar novamente.', 'error');
+      }
+
+      const result = await _createCustomerFoodOrder({
+        businessId,
+        addressId: primaryAddr.id,
+        items,
+        notes,
+        deliveryInstructions: primaryAddr.deliveryInstructions,
+      });
+      if (!result.ok) return notifySystem('Não foi possível fazer o pedido', result.reason, 'error');
+
+      setOrders(prev => [result.order, ...prev.filter(order => order.id !== result.order.id)]);
+      notifyAdmin('🛎️ Novo pedido', `${userProfile.name || 'Cliente'} pediu em ${result.order.restaurantName}`, 'info');
+      setCart([]);
+      setSelectedRestaurant(null);
+      setActiveTab('activity');
+      notifySystem('Pedido criado', `Pedido #${result.order.orderReference || result.order.id.slice(-6)} enviado ao comerciante.`, 'success');
+    } finally {
       placingOrderRef.current = false;
-      return notifySystem('ผิดพลาด', `ยอดเงินในกระเป๋าไม่เพียงพอ (มี ฿${userWallet} ต้องการ ฿${grandTotal})`, 'error');
     }
-
-    const uid  = currentUser?.id || userProfile?.id || '';
-    const primaryAddr = userAddresses?.[0];
-    const validLocation = isValidCoordinate(userProfile?.location)
-      ? userProfile.location
-      : (isValidCoordinate(primaryAddr?.location) ? primaryAddr.location : null);
-    const addr = {
-      id: primaryAddr?.id || null,
-      address: primaryAddr?.address || userProfile?.address || 'ที่อยู่ลูกค้า',
-      location: validLocation
-    };
-    const orderId = generateId();
-
-    if (!isValidCoordinate(restaurant?.location) || !isValidCoordinate(addr?.location)) {
-      placingOrderRef.current = false;
-      return notifySystem('ผิดพลาด', 'กรุณาระบุและปักหมุดที่อยู่จัดส่งให้ถูกต้องก่อนสั่งอาหาร', 'error');
-    }
-
-    // Fetch server quote prior to order placement
-    const quoteRes = await _fetchServiceQuote({
-      p_service_type: 'food',
-      p_restaurant_id: cart[0].restaurantId,
-      p_address_id: addr.id || null,
-      p_pickup_lat: restaurant.location.lat,
-      p_pickup_lng: restaurant.location.lng,
-      p_dropoff_lat: addr.location.lat,
-      p_dropoff_lng: addr.location.lng,
-    });
-
-    if (!quoteRes.ok) {
-      placingOrderRef.current = false;
-      return notifySystem('ผิดพลาด', quoteRes.reason, 'error');
-    }
-
-    const quote = quoteRes.quote;
-    const quoteId = quote.quoteId;
-    const serverDeliveryFee = quote.deliveryFee ?? deliveryFee;
-    const serverGrandTotal = quote.grandTotal ?? grandTotal;
-
-    const newOrder = {
-      id: orderId,
-      quoteId,
-      type: 'food',
-      status: 'pending',
-      customerId: uid,
-      customerName: userProfile.name || 'ลูกค้า',
-      customerPhone: userProfile.phone || null,
-      restaurantId: cart[0].restaurantId,
-      restaurantName: cart[0].restaurantName,
-      restaurantOwnerId: restaurant?.ownerId || null,
-      restaurantLocation: restaurant.location,
-      pickupLocation: restaurant.location,
-      location: addr.location,
-      address: addr.address,
-      distance: quote.billableKm ?? distance,
-      distanceSource: quote.distanceSource || 'osrm',
-      items: cart.map(({ id, originalId, name, price, qty, selectedOptions }) => ({
-        id,
-        originalId: originalId || id,
-        name,
-        price,
-        qty,
-        selectedOptions: selectedOptions || []
-      })),
-      foodTotal,
-      deliveryFee: serverDeliveryFee,
-      promoDiscount,
-      grandTotal: serverGrandTotal,
-      paymentMethod,
-      notes,
-      createdAt: formatDateTime(),
-    };
-
-    pendingLocalOrderIdsRef.current.add(orderId);
-    setOrders(prev => [newOrder, ...prev]);
-
-    const res = await _executeOrderPlacement(orderId, newOrder);
-
-    if (!res.ok) {
-      pendingLocalOrderIdsRef.current.delete(orderId);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
-      placingOrderRef.current = false;
-      return notifySystem('ผิดพลาด', res.reason, 'error');
-    }
-
-    const authOrder = res.order || newOrder;
-    const finalGrandTotal = authOrder.grandTotal ?? grandTotal;
-
-    setOrders(prev => prev.map(o => o.id === orderId ? authOrder : o));
-
-    if (paymentMethod === 'wallet') {
-      creditWalletLocal(uid, -finalGrandTotal, `ชำระค่าอาหาร ออเดอร์ #${orderId.slice(-6)}`);
-    }
-
-    notifyAdmin('🛎️ ออเดอร์ใหม่', `${userProfile.name} สั่ง ${cart[0].restaurantName} ฿${finalGrandTotal}`, 'info');
-    setCart([]);
-    setSelectedRestaurant(null);
-    setActiveTab('activity');
-    notifySystem('สั่งอาหารสำเร็จ! 🎉', `ออเดอร์ #${orderId.slice(-6)} ส่งไปยังร้านแล้ว`, 'success');
   };
 
   const placeParcelOrder = async () => {
@@ -765,46 +768,24 @@ export function useOrderActions(deps) {
 
   const confirmCancelOrder = async () => {
     const orderId = selectedOrderToCancel;
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return;
-    const { data: cancelRes, error: cancelErr } = await supabase.rpc('cancel_order_atomic', {
-      p_order_id: orderId,
-      p_reason: cancelReasonInput || 'ลูกค้ายกเลิก'
-    });
-    if (cancelErr || !cancelRes?.ok) {
-      return notifySystem('ผิดพลาด', cancelErr?.message || cancelRes?.reason || 'ยกเลิกออเดอร์ไม่สำเร็จ', 'error');
+    if (!orders.some(order => order.id === orderId)) return;
+    const { data: cancelledOrderId, error } = await supabase.rpc('cancel_customer_order', { p_order_id: orderId });
+    if (error || !cancelledOrderId) {
+      return notifySystem('Não foi possível cancelar', _rpcErrorMessage(error) || 'O pedido já não pode ser cancelado neste estado.', 'error');
     }
-    setOrders(prev => prev.map(o => o.id === orderId ? (cancelRes.order || o) : o));
+    const result = await _fetchAuthoritativeOrder(cancelledOrderId);
+    if (!result.ok) return notifySystem('Erro ao actualizar pedido', result.reason, 'error');
+    setOrders(prev => prev.map(o => o.id === orderId ? result.order : o));
     setShowCancelModal(false);
     setSelectedOrderToCancel(null);
     setCancelReasonInput('');
-    // Release rider
-    if (order.riderId) {
-      const riderRow = riders.find(r => r.id === order.riderId);
-      if (riderRow) supabase.from('riders').update({ is_available: true }).eq('id', riderRow.id).then(() => {});
-    }
-    notifySystem('ยกเลิกออเดอร์แล้ว', `ออเดอร์ #${orderId.slice(-6)} ถูกยกเลิก`, 'info');
+    notifySystem('Pedido cancelado', `O pedido #${orderId.slice(-6)} foi cancelado.`, 'info');
   };
 
   const requestCancelOrder = (orderId, reason) => {
-    const uid = currentUser?.id || userProfile?.id || '';
-    const order = orders.find(o => o.id === orderId);
-    const newReq = {
-      id: generateId(), type: 'cancel_order',
-      data: {
-        orderId, reason,
-        requestedBy: 'customer',
-        customerId: uid,
-        paymentMethod: order?.paymentMethod,
-        grandTotal: order?.grandTotal || 0,
-      },
-      userId: uid, user: userProfile.name || 'ลูกค้า',
-      timestamp: formatDateTime(),
-    };
-    setPendingRequests(prev => [newReq, ...prev]);
-    supabase.from('pending_requests').insert({ id: newReq.id, data: newReq }).then(() => {});
-    notifySystem('ส่งคำขอยกเลิกแล้ว', 'Admin จะพิจารณาคำขอของคุณ', 'info');
-    notifyAdmin('⚠️ ขอยกเลิกออเดอร์', `ลูกค้า ${userProfile.name} ขอยกเลิก #${orderId.slice(-6)}: ${reason}`, 'warning');
+    void reason;
+    void orderId;
+    notifySystem('Cancelamento indisponível', 'O backend permite cancelamento pelo cliente apenas enquanto o pedido aguarda pagamento.', 'error');
   };
 
   const requestCancelByRole = (orderId, reason, role) => {
@@ -831,21 +812,15 @@ export function useOrderActions(deps) {
 
   // Direct cancel — for customer on still-pending orders (no admin needed)
   const cancelOrderDirectly = async (orderId, reason = 'ลูกค้ายกเลิก') => {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) return;
-    const { data: cancelRes, error: cancelErr } = await supabase.rpc('cancel_order_atomic', {
-      p_order_id: orderId,
-      p_reason: reason
-    });
-    if (cancelErr || !cancelRes?.ok) {
-      return notifySystem('ผิดพลาด', cancelErr?.message || cancelRes?.reason || 'ยกเลิกออเดอร์ไม่สำเร็จ', 'error');
+    void reason;
+    const { data: cancelledOrderId, error } = await supabase.rpc('cancel_customer_order', { p_order_id: orderId });
+    if (error || !cancelledOrderId) {
+      return notifySystem('Não foi possível cancelar', _rpcErrorMessage(error) || 'O pedido já não pode ser cancelado neste estado.', 'error');
     }
-    setOrders(prev => prev.map(o => o.id === orderId ? (cancelRes.order || o) : o));
-    if (order.riderId) {
-      const riderRow = riders.find(r => r.id === order.riderId);
-      if (riderRow) supabase.from('riders').update({ is_available: true }).eq('id', riderRow.id).then(() => {});
-    }
-    notifySystem('ยกเลิกออเดอร์แล้ว', `ออเดอร์ #${orderId.slice(-6)} ถูกยกเลิกแล้ว`, 'info');
+    const result = await _fetchAuthoritativeOrder(cancelledOrderId);
+    if (!result.ok) return notifySystem('Erro ao actualizar pedido', result.reason, 'error');
+    setOrders(prev => prev.map(o => o.id === orderId ? result.order : o));
+    notifySystem('Pedido cancelado', `O pedido #${orderId.slice(-6)} foi cancelado.`, 'info');
   };
 
   return {

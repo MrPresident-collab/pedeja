@@ -28,7 +28,6 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
     handleParcelMapSelect,
     getCurrentLocationForParcel,
     notifySystem,
-    validatePromoCode, applyPromoCode,
     selectedRestaurant, setSelectedRestaurant,
     isDataLoading,
   } = useApp();
@@ -117,19 +116,14 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
   };
 
   const handleApplyPromo = () => {
-    if (!promoInput.trim()) return;
-    const foodTotal   = calculateFoodTotal();
-    const deliveryFee = cart.length > 0 ? calculateDeliveryFee(cart[0].distance) : 0;
-    const result      = validatePromoCode(promoInput.trim(), foodTotal + deliveryFee);
-    setPromoResult(result);
-    if (result.valid) {
-      notifySystem('Concluído', `Código ${promoInput.toUpperCase()} aplicado — desconto Kz ${result.discount}`, 'success');
-    } else {
-      notifySystem('Erro', result.message, 'error');
-    }
+    notifySystem('Descontos indisponíveis', 'O checkout live ainda não aceita códigos promocionais. O total será calculado pelo servidor.', 'info');
   };
 
-  const promoDiscount = promoResult?.valid ? (promoResult.discount || 0) : 0;
+  const promoDiscount = 0;
+  const hasSavedDeliveryAddress = userAddresses?.some(address =>
+    typeof address.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(address.id) &&
+    isValidCoordinate(address.location),
+  );
 
   const categories = useMemo(() => {
     const catsInShops = restaurants.filter(r => r.category).map(r => r.category);
@@ -348,22 +342,21 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               <button onClick={() => setPaymentMethod('wallet')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'wallet' ? 'bg-orange-500 text-white border-orange-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>carteira</button>
               <button onClick={() => setPaymentMethod('cash')} className={`flex-1 py-2 text-sm rounded-xl border font-bold transition-all ${paymentMethod === 'cash' ? 'bg-blue-500 text-white border-blue-500 shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}>Numerário</button>
             </div>
-            {(!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)) && (
+            {!hasSavedDeliveryAddress && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-2 text-xs text-amber-800 font-medium text-center">
                 ⚠️ Marque a sua morada de entrega no mapa antes de fazer o pedido
               </div>
             )}
             <button
               onClick={() => {
-                if (!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)) {
+                if (!hasSavedDeliveryAddress) {
                   notifySystem('Erro', 'Marque a morada de entrega no mapa antes de fazer o pedido', 'error');
                   return;
                 }
-                if (promoResult?.valid) applyPromoCode(promoInput);
                 placeOrder(promoDiscount, orderNotes);
                 setOrderNotes('');
               }}
-              disabled={!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)}
+              disabled={!hasSavedDeliveryAddress}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-xl shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Fazer pedido · Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}

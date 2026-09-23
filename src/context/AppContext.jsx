@@ -91,7 +91,7 @@ export function AppProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [parcelDetails, setParcelDetails] = useState({ pickup: '', dropoff: '', weight: '1', distance: 0, receiverName: '', receiverPhone: '' });
-  const [paymentMethod, setPaymentMethod] = useState('wallet');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   // --- Form & Modal State ---
   const [newAddr, setNewAddr] = useState({ label: '', fullAddr: '', location: null });
@@ -284,7 +284,7 @@ export function AppProvider({ children }) {
     orders, setOrders,
     cart, setCart,
     restaurants, riders, appConfig,
-    currentUser, userProfile, userAddresses, usercarteira,
+    currentUser, userProfile, userAddresses, userWallet: usercarteira,
     parcelDetails, setParcelDetails,
     parcelDistance, parcelEstimate,
     paymentMethod, setPaymentMethod,
@@ -533,14 +533,24 @@ export function AppProvider({ children }) {
           itemsByOrder.set(item.order_id, list);
         });
 
+        const businessNameById = new Map((businessesResult.data || []).map(b => [b.id, b.name]));
+        const statusMap = {
+          DRAFT: 'pending', PENDING_PAYMENT: 'pending', PAID: 'pending', ACCEPTED: 'accepted',
+          PREPARING: 'preparing', READY: 'ready_to_pickup', ASSIGNED: 'rider_accepted',
+          PICKED_UP: 'picking_up', DELIVERING: 'delivering', DELIVERED: 'delivered',
+          CANCELLED: 'cancelled', FAILED: 'cancelled',
+        };
         const liveOrders = (ordersResult.data || []).map(o => ({
           id: o.id,
           orderReference: o.order_reference,
+          type: 'food',
           customerId: o.customer_id,
           businessId: o.business_id,
-          status: o.status,
+          restaurantId: o.business_id,
+          restaurantName: businessNameById.get(o.business_id) || 'Comerciante',
+          status: statusMap[o.status] || String(o.status || '').toLowerCase(),
           paymentStatus: o.payment_status,
-          paymentMethod: o.payment_method,
+          paymentMethod: String(o.payment_method || 'CASH').toLowerCase(),
           currency: o.currency_code || 'AOA',
           subtotal: Number(o.subtotal || 0),
           deliveryFee: Number(o.delivery_fee || 0),
@@ -664,9 +674,12 @@ export function AppProvider({ children }) {
 
     const promise = Promise.resolve().then(async () => {
       try {
-        const [profileResult] = await Promise.all([
+        const [profileResult, customerAddressesResult] = await Promise.all([
           supabase.from('profiles').select('id, full_name, phone, avatar_url, account_status').eq('id', authUser.id).maybeSingle(),
+          supabase.from('customer_addresses').select('address_id, label, recipient_name, recipient_phone, delivery_instructions, is_default').eq('customer_id', authUser.id),
         ]);
+
+        if (customerAddressesResult.error) throw customerAddressesResult.error;
 
         const profile = profileResult.data || {};
         const mergedRoles = ['customer'];
@@ -680,7 +693,40 @@ export function AppProvider({ children }) {
           image: profile.avatar_url || null,
         };
 
-        const addresses = [{ id: 1, label: 'Casa', address: 'Adicione uma morada', location: USER_LOCATION }];
+        const addressIds = (customerAddressesResult.data || []).map(row => row.address_id).filter(Boolean);
+        let addressRows = [];
+        if (addressIds.length) {
+          const { data, error } = await supabase
+            .from('addresses')
+            .select('id, address_line_1, address_line_2, neighborhood, municipality, city, province, country_code, location')
+            .in('id', addressIds);
+          if (error) throw error;
+          const addressMap = new Map((data || []).map(row => [row.id, row]));
+          const toLocation = value => {
+            if (value?.type === 'Point' && Array.isArray(value.coordinates)) {
+              return { lat: Number(value.coordinates[1]), lng: Number(value.coordinates[0]) };
+            }
+            if (typeof value === 'string') {
+              const match = value.match(/POINT\\s*\\(\\s*(-?[0-9.]+)\\s+(-?[0-9.]+)\\s*\\)/i);
+              if (match) return { lat: Number(match[2]), lng: Number(match[1]) };
+            }
+            return null;
+          };
+          addressRows = (customerAddressesResult.data || []).map(row => {
+            const address = addressMap.get(row.address_id);
+            return {
+              id: row.address_id,
+              label: row.label,
+              address: address ? [address.address_line_1, address.address_line_2, address.neighborhood, address.municipality, address.city, address.province].filter(Boolean).join(', ') : '',
+              location: toLocation(address?.location),
+              deliveryInstructions: row.delivery_instructions || '',
+              recipientName: row.recipient_name || '',
+              recipientPhone: row.recipient_phone || '',
+              isDefault: row.is_default,
+            };
+          });
+        }
+        const addresses = addressRows;
         persistedProfileRef.current = profileResult.error || !profileResult.data ? null : {
           userId: authUser.id,
           signature: JSON.stringify({
@@ -1134,11 +1180,38 @@ export function AppProvider({ children }) {
     notifySystem('📍 Localização actualizada', 'A localização foi actualizada nesta sessão', 'success');
   }, [userAddresses]);
 
-  const handleAddAddress = (addr) => {
-    const loc = addr.location || USER_LOCATION;
-    setUserAddresses(prev => [...prev, { id: generateId(), label: addr.label, address: addr.fullAddr, location: loc }]);
+  const handleAddAddress = useCallback(async (addr) => {
+    const loc = addr.location;
+    if (!loc || !addr.label || !addr.fullAddr) {
+      notifySystem('Morada incompleta', 'Indique uma etiqueta, endereço e localização no mapa.', 'error');
+      return false;
+    }
+    const { data: addressId, error } = await supabase.rpc('create_customer_address', {
+      p_label: addr.label,
+      p_address_line_1: addr.fullAddr,
+      p_neighborhood: null,
+      p_municipality: null,
+      p_city: 'Luanda',
+      p_province: 'Luanda',
+      p_latitude: loc.lat,
+      p_longitude: loc.lng,
+      p_delivery_instructions: null,
+    });
+    if (error || !addressId) {
+      notifySystem('Não foi possível guardar', error?.message || 'O servidor não devolveu a morada criada.', 'error');
+      return false;
+    }
+    setUserAddresses(prev => [...prev, {
+      id: addressId,
+      label: addr.label,
+      address: addr.fullAddr,
+      location: loc,
+      deliveryInstructions: '',
+      isDefault: prev.length === 0,
+    }]);
     notifySystem('Concluído', 'Morada guardada', 'success');
-  };
+    return true;
+  }, []);
 
   const handleUpdateAddress = useCallback(async (id, location, label, fullAddr) => {
     const addr = fullAddr || await reverseGeocode(location.lat, location.lng).catch(() => `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`);
@@ -1146,7 +1219,16 @@ export function AppProvider({ children }) {
     notifySystem('📍 Localização actualizada', 'A nova localização da morada foi guardada', 'success');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDeleteAddress = (id) => setUserAddresses(prev => prev.filter(a => a.id !== id));
+  const handleDeleteAddress = useCallback(async (id) => {
+    const { data: removed, error } = await supabase.rpc('remove_customer_address', { p_address_id: id });
+    if (error || removed !== true) {
+      notifySystem('Não foi possível remover', error?.message || 'A morada não foi removida no servidor.', 'error');
+      return false;
+    }
+    setUserAddresses(prev => prev.filter(a => a.id !== id));
+    notifySystem('Morada removida', 'A morada foi removida.', 'success');
+    return true;
+  }, []);
 
   // ── Rider location update ─────────────────────────────────────────────────
   const _lastGpsWriteRef = useRef(0); // throttle: write to Supabase at most once per 5s

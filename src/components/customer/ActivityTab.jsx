@@ -17,6 +17,7 @@ const calcETA = (fromLoc, toLoc) => {
 
 const STATUS_LABELS = {
   pending:         { label: 'A aguardar confirmação do comerciante',          color: 'bg-orange-100 text-orange-600' },
+  accepted:        { label: 'Pedido aceite pelo comerciante',                 color: 'bg-indigo-100 text-indigo-600' },
   preparing:       { label: 'A preparar comida',          color: 'bg-blue-100 text-blue-600' },
   ready_to_pickup: { label: 'A aguardar estafeta',           color: 'bg-purple-100 text-purple-600' },
   rider_accepted:  { label: 'Estafeta aceitou',         color: 'bg-indigo-100 text-indigo-600' },
@@ -53,7 +54,7 @@ export default function ActivityTab() {
   );
 
   const inProgress = myOrders.filter(o =>
-    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(o.status),
+    ['pending', 'accepted', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(o.status),
   );
 
   const parseDateMs = (dateVal) => {
