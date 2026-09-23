@@ -330,7 +330,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             />
 
             <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
-              <span>Comida</span><span>Kz {calculateFoodTotal().toLocaleString()}</span>
+              <span>Subtotal</span><span>Kz {calculateFoodTotal().toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center mb-2 text-sm text-gray-500">
               <span>Entrega</span><span>Kz {calculateDeliveryFee(cart[0].distance)}</span>
@@ -352,7 +352,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
             </div>
             {(!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)) && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-2 text-xs text-amber-800 font-medium text-center">
-                ⚠️ คุณยังไม่ได้ปักหมุดmoradaจัดentregareal por favorไปที่หน้าโปรไฟล์เพื่อปักหมุดlocalizaçãoบนmapaก่อนสั่งcomida
+                ⚠️ Marque a sua morada de entrega no mapa antes de fazer o pedido
               </div>
             )}
             <button
@@ -368,7 +368,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
               disabled={!isValidCoordinate(userAddresses?.[0]?.location) && !isValidCoordinate(userProfile?.location)}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3.5 rounded-2xl font-bold text-base shadow-xl shadow-orange-200 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              สั่งcomida Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}
+              Fazer pedido · Kz {Math.max(0, calculateFoodTotal() + calculateDeliveryFee(cart[0].distance) - promoDiscount).toLocaleString()}
             </button>
           </div>
         )}
@@ -417,7 +417,7 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
                   onClick={handleConfirmAddToCart}
                   className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-orange-600 active:scale-95 transition-all shadow-md shadow-orange-200"
                 >
-                  introduzaตะกร้า
+                  Adicionar ao carrinho
                 </button>
               </div>
             </div>
@@ -430,19 +430,15 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
   // ── Home tab ────────────────────────────────────────────────────────────────
   return (
     <div className="px-4 py-3">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <button
           onClick={() => { setServiceType('food'); setSelectedCategory('Todos'); }}
           className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'food' ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
         ><Utensils size={16} /> {t('service_food')}</button>
         <button
           onClick={() => { setServiceType('shopping'); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'shopping' ? 'bg-blue-500 text-white shadow-lg shadow-blue-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><Package size={16} /> Compras</button>
-        <button
-          onClick={() => { setServiceType('stores'); setSelectedCategory('Todos'); }}
-          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'stores' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
-        ><ChefHat size={16} /> Lojas</button>
+          className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'shopping' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
+        ><Package size={16} /> {t('service_shopping')}</button>
         <button
           onClick={() => setServiceType('parcel')}
           className={`flex items-center justify-center gap-1.5 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${serviceType === 'parcel' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 shadow-sm border border-transparent dark:border-gray-700'}`}
@@ -466,12 +462,12 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
           <div className="featured-banner mb-5">
             <div className="relative z-10">
               <div className="text-xs font-semibold text-orange-200 uppercase tracking-wider mb-1">Bem-vindo à Pedejá</div>
-              <h2 className="text-xl font-black text-white leading-tight mb-1">Peça comida<br />Envie encomendas com facilidade!</h2>
-              <p className="text-orange-100 text-xs mb-3">Entregas actualmente disponíveis em Luanda</p>
+              <h2 className="text-xl font-black text-white leading-tight mb-1">Fome, Compras e ENVIAR</h2>
+              <p className="text-orange-100 text-xs mb-3">Comida, compras e entregas em Luanda</p>
               <button
                 onClick={() => setServiceType('parcel')}
                 className="bg-white text-orange-600 text-xs font-bold px-4 py-1.5 rounded-full"
-              >Enviar encomenda agora →</button>
+              >Enviar agora →</button>
             </div>
           </div>
 
