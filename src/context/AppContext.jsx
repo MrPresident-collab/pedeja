@@ -13,7 +13,7 @@ import { usePhotoHandlers }  from './hooks/usePhotoHandlers';
 import { useRegistration }   from './hooks/useRegistration';
 import { usePromoActions }   from './hooks/usePromoActions';
 
-const AppContext = createContext(null);
+export const AppContext = createContext(null);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
