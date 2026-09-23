@@ -7,7 +7,7 @@ import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrder
 import { supabase } from '../lib/supabase';
 import { canApplyOrderUpdate, ORDER_STATUS_RANK } from '../domain/orderStatus';
 
-import { useWalletActions }  from './hooks/useWalletActions';
+import { usecarteiraActions }  from './hooks/usecarteiraActions';
 import { useOrderActions }   from './hooks/useOrderActions';
 import { useAdminActions }   from './hooks/useAdminActions';
 import { usePhotoHandlers }  from './hooks/usePhotoHandlers';
@@ -88,9 +88,9 @@ export function AppProvider({ children }) {
   const [userAddresses, setUserAddresses] = useState([
     { id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION },
   ]);
-  const [userWallet, setUserWallet] = useState(0);
-  const [walletAllEntries, setWalletAllEntries] = useState([]);
-  const [walletClearedAt, setWalletClearedAt] = useState(null);
+  const [usercarteira, setUsercarteira] = useState(0);
+  const [walletAllEntries, setcarteiraAllEntries] = useState([]);
+  const [walletClearedAt, setcarteiraClearedAt] = useState(null);
   const walletHistory = useMemo(() => {
     if (!walletClearedAt) return walletAllEntries;
     const ms = walletClearedAt instanceof Date ? walletClearedAt.getTime() : 0;
@@ -161,7 +161,7 @@ export function AppProvider({ children }) {
   const fetchAppDataAuthKeyRef = useRef(null);
   const loadUserSessionPromisesRef = useRef(new Map());
   const lastLoadedAuthUserIdRef = useRef(null);
-  const lastWalletHistorySyncAtRef = useRef(0);
+  const lastcarteiraHistorySyncAtRef = useRef(0);
   const persistedProfileRef = useRef(null);
   // Keep a per-row snapshot of data read from or written to Supabase. This
   // prevents initial hydration and unrelated state updates from auto-saving
@@ -180,8 +180,8 @@ export function AppProvider({ children }) {
   const pushTokenRef            = React.useRef('');
   const isClearingAuthRef       = React.useRef(false);
 
-  // --- Global Wallet Store (in-memory cache for all wallets) ---
-  const [globalWallets, setGlobalWallets] = useState({});
+  // --- Global carteira Store (in-memory cache for all wallets) ---
+  const [globalcarteiras, setGlobalcarteiras] = useState({});
 
   // --- Global User Roles Store ---
   const [globalUserRoles, setGlobalUserRoles] = useState({});
@@ -272,7 +272,7 @@ export function AppProvider({ children }) {
   }, [currentUser?.id, userProfile?.id]);  
 
   // ── Fetch current user wallet from Supabase ─────────────────────────────
-  const fetchUserWallet = useCallback(async (targetUid) => {
+  const fetchUsercarteira = useCallback(async (targetUid) => {
     const uid = targetUid || currentUser?.id;
     if (!uid) return;
     try {
@@ -283,46 +283,46 @@ export function AppProvider({ children }) {
         .eq('user_id', walletKey)
         .maybeSingle();
       if (walletError) {
-        console.error('fetchUserWallet error:', walletError);
+        console.error('fetchUsercarteira error:', walletError);
         return;
       }
 
       if (wallet) {
         const bal = r2(wallet.balance || 0);
-        setUserWallet(bal);
-        setGlobalWallets(prev => ({
+        setUsercarteira(bal);
+        setGlobalcarteiras(prev => ({
           ...prev,
           [walletKey]: { ...prev[walletKey], balance: bal },
           [uid]: { ...prev[uid], balance: bal },
         }));
         // Realtime normally carries the updated history. Restore the full
         // history only when that event has not reached this client.
-        if (Date.now() - lastWalletHistorySyncAtRef.current > 5000) {
+        if (Date.now() - lastcarteiraHistorySyncAtRef.current > 5000) {
           const { data: historyRow, error } = await supabase
             .from('wallets').select('history').eq('user_id', walletKey).maybeSingle();
-          if (error) console.error('Wallet history fallback error:', error);
+          if (error) console.error('carteira history fallback error:', error);
           else if (historyRow) {
             const history = historyRow.history || [];
-            setWalletAllEntries(history);
-            setGlobalWallets(prev => ({
+            setcarteiraAllEntries(history);
+            setGlobalcarteiras(prev => ({
               ...prev,
               [walletKey]: { ...prev[walletKey], balance: bal, history },
               [uid]: { ...prev[uid], balance: bal, history },
             }));
-            lastWalletHistorySyncAtRef.current = Date.now();
+            lastcarteiraHistorySyncAtRef.current = Date.now();
           }
         }
       }
     } catch (e) {
-      console.error('fetchUserWallet error', e);
+      console.error('fetchUsercarteira error', e);
     }
   }, [currentUser?.id, currentUser?.email]);
 
-  // ── Wallet hook ─────────────────────────────────────────────────────────────
-  const { creditWallet, creditWalletLocal, processTransaction, requestTopUp, requestWithdraw, adminAdjustWallet } = useWalletActions({
+  // ── carteira hook ─────────────────────────────────────────────────────────────
+  const { creditcarteira, creditcarteiraLocal, processTransaction, requestTopUp, requestWithdraw, adminAdjustcarteira } = usecarteiraActions({
     currentUser, currentUserRef,
-    userProfile, userWallet, pendingRequests,
-    setUserWallet, setWalletAllEntries, setGlobalWallets, setPendingRequests,
+    userProfile, usercarteira, pendingRequests,
+    setUsercarteira, setcarteiraAllEntries, setGlobalcarteiras, setPendingRequests,
     setShowTopUpModal, setTopUpSlip,
     setWithdrawAmount, setWithdrawBank, setWithdrawAccount, setWithdrawName, setWithdrawMode,
     notifySystem, notifyAdmin,
@@ -339,7 +339,7 @@ export function AppProvider({ children }) {
     orders, setOrders,
     cart, setCart,
     restaurants, riders, appConfig,
-    currentUser, userProfile, userAddresses, userWallet,
+    currentUser, userProfile, userAddresses, usercarteira,
     parcelDetails, setParcelDetails,
     parcelDistance, parcelEstimate,
     paymentMethod, setPaymentMethod,
@@ -350,7 +350,7 @@ export function AppProvider({ children }) {
     setSelectedRestaurant, setActiveTab,
     setParcelMapTarget, setParcelEstimate, setParcelDistance,
     placingOrderRef, pendingLocalOrderIdsRef,
-    creditWallet, creditWalletLocal, processTransaction, setUserWallet, fetchUserWallet,
+    creditcarteira, creditcarteiraLocal, processTransaction, setUsercarteira, fetchUsercarteira,
     seenOrderIdsRef,
     notifySystem, notifyAdmin,
     supabase,
@@ -366,11 +366,11 @@ export function AppProvider({ children }) {
     restaurants, setRestaurants,
     menuItems, setMenuItems,
     pendingRequests, setPendingRequests,
-    globalWallets, setGlobalWallets,
+    globalcarteiras, setGlobalcarteiras,
     editingShop, shopEditForm, setEditingShop,
     selectedRequestToReject, setSelectedRequestToReject,
     setShowRejectModal,
-    creditWallet, creditWalletLocal, grantRole,
+    creditcarteira, creditcarteiraLocal, grantRole,
     notifySystem,
     supabase,
   });
@@ -598,15 +598,15 @@ export function AppProvider({ children }) {
     } finally {
       clearAuthStorageKeys();
       lastLoadedAuthUserIdRef.current = null;
-      lastWalletHistorySyncAtRef.current = 0;
+      lastcarteiraHistorySyncAtRef.current = 0;
       persistedProfileRef.current = null;
       setIsLoggedIn(false);
       setCurrentUser(null);
       setUserProfile({ id: '', name: '', phone: '', email: '', location: USER_LOCATION });
       setTempProfile({ id: '', name: '', phone: '', email: '', location: USER_LOCATION });
       setUserRoles(['customer']);
-      setUserWallet(0);
-      setWalletAllEntries([]);
+      setUsercarteira(0);
+      setcarteiraAllEntries([]);
       setUserAddresses([]);
       setActiveRole('customer');
       setActiveTab('home');
@@ -660,17 +660,17 @@ export function AppProvider({ children }) {
         setTempProfile(prof);
         setUserRoles(mergedRoles);
         if (!walletResult.error) {
-          setUserWallet(r2(wallet?.balance || 0));
-          setWalletAllEntries(wallet?.history || []);
-          if (wallet) lastWalletHistorySyncAtRef.current = Date.now();
+          setUsercarteira(r2(wallet?.balance || 0));
+          setcarteiraAllEntries(wallet?.history || []);
+          if (wallet) lastcarteiraHistorySyncAtRef.current = Date.now();
         } else {
           console.warn('Failed to load wallet from Supabase:', walletResult.error);
         }
         setUserAddresses(addresses);
-        // Use email key for admin so it stays consistent with creditWallet(ADMIN_EMAIL,...) calls
+        // Use email key for admin so it stays consistent with creditcarteira(ADMIN_EMAIL,...) calls
         const walletKey = (ADMIN_EMAIL && authUser.email === ADMIN_EMAIL) ? ADMIN_EMAIL : authUser.id;
         if (!walletResult.error) {
-          setGlobalWallets(prev => ({
+          setGlobalcarteiras(prev => ({
             ...prev,
             [walletKey]: { balance: r2(wallet?.balance || 0), history: wallet?.history || [] },
           }));
@@ -773,7 +773,7 @@ export function AppProvider({ children }) {
             return next;
           });
           if (incoming.status === 'completed') {
-            fetchUserWallet();
+            fetchUsercarteira();
           }
         };
         const o = payload.new?.data;
@@ -797,7 +797,7 @@ export function AppProvider({ children }) {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [isLoggedIn, fetchUserWallet]);
+  }, [isLoggedIn, fetchUsercarteira]);
 
   // ── Realtime: Pending Requests ──────────────────────────────────────────
   useEffect(() => {
@@ -869,7 +869,7 @@ export function AppProvider({ children }) {
     };
   }, [isLoggedIn]);
 
-  // ── Realtime: Wallets ───────────────────────────────────────────────────
+  // ── Realtime: carteiras ───────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoggedIn || !currentUser?.id) return;
     const uid = currentUser.id;
@@ -882,10 +882,10 @@ export function AppProvider({ children }) {
         if (updated.user_id === uid || updated.user_id === walletKey) {
           const bal = r2(updated.balance || 0);
           const hist = updated.history || [];
-          setUserWallet(bal);
-          setWalletAllEntries(hist);
-          lastWalletHistorySyncAtRef.current = Date.now();
-          setGlobalWallets(prev => ({
+          setUsercarteira(bal);
+          setcarteiraAllEntries(hist);
+          lastcarteiraHistorySyncAtRef.current = Date.now();
+          setGlobalcarteiras(prev => ({
             ...prev,
             [walletKey]: { balance: bal, history: hist },
             [uid]: { balance: bal, history: hist },
@@ -893,7 +893,7 @@ export function AppProvider({ children }) {
         } else if (isAdmin) {
           const bal = r2(updated.balance || 0);
           const hist = updated.history || [];
-          setGlobalWallets(prev => ({
+          setGlobalcarteiras(prev => ({
             ...prev,
             [updated.user_id]: { balance: bal, history: hist },
           }));
@@ -1098,7 +1098,7 @@ export function AppProvider({ children }) {
             notifySystem('📬 Chegou! Confirme a recepção', `Pedido #${o.id.slice(-6)} — toque em "Confirmar recepção" para concluir`, 'warning'); break;
           case 'completed':
             playNotificationSound('success');
-            notifySystem(`✅ Entrega${o.type === 'parcel' ? 'พัสดุ' : 'อาหาร'}Concluído!`, `Pedido #${o.id.slice(-8)} entregue a si 🎉`, 'success'); break;
+            notifySystem(`✅ Entrega${o.type === 'parcel' ? 'encomenda' : 'comida'}Concluído!`, `Pedido #${o.id.slice(-8)} entregue a si 🎉`, 'success'); break;
           case 'cancelled':
             notifySystem('❌ Pedido cancelado', `#${o.id.slice(-8)}${o.cancelReason ? `: ${o.cancelReason}` : ''}`, 'error'); break;
           default: break;
@@ -1109,7 +1109,7 @@ export function AppProvider({ children }) {
       if (myShop && o.restaurantId === myShop.id) {
         switch (o.status) {
           case 'rider_accepted':
-            notifySystem('🛵 Estafeta aceitou a entrega', `${o.riderName || 'Estafeta'} มารับออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
+            notifySystem('🛵 Estafeta aceitou a entrega', `${o.riderName || 'Estafeta'} มาrecolhapedido #${o.id.slice(-6)}`, 'info'); break;
           case 'picking_up':
             notifySystem('✅ Estafeta recolheu o pedido', `Pedido #${o.id.slice(-6)} saiu da fila de trabalho`, 'success'); break;
           case 'completed':
@@ -1506,7 +1506,7 @@ export function AppProvider({ children }) {
           setUserProfile(prof);
           setTempProfile(prof);
           setUserRoles(['customer']);
-          setUserWallet(1000);
+          setUsercarteira(1000);
           setUserAddresses([{ id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION }]);
           notifySystem('Sessão iniciada (Dev Mode)', 'Bem-vindo ao sistema', 'success');
           return;
@@ -1554,14 +1554,14 @@ export function AppProvider({ children }) {
   };
 
   // ── Clear wallet history ──────────────────────────────────────────────────
-  const clearWalletHistory = useCallback(async () => {
-    setWalletAllEntries([]);
-    setWalletClearedAt(new Date());
+  const clearcarteiraHistory = useCallback(async () => {
+    setcarteiraAllEntries([]);
+    setcarteiraClearedAt(new Date());
     const uid = currentUser?.id || userProfile?.id;
     if (uid) {
       const { error } = await supabase.rpc('clear_wallet_history', { p_user_id: uid });
       if (error) {
-        console.error('clearWalletHistory error', error);
+        console.error('clearcarteiraHistory error', error);
         await loadUserSession(currentUser);
         notifySystem('Não foi possível', 'Não foi possível limpar o histórico da carteira', 'error');
       }
@@ -1645,12 +1645,12 @@ export function AppProvider({ children }) {
     userProfile, setUserProfile,
     userRoles, setUserRoles,
     userAddresses, setUserAddresses,
-    userWallet, setUserWallet,
+    usercarteira, setUsercarteira,
     walletHistory,
-    clearWalletHistory,
+    clearcarteiraHistory,
     tempProfile, setTempProfile,
     isAdmin,
-    globalWallets, setGlobalWallets,
+    globalcarteiras, setGlobalcarteiras,
 
     // Cart & Orders
     cart, setCart,
@@ -1692,14 +1692,14 @@ export function AppProvider({ children }) {
     showImageModal, setShowImageModal,
     previewImageUrl,
 
-    // TopUp & Wallet
+    // TopUp & carteira
     showTopUpModal, setShowTopUpModal,
     topUpSlip, setTopUpSlip,
-    creditWallet,
+    creditcarteira,
     processTransaction,
     requestTopUp,
     requestWithdraw,
-    adminAdjustWallet,
+    adminAdjustcarteira,
 
     // Rating
     showRatingModal, setShowRatingModal,
@@ -1777,7 +1777,7 @@ export function AppProvider({ children }) {
     requestCancelOrder,
     requestCancelByRole,
     forceRefresh,
-    fetchUserWallet,
+    fetchUsercarteira,
     walletAllEntries,
     supabase,
   };
