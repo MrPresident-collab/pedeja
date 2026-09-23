@@ -90,9 +90,9 @@ export default function InteractiveMap({
   activeParcelTarget = null,  // 'pickup' | 'dropoff'
   centerOverride,
   className = '',
-  trackingMode = false,       // ใช้ animated rider icon + auto-follow
-  autoFollow = false,         // pan map ตามEstafeta real-time
-  showRoute = true,           // วาดเส้นทางถนน OSRM อัตโนมัติ ( view mode )
+  trackingMode = false,       // animated rider icon + auto-follow
+  autoFollow = false,         // pan map following the rider in real time
+  showRoute = true,           // draw OSRM road route automatically ( view mode )
 }) {
   const containerRef  = useRef(null);
   const mapRef        = useRef(null);
@@ -246,7 +246,7 @@ export default function InteractiveMap({
 
         map.on('click', (e) => placePin(e.latlng, true));
 
-        // แสดงตำแหน่งที่เลือกไว้แล้ว (ถ้ามี)
+        // show previously selected location
         const existing = isParcel ? shopLocation : userLocation;
         if (existing) placePin({ lat: existing.lat, lng: existing.lng }, false);
 
@@ -306,7 +306,7 @@ export default function InteractiveMap({
     const L = leafletRef.current;
     const map = mapRef.current;
 
-    // คำนวณเส้นทาง OSRM ระหว่างจุดรับและจุดส่ง หรือ Estafeta
+    // calculate OSRM route between pickup/dropoff or rider
     let waypoints = [];
     if (riderLocation && shopLocation) {
       waypoints = [riderLocation, shopLocation];
@@ -382,7 +382,7 @@ export default function InteractiveMap({
     };
   }, [mode, showRoute, userLocation?.lat, userLocation?.lng, shopLocation?.lat, shopLocation?.lng, riderLocation?.lat, riderLocation?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── อัปเดต rider marker แบบ real-time (view mode) พร้อม Smooth Interpolation & Bearing ──
+  // update rider marker in real time with smooth interpolation and bearing
   useEffect(() => {
     if (!mapRef.current || !leafletRef.current || mode !== 'view') return;
     const L = leafletRef.current;
@@ -701,7 +701,7 @@ export default function InteractiveMap({
           </div>
           <span className="text-gray-300">|</span>
           <div className="flex items-center gap-1 text-emerald-600">
-            <span>⏱️ Aprox. {routeMeta.durationMin} นาที</span>
+            <span>⏱️ Aprox. {routeMeta.durationMin} min</span>
           </div>
         </div>
       )}
