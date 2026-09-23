@@ -3,7 +3,7 @@ type WebhookPayload = { type: 'INSERT' | 'UPDATE' | 'DELETE'; table: string; rec
 type ServiceAccount = { project_id: string; client_email: string; private_key: string };
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') || 'https://boomrider.vercel.app',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') || 'https://pedeja.app',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-webhook-secret',
 };
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -90,7 +90,7 @@ const buildNotification = async (payload: WebhookPayload) => {
       if (restData?.[0]?.owner_id) merchantOwnerId = restData[0].owner_id;
     }
     [data.customerId, merchantOwnerId].filter(Boolean).forEach(id => users.add(String(id)));
-    title = '🛎️ Novo pedido'; body = `ออเดอร์ #${orderId.slice(-6)} foi criado`;
+    title = '🛎️ Novo pedido'; body = `Pedido #${orderId.slice(-6)} foi criado`;
     channel = 'merchant_orders'; kind = 'new_order';
   } else if (payload.table === 'orders' && payload.type === 'UPDATE') {
     const oldData = rowData(payload.old_record || {});
@@ -118,7 +118,7 @@ const buildNotification = async (payload: WebhookPayload) => {
   } else if (payload.table === 'admin_notifs' && payload.type === 'INSERT') {
     const roles = await rest('user_roles?select=user_id&role=eq.admin');
     roles?.forEach((row: Json) => users.add(String(row.user_id)));
-    title = String(record.title || 'BoomRider Admin');
+    title = String(record.title || 'Pedejá Admin');
     body = String(record.message || 'Existe um novo evento para verificar');
     channel = 'admin_alerts'; kind = 'admin_alert';
   } else return null;
