@@ -72,12 +72,10 @@ export function AppProvider({ children }) {
 
   // --- User Profile State ---
   const [userProfile, setUserProfile] = useState({
-    id: '', name: '', phone: '', email: '', location: USER_LOCATION,
+    id: '', name: '', phone: '', email: '', location: null,
   });
   const [userRoles, setUserRoles] = useState(['customer']);
-  const [userAddresses, setUserAddresses] = useState([
-    { id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION },
-  ]);
+  const [userAddresses, setUserAddresses] = useState([]);
   const [usercarteira, setUsercarteira] = useState(0);
   const [walletAllEntries, setcarteiraAllEntries] = useState([]);
   const [walletClearedAt, setcarteiraClearedAt] = useState(null);
@@ -94,7 +92,7 @@ export function AppProvider({ children }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
   // --- Form & Modal State ---
-  const [newAddr, setNewAddr] = useState({ label: '', fullAddr: '', location: null });
+  const [newAddr, setNewAddr] = useState({ label: 'Casa', addressLine1: '', addressLine2: '', neighborhood: '', municipality: '', city: '', province: '', reference: '', latitude: null, longitude: null, location: null });
   const [withdrawMode, setWithdrawMode] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawBank, setWithdrawBank] = useState('');
@@ -689,7 +687,7 @@ export function AppProvider({ children }) {
           name: profile.full_name || '',
           phone: profile.phone || '',
           email: authUser.email || '',
-          location: USER_LOCATION,
+          location: null,
           image: profile.avatar_url || null,
         };
 
@@ -867,43 +865,10 @@ export function AppProvider({ children }) {
     debounceRef.current[key] = setTimeout(fn, delay);
   }, []);
 
-  // ── Auto-capture GPS location on login ──────────────────────────────────
+  // Location is an optional address-resolution accelerator. Never auto-write GPS as an address.
   useEffect(() => {
-    if (!isLoggedIn) { gpsSessionRef.current = ''; return; }
-    const uid = currentUser?.id;
-    if (!uid || gpsSessionRef.current === uid) return;
-    gpsSessionRef.current = uid;
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserProfile(prev => ({ ...prev, location: loc }));
-        setUserAddresses(prev => {
-          if (!prev || prev.length === 0) {
-            return [{ id: 1, label: 'Casa', address: 'Morada actual', location: loc }];
-          }
-          return prev.map((a, idx) => idx === 0 ? { ...a, location: loc } : a);
-        });
-        try {
-          const r = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json`,
-            { headers: { 'Accept-Language': 'th' } },
-          );
-          const d = await r.json();
-          const parts = [d.address?.road, d.address?.neighbourhood || d.address?.suburb, d.address?.city || d.address?.town].filter(Boolean);
-          const addr = parts.join(', ') || d.display_name?.split(',').slice(0, 3).join(',') || `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`;
-          notifySystem('📍 Localização guardada', addr.substring(0, 60), 'success');
-        } catch {
-          notifySystem('📍 Localização guardada', `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`, 'success');
-        }
-      },
-      (err) => {
-        if (err.code === 1) notifySystem('📍 Não foi possível obter a localização', 'Permita o acesso ao GPS', 'warning');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 },
-    );
-  }, [isLoggedIn, currentUser?.id]);  
+    if (!isLoggedIn) return;
+  }, [isLoggedIn]);
 
   // ── Auto-grant merchant/rider role (recovery) ───────────────────────────
   // ── Sync userRoles from globalUserRoles ─────────────────────────────────
@@ -1169,61 +1134,58 @@ export function AppProvider({ children }) {
 
   // ── Address management ───────────────────────────────────────────────────
   const handleUpdateUserLocation = useCallback(async (location) => {
-    if (!location) return;
-    const nextAddresses = !userAddresses?.length
-      ? [{ id: 1, label: 'Casa', address: 'Morada actual', location }]
-      : userAddresses.map((a, idx) => idx === 0 ? { ...a, location } : a);
+    if (!location) return false;
     setUserProfile(prev => ({ ...prev, location }));
-    setUserAddresses(nextAddresses);
-    // Address persistence belongs to the customer-address RPC surface. Keep
-    // this UI update local until that flow supplies a real address id.
-    notifySystem('📍 Localização actualizada', 'A localização foi actualizada nesta sessão', 'success');
-  }, [userAddresses]);
+    return true;
+  }, []);
 
   const handleAddAddress = useCallback(async (addr) => {
-    const loc = addr.location;
-    if (!loc || !addr.label || !addr.fullAddr) {
-      notifySystem('Morada incompleta', 'Indique uma etiqueta, endereço e localização no mapa.', 'error');
+    if (!addr?.label || !addr?.addressLine1) {
+      notifySystem('Morada incompleta', 'Indique a etiqueta e a morada.', 'error');
       return false;
     }
+
     const { data: addressId, error } = await supabase.rpc('create_customer_address', {
       p_label: addr.label,
-      p_address_line_1: addr.fullAddr,
-      p_neighborhood: null,
-      p_municipality: null,
-      p_city: 'Luanda',
-      p_province: 'Luanda',
-      p_latitude: loc.lat,
-      p_longitude: loc.lng,
+      p_address_line_1: addr.addressLine1,
+      p_address_line_2: addr.addressLine2 || null,
+      p_neighborhood: addr.neighborhood || null,
+      p_municipality: addr.municipality || null,
+      p_city: addr.city || null,
+      p_province: addr.province || null,
+      p_reference: addr.reference || null,
+      p_latitude: Number.isFinite(Number(addr.latitude)) ? Number(addr.latitude) : null,
+      p_longitude: Number.isFinite(Number(addr.longitude)) ? Number(addr.longitude) : null,
       p_delivery_instructions: null,
     });
+
     if (error || !addressId) {
       notifySystem('Não foi possível guardar', error?.message || 'O servidor não devolveu a morada criada.', 'error');
       return false;
     }
-    setUserAddresses(prev => [...prev, {
-      id: addressId,
-      label: addr.label,
-      address: addr.fullAddr,
-      location: loc,
-      deliveryInstructions: '',
-      isDefault: prev.length === 0,
-    }]);
+
+    await loadUserSession(currentUser);
     notifySystem('Concluído', 'Morada guardada', 'success');
     return true;
-  }, []);
+  }, [currentUser, loadUserSession]);
 
   const handleUpdateAddress = useCallback(async (id, location, label, fullAddr) => {
-    if (!id || !location) return false;
-    const addr = fullAddr || await reverseGeocode(location.lat, location.lng).catch(() => `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`);
-    setUserAddresses(prev => prev.map(a => a.id === id ? { ...a, location, address: addr, ...(label ? { label } : {}) } : a));
-    notifySystem(
-      'Localização actualizada',
-      'A alteração foi aplicada nesta sessão. As coordenadas da morada existente ainda não têm suporte no RPC live.',
-      'info',
-    );
+    if (!id) return false;
+    const parts = typeof fullAddr === 'string' ? fullAddr : '';
+    const { error } = await supabase.rpc('update_customer_address', {
+      p_address_id: id,
+      p_label: label || 'Morada',
+      p_address_line_1: parts || 'Morada actualizada',
+      p_latitude: location ? Number(location.lat) : null,
+      p_longitude: location ? Number(location.lng) : null,
+    });
+    if (error) {
+      notifySystem('Não foi possível actualizar', error.message, 'error');
+      return false;
+    }
+    await loadUserSession(currentUser);
     return true;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentUser, loadUserSession]);
 
   const handleDeleteAddress = useCallback(async (id) => {
     const { data: removed, error } = await supabase.rpc('remove_customer_address', { p_address_id: id });
@@ -1231,10 +1193,10 @@ export function AppProvider({ children }) {
       notifySystem('Não foi possível remover', error?.message || 'A morada não foi removida no servidor.', 'error');
       return false;
     }
-    setUserAddresses(prev => prev.filter(a => a.id !== id));
+    await loadUserSession(currentUser);
     notifySystem('Morada removida', 'A morada foi removida.', 'success');
     return true;
-  }, []);
+  }, [currentUser, loadUserSession]);
 
   // ── Rider location update ─────────────────────────────────────────────────
   const _lastGpsWriteRef = useRef(0); // throttle: write to Supabase at most once per 5s
