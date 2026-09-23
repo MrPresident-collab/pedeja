@@ -1261,7 +1261,7 @@ export function AppProvider({ children }) {
         : activeRole === 'rider' ? 'Estafeta'
         : activeRole === 'merchant' ? 'Comerciante'
         : userProfile?.name || 'Cliente',
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
     };
     // Optimistic local update
     setChats(prev => ({ ...prev, [activeChat.id]: [...(prev[activeChat.id] || []), newMessage] }));
