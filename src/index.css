@@ -17,7 +17,7 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Noto Sans Thai', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Ubuntu', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -47,7 +47,7 @@ html, body {
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
 
 /* ===== Selection ===== */
-::selection { background: #fed7aa; color: #c2410c; }
+::selection { background: #DDD6FE; color: #5B21B6; }
 
 /* ===== Animations ===== */
 @keyframes fadeIn {
@@ -195,7 +195,7 @@ html, body {
 
 /* ===== Gradient Text ===== */
 .gradient-text {
-  background: linear-gradient(135deg, #f97316, #dc2626);
+  background: linear-gradient(135deg, #6D28D9, #7C3AED);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -253,7 +253,7 @@ html, body {
 .text-subhead  { font-size: 1rem; font-weight: 500; }
 
 /* ===== Focus Ring ===== */
-:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }
+:focus-visible { outline: 2px solid #6D28D9; outline-offset: 2px; }
 
 /* ===== Reduced Motion ===== */
 @media (prefers-reduced-motion: reduce) {
