@@ -24,7 +24,7 @@ function ZungueiraIllustration() {
 export default function AuthView() {
   const {
     authMode, setAuthMode,
-    authLoading,
+    
     toasts, removeToast,
     setLoginForm, setRegisterForm,
     registerForm,
@@ -222,10 +222,10 @@ export default function AuthView() {
                     <button
                       type="button"
                       onClick={loginMethod === 'phone' ? sendPhoneOtp : handleEmailLogin}
-                      disabled={authLoading}
+                      disabled={localAuthLoading}
                       className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-4 disabled:opacity-60"
                     >
-                      {authLoading ? 'A processar…' : loginMethod === 'phone' ? 'Enviar código' : 'Entrar'}
+                      {localAuthLoading ? 'A processar…' : loginMethod === 'phone' ? 'Enviar código' : 'Entrar'}
                     </button>
 
                     {loginMethod === 'email' && (
@@ -253,10 +253,10 @@ export default function AuthView() {
                     <button
                       type="button"
                       onClick={verifyPhoneOtp}
-                      disabled={authLoading}
+                      disabled={localAuthLoading}
                       className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-4 disabled:opacity-60"
                     >
-                      {authLoading ? 'A verificar…' : 'Confirmar código'}
+                      {localAuthLoading ? 'A verificar…' : 'Confirmar código'}
                     </button>
                     <button type="button" onClick={resetLogin} className="w-full text-xs text-gray-500 mt-3">
                       Usar outro número
@@ -334,10 +334,10 @@ export default function AuthView() {
                 <button
                   type="button"
                   onClick={handleRegister}
-                  disabled={authLoading}
+                  disabled={localAuthLoading}
                   className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-2 disabled:opacity-60"
                 >
-                  {authLoading ? 'A criar conta…' : 'Criar conta'}
+                  {localAuthLoading ? 'A criar conta…' : 'Criar conta'}
                 </button>
               </div>
 
