@@ -98,7 +98,7 @@ export function AppProvider({ children }) {
   const [withdrawBank, setWithdrawBank] = useState('');
   const [withdrawAccount, setWithdrawAccount] = useState('');
   const [withdrawName, setWithdrawName] = useState('');
-  const [tempProfile, setTempProfile] = useState({ id: '', name: '', phone: '', email: '', location: USER_LOCATION });
+  const [tempProfile, setTempProfile] = useState({ id: '', name: '', phone: '', email: '', location: null });
   const [editConfig, setEditConfig] = useState(INITIAL_CONFIG);
   const [isConfigDirty, setIsConfigDirtyState] = useState(false);
   const isConfigDirtyRef = useRef(false);
@@ -648,8 +648,8 @@ export function AppProvider({ children }) {
       persistedProfileRef.current = null;
       setIsLoggedIn(false);
       setCurrentUser(null);
-      setUserProfile({ id: '', name: '', phone: '', email: '', location: USER_LOCATION });
-      setTempProfile({ id: '', name: '', phone: '', email: '', location: USER_LOCATION });
+      setUserProfile({ id: '', name: '', phone: '', email: '', location: null });
+      setTempProfile({ id: '', name: '', phone: '', email: '', location: null });
       setUserRoles(['customer']);
       setUsercarteira(0);
       setcarteiraAllEntries([]);
@@ -1262,14 +1262,14 @@ export function AppProvider({ children }) {
       const error = signInRes.error;
       if (error) {
         if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_AUTH === 'true') {
-          const prof = { id: 'dev-user-id', name: 'Cliente de teste (Dev)', phone: '0812345678', email: email || 'customer@pedeja.local', location: USER_LOCATION };
+          const prof = { id: 'dev-user-id', name: 'Cliente de teste (Dev)', phone: '0812345678', email: email || 'customer@pedeja.local', location: null };
           setIsLoggedIn(true);
           setCurrentUser({ id: 'dev-user-id', email: prof.email, ...prof, roles: ['customer'] });
           setUserProfile(prof);
           setTempProfile(prof);
           setUserRoles(['customer']);
           setUsercarteira(1000);
-          setUserAddresses([{ id: 1, label: 'Casa', address: 'Adicione a sua morada', location: USER_LOCATION }]);
+          setUserAddresses([{ id: 1, label: 'Casa', address: 'Adicione a sua morada', location: null }]);
           notifySystem('Sessão iniciada (Dev Mode)', 'Bem-vindo ao sistema', 'success');
           return;
         }
