@@ -4,7 +4,7 @@ export function validatePublicEnv(env) {
   const missing = REQUIRED_PUBLIC_ENV.filter((name) => !env[name]?.trim());
   if (missing.length > 0) {
     throw new Error(
-      `BoomRider configuration is incomplete. Missing: ${missing.join(', ')}`,
+      `Pedejá configuration is incomplete. Missing: ${missing.join(', ')}`,
     );
   }
 
