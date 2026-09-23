@@ -38,7 +38,7 @@ export default function AuthView() {
   const [otp, setOtp] = useState('');
   const [otpStage, setOtpStage] = useState(false);
   const [otpPhone, setOtpPhone] = useState('');
-  const emptyAddress = { addressLine1: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null };
+  const emptyAddress = { addressLine1: '', neighborhood: '', municipality: '', city: '', province: '', reference: '', latitude: null, longitude: null, locationResolutionStatus: 'unresolved', locationSource: null };
   const [address, setAddress] = useState(emptyAddress);
   const pendingRegistrationRef = useRef(null);
   const [localAuthLoading, setLocalAuthLoading] = useState(false);
@@ -108,7 +108,7 @@ export default function AuthView() {
       if (pending) {
         try {
           await finishRegistration(pending);
-          notifySystem('Concluído', 'Conta criada e morada confirmada.', 'success');
+          notifySystem('Concluído', 'Conta criada e morada guardada.', 'success');
         } catch (addressError) {
           notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
         }
@@ -152,7 +152,6 @@ export default function AuthView() {
     if (!address.addressLine1.trim()) return notifySystem('Erro', 'Indique a rua/avenida e o número da casa', 'error');
     if (!address.neighborhood.trim()) return notifySystem('Erro', 'Indique o bairro', 'error');
     if (!address.municipality.trim()) return notifySystem('Erro', 'Indique o município', 'error');
-    if (!Number.isFinite(address.latitude) || !Number.isFinite(address.longitude)) return notifySystem('Erro', 'Confirme a localização no mapa antes de continuar', 'error');
     if (!phone) return notifySystem('Erro', 'Indique o telefone', 'error');
     if (!registerForm.password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
     if (registerForm.password.length < 6) return notifySystem('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
@@ -180,7 +179,7 @@ export default function AuthView() {
       if (data.session) {
         try {
           await finishRegistration(registration);
-          notifySystem('Concluído', 'Conta criada e morada confirmada.', 'success');
+          notifySystem('Concluído', 'Conta criada e morada guardada.', 'success');
         } catch (addressError) {
           notifySystem('Conta criada', 'A conta foi criada, mas a morada não foi guardada. Tente novamente na sua conta.', 'error');
         }
