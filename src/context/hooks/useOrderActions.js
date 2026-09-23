@@ -4,7 +4,7 @@ export function useOrderActions(deps) {
   const {
     orders, setOrders,
     cart, setCart,
-    restaurants, riders, appConfig,
+    riders, appConfig,
     currentUser, userProfile, userAddresses, userWallet,
     parcelDetails, setParcelDetails,
     parcelDistance,
