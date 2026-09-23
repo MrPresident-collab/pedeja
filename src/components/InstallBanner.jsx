@@ -75,9 +75,9 @@ export default function InstallBanner() {
     <>
       {/* แบนเนอร์หลัก */}
       <div className="fixed bottom-0 left-0 right-0 z-50 p-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        <div className="bg-white rounded-2xl shadow-2xl border border-orange-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl border border-violet-100 overflow-hidden">
           {/* แถบสีส้มด้านบน */}
-          <div className="h-1 bg-gradient-to-r from-orange-400 to-orange-600" />
+          <div className="h-1 bg-gradient-to-r from-violet-400 to-violet-600" />
 
           <div className="relative flex items-center gap-3 p-4">
             {/* ไอคอนแอป */}
@@ -95,7 +95,7 @@ export default function InstallBanner() {
               <p className="text-gray-500 text-xs mt-0.5 leading-tight">
                 Instale a aplicação para uma experiência melhor
               </p>
-              <p className="text-orange-500 text-xs mt-0.5">
+              <p className="text-violet-500 text-xs mt-0.5">
                 Grátis · leve · mais rápido que o navegador
               </p>
             </div>
@@ -104,7 +104,7 @@ export default function InstallBanner() {
             <div className="flex flex-col gap-2 flex-shrink-0">
               <button
                 onClick={handleInstall}
-                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 bg-violet-500 hover:bg-violet-600 active:bg-orange-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
               >
                 <Download size={14} />
                 Instalar
@@ -133,7 +133,7 @@ export default function InstallBanner() {
       {showIOSHint && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-orange-400 to-orange-600" />
+            <div className="h-1 bg-gradient-to-r from-violet-400 to-violet-600" />
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
                 <p className="font-bold text-gray-900">Como instalar no iPhone / iPad</p>
@@ -143,24 +143,24 @@ export default function InstallBanner() {
               </div>
               <ol className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
                   <span>
                     Toque no botão <Share size={14} className="inline text-blue-500 mx-0.5" />
                     <strong> Partilhar</strong> na barra de menu inferior do Safari
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
                   <span>Deslize para baixo e seleccione <strong>"Adicionar ao ecrã principal"</strong></span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
                   <span>Toque em <strong>"Adicionar"</strong> no canto superior direito</span>
                 </li>
               </ol>
               <button
                 onClick={handleDismiss}
-                className="mt-5 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                className="mt-5 w-full bg-violet-500 hover:bg-violet-600 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
               >
                 Entendido
               </button>
