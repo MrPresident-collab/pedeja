@@ -3,7 +3,7 @@ import {
   ChefHat, LogOut, Camera, ToggleRight, ToggleLeft,
   Plus, Edit, Trash2,
   Image as ImageIcon, MapPin, Loader, Bell,
-  Clock, CheckCircle, History, X, XCircle, Wallet,
+  Clock, CheckCircle, History, X, XCircle, carteira,
   TrendingUp, BarChart2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -36,7 +36,7 @@ export default function MerchantView() {
     showCancelModal, setShowCancelModal,
     selectedOrderToCancel,
     cancelReasonInput, setCancelReasonInput,
-    userWallet, walletHistory,
+    usercarteira, walletHistory,
     isDataLoading,
   } = useApp();
 
@@ -193,7 +193,7 @@ export default function MerchantView() {
           </div>
         )}
 
-        {/* รูปหน้าร้าน */}
+        {/* รูปหน้าestabelecimento */}
         <div className="relative h-36 w-full rounded-xl overflow-hidden mb-3 group">
           <img src={myShop.image} className="w-full h-full object-cover" alt="shop" />
           <label htmlFor="merchant-shop-photo-file" className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-sm font-bold">
@@ -269,7 +269,7 @@ export default function MerchantView() {
             onClick={() => setMerchantTab('wallet')}
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'wallet' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}
           >
-            <Wallet size={13} />
+            <carteira size={13} />
             Carteira
           </button>
           <button
@@ -332,7 +332,7 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── Em preparação / รอEstafeta ───────────────────────────────────────── */}
+      {/* ── Em preparação / aguardarEstafeta ───────────────────────────────────────── */}
       {merchantTab === 'active' && (
         <div className="px-4">
           {activeOrders.length === 0 ? (
@@ -527,7 +527,7 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── Localizaçãoร้านค้า ─────────────────────────────────────────────── */}
+      {/* ── Localizaçãocomerciante ─────────────────────────────────────────────── */}
       {merchantTab === 'location' && (
         <div className="px-4">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-blue-100 mb-4">
@@ -538,7 +538,7 @@ export default function MerchantView() {
               Esta localização é usada para calcular a distância para clientes e distribuir entregas a estafetas num raio de {appConfig?.riderRadius || 5} km. — <strong>A localização deve estar correcta</strong>
             </p>
 
-            {/* ตำแหน่งปัจจุบัน */}
+            {/* localizaçãoactual */}
             <div className="text-xs text-gray-500 mb-3 space-y-0.5">
               <div>
                 📍 Localização actual:{' '}
@@ -553,7 +553,7 @@ export default function MerchantView() {
               )}
             </div>
 
-            {/* แผนที่ */}
+            {/* mapa */}
             <div className="rounded-xl overflow-hidden border-2 border-blue-200 mb-3">
               <InteractiveMap
                 mode="select"
@@ -607,7 +607,7 @@ export default function MerchantView() {
             <p className="font-bold">📋 A localização do estabelecimento afecta:</p>
             <p>• <strong>Cliente</strong> — encontram o estabelecimento ordenado pela distância</p>
             <p>• <strong>Estafeta</strong> — recebem entregas de estabelecimentos num raio de {appConfig?.riderRadius || 5} km</p>
-            <p>• <strong>แผนที่</strong> — o cliente vê o estabelecimento correctamente no mapa</p>
+            <p>• <strong>mapa</strong> — o cliente vê o estabelecimento correctamente no mapa</p>
           </div>
         </div>
       )}
@@ -619,10 +619,10 @@ export default function MerchantView() {
           {/* ยอดคงเหลือ */}
           <div className="bg-gradient-to-r from-green-600 to-green-500 rounded-2xl p-5 mb-4 text-white shadow-lg">
             <div className="flex items-center gap-2 mb-1">
-              <Wallet size={18} />
+              <carteira size={18} />
               <span className="text-green-100 text-sm">Saldo actual</span>
             </div>
-            <div className="text-3xl font-bold">Kz {(userWallet ?? 0).toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold">Kz {(usercarteira ?? 0).toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div className="text-green-200 text-xs mt-1">A receita dos pedidos será creditada automaticamente na carteira</div>
           </div>
 
@@ -630,7 +630,7 @@ export default function MerchantView() {
           <h3 className="font-bold text-base mb-3 text-gray-700">HistóricoTransacções</h3>
           {!walletHistory || walletHistory.length === 0 ? (
             <div className="text-center text-gray-400 py-10">
-              <Wallet size={36} className="mx-auto mb-2 opacity-20" />
+              <carteira size={36} className="mx-auto mb-2 opacity-20" />
               <p className="text-sm">Ainda não existe histórico</p>
               <p className="text-xs mt-1 text-gray-400">A receita aparecerá quando as entregas forem concluídas</p>
             </div>
@@ -659,7 +659,7 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── Estatísticasร้านค้า ───────────────────────────────────────────────── */}
+      {/* ── Estatísticascomerciante ───────────────────────────────────────────────── */}
       {merchantTab === 'analytics' && (() => {
         const done = myOrders.filter(o => ['delivered', 'completed'].includes(o.status));
         const cancelled = myOrders.filter(o => o.status === 'cancelled');
@@ -703,10 +703,10 @@ export default function MerchantView() {
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <p className="text-xs text-gray-400 mb-1">Total</p>
                 <p className="text-xl font-black text-purple-600">Kz {allRevenue.toLocaleString()}</p>
-                <p className="text-xs text-gray-400">{done.length} pedidosสำเร็จ</p>
+                <p className="text-xs text-gray-400">{done.length} pedidosconcluído</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <p className="text-xs text-gray-400 mb-1">pedidosเฉลี่ย</p>
+                <p className="text-xs text-gray-400 mb-1">pedidosmédia</p>
                 <p className="text-xl font-black text-blue-600">Kz {avgOrder.toFixed(0)}</p>
                 <p className="text-xs text-gray-400">ต่อpedidos</p>
               </div>
@@ -766,9 +766,9 @@ export default function MerchantView() {
                 <CheckCircle size={15} className="text-green-500" /> สัดส่วนpedidos
               </h3>
               {[
-                { label: 'สำเร็จ', count: done.length, color: '#22c55e' },
+                { label: 'concluído', count: done.length, color: '#22c55e' },
                 { label: 'Cancelar', count: cancelled.length, color: '#ef4444' },
-                { label: 'กำลังดำเนินการ', count: myOrders.length - done.length - cancelled.length, color: '#3b82f6' },
+                { label: 'Aดำเนิน', count: myOrders.length - done.length - cancelled.length, color: '#3b82f6' },
               ].map(row => (
                 <div key={row.label} className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-gray-500 w-28 shrink-0">{row.label}</span>
@@ -791,7 +791,7 @@ export default function MerchantView() {
             <div className="bg-violet-500 px-5 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2 text-white">
                 <XCircle size={20} />
-                <h3 className="font-bold text-base">ขอCancelarpedidos (รอ Admin Aprovações)</h3>
+                <h3 className="font-bold text-base">ขอCancelarpedidos (aguardar Admin Aprovações)</h3>
               </div>
               <button onClick={() => setShowCancelModal(false)} className="text-white/80 hover:text-white">
                 <X size={20} />
@@ -804,7 +804,7 @@ export default function MerchantView() {
                 <p className="text-xs text-yellow-700">O pedido de cancelamento será enviado ao <strong>Admin</strong> para aprovação. O reembolso será processado após a confirmação.</p>
               </div>
               <p className="text-sm text-gray-600 mb-3">
-                กรุณาระบุเหตุผล เพื่อให้ Admin พิจารณา
+                por favorindiquemotivo เพื่อให้ Admin พิจารณา
               </p>
               <div className="space-y-2 mb-4">
                 {['Produto esgotado / estabelecimento fechado', 'Ingredientes indisponíveis', 'Quantidade encomendada demasiado elevada', 'Outro'].map(preset => (
@@ -832,7 +832,7 @@ export default function MerchantView() {
                 autoComplete="off"
               />
               <p className="text-xs text-gray-400 mt-1.5">
-                * หากClienteชำระผ่าน Wallet ระบบจะคืนเงินให้อัตโนมัติ
+                * หากClienteชำระผ่าน carteira ระบบจะคืนเงินให้อัตโนมัติ
               </p>
             </div>
             {/* Footer */}
@@ -855,7 +855,7 @@ export default function MerchantView() {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                ส่งคำขอถึง Admin
+                entregapedidoถึง Admin
               </button>
             </div>
           </div>
@@ -877,7 +877,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
     delivering:      'bg-cyan-100 text-cyan-800',
   };
 
-  // Cancelarได้เฉพาะก่อนที่Estafetaจะรับงาน
+  // Cancelarได้เฉพาะก่อนที่Estafetaจะaceitar entrega
   const canCancel = ['pending', 'preparing', 'ready_to_pickup'].includes(order.status);
 
   return (
@@ -895,7 +895,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         </span>
       </div>
 
-      {/* รายการสินค้า */}
+      {/* รายสินค้า */}
       <div className="mb-3 text-sm bg-gray-50 rounded-lg p-2">
         {(order.items || []).map((item, idx) => (
           <div key={idx} className="flex justify-between text-xs">
@@ -904,7 +904,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
           </div>
         ))}
         <div className="border-t mt-1.5 pt-1.5 flex justify-between font-bold text-sm">
-          <span>รวม</span>
+          <span>total</span>
           <span className="text-green-600">Kz {order.grandTotal}</span>
         </div>
       </div>
@@ -916,7 +916,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         </div>
       )}
 
-      {/* ── เบอร์ติดต่อ ── */}
+      {/* ── númeroติดต่อ ── */}
       {(order.customerPhone || order.riderId) && (
         <div className="flex flex-wrap gap-2 mb-2">
           {order.customerPhone && (
@@ -949,7 +949,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
             onClick={() => updateOrderStatus(order.id, 'preparing')}
             className="flex-1 bg-violet-500 text-white py-2 rounded-lg font-bold text-xs hover:bg-violet-600 active:scale-95 transition-all"
           >
-            ✅ รับpedidos
+            ✅ recolhapedidos
           </button>
         )}
         {order.status === 'preparing' && (
@@ -962,27 +962,27 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         )}
         {order.status === 'ready_to_pickup' && (
           <div className="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            ⏳ รอEstafetaรับงาน...
+            ⏳ aguardarEstafetaaceitar entrega...
           </div>
         )}
         {order.status === 'rider_accepted' && (
           <div className="flex-1 bg-indigo-50 text-indigo-600 border border-indigo-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🛵 Estafetaกำลังมารับอาหาร
+            🛵 EstafetaAมาrecolhacomida
           </div>
         )}
         {order.status === 'picking_up' && (
           <div className="flex-1 bg-purple-50 text-purple-700 border border-purple-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🏪 Estafetaถึงร้านแล้ว / รอรับอาหาร
+            🏪 Estafetaถึงestabelecimentoconcluído / aguardarrecolhacomida
           </div>
         )}
         {['delivering', 'delivered', 'completed'].includes(order.status) && (
           <div className="flex-1 bg-indigo-50 text-indigo-600 border border-indigo-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🛵 Estafetaกำลังส่ง
+            🛵 EstafetaAentrega
           </div>
         )}
       </div>
 
-      {/* ปุ่มCancelar — แสดงเฉพาะก่อนEstafetaรับงาน */}
+      {/* ปุ่มCancelar — แสดงเฉพาะก่อนEstafetaaceitar entrega */}
       {canCancel && (
         <button
           onClick={() => onCancel(order.id)}
