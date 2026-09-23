@@ -27,7 +27,8 @@ export const INITIAL_CONFIG = {
   adminPaymentReference: ""
 };
 
-export const USER_LOCATION = { lat: -8.8383, lng: 13.2344 };
+// No fabricated/default customer coordinates. Location is resolved from an address or an explicit device signal.
+export const USER_LOCATION = null;
 
 // Pedejá V1 product surface. Legacy BoomRider capabilities remain in the codebase
 // but are intentionally not exposed in the current customer experience.
