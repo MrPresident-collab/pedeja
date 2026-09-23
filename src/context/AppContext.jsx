@@ -7,7 +7,7 @@ import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrder
 import { supabase } from '../lib/supabase';
 import { canApplyOrderUpdate, ORDER_STATUS_RANK } from '../domain/orderStatus';
 
-import { usecarteiraActions }  from './hooks/usecarteiraActions';
+import { useCarteiraActions }  from './hooks/usecarteiraActions';
 import { useOrderActions }   from './hooks/useOrderActions';
 import { useAdminActions }   from './hooks/useAdminActions';
 import { usePhotoHandlers }  from './hooks/usePhotoHandlers';
@@ -319,7 +319,7 @@ export function AppProvider({ children }) {
   }, [currentUser?.id, currentUser?.email]);
 
   // ── carteira hook ─────────────────────────────────────────────────────────────
-  const { creditcarteira, creditcarteiraLocal, processTransaction, requestTopUp, requestWithdraw, adminAdjustcarteira } = usecarteiraActions({
+  const { creditcarteira, creditcarteiraLocal, processTransaction, requestTopUp, requestWithdraw, adminAdjustcarteira } = useCarteiraActions({
     currentUser, currentUserRef,
     userProfile, usercarteira, pendingRequests,
     setUsercarteira, setcarteiraAllEntries, setGlobalcarteiras, setPendingRequests,
