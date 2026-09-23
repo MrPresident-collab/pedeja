@@ -1,0 +1,15 @@
+{
+  "name": "@pedeja/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Pedejá application contracts. No UI, persistence, or authorization logic.",
+  "exports": {
+    ".": "./src/index.js",
+    "./address": "./src/address.js",
+    "./capabilities": "./src/capabilities.js",
+    "./delivery": "./src/delivery.js",
+    "./orders": "./src/orders.js",
+    "./services": "./src/services.js"
+  }
+}
