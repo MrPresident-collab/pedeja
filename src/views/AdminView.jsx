@@ -227,14 +227,14 @@ export default function AdminView() {
   }, [adminTab, txRefreshKey]);  
 
   const handleClearTransactions = async () => {
-    if (!window.confirm('ล้างHistóricoTransacçõesทั้งระบบใช่หรือไม่?')) return;
+    if (!window.confirm('ล้างHistóricoTransacçõesทั้งระบบConfirma?')) return;
     const { data: wallets } = await supabase.from('wallets').select('user_id');
     if (wallets?.length) {
       await Promise.all(wallets.map(w => supabase.rpc('clear_wallet_history', { p_user_id: w.user_id })));
     }
     setTxList([]);
     setTxRefreshKey(k => k + 1);
-    notifySystem('ล้างข้อมูล', 'ล้างGuardarTransacçõesเรียบร้อยแล้ว', 'success');
+    notifySystem('Limpar dados', 'ล้างGuardarTransacçõesเรียบร้อยแล้ว', 'success');
   };
 
   // ── Purge state ───────────────────────────────────────────────────────────
@@ -280,10 +280,10 @@ export default function AdminView() {
         throw new Error('การลบบัญชีต้องทำผ่าน Supabase Auth Admin เพื่อป้องกันบัญชีค้าง');
       }
       await Promise.all(tasks);
-      setPurgeResult({ ok: true, summary: 'เสร็จสิ้น' });
-      notifySystem('ล้างข้อมูล ✅', 'ลบข้อมูลที่เลือกSairจากระบบเรียบร้อยแล้ว', 'success');
+      setPurgeResult({ ok: true, summary: 'Concluído' });
+      notifySystem('Limpar dados ✅', 'ลบข้อมูลที่เลือกSairจากระบบเรียบร้อยแล้ว', 'success');
     } catch (err) {
-      setPurgeResult({ ok: false, summary: `ผิดพลาด: ${err?.message || 'unknown'}` });
+      setPurgeResult({ ok: false, summary: `Erro: ${err?.message || 'unknown'}` });
     } finally {
       setPurgeLoading(false);
       setShowPurgeModal(false);
@@ -313,10 +313,10 @@ export default function AdminView() {
 
     // Validation
     if ([appRadius, restaurantRadius, riderRadius, baseFee, perKmFee, rideBaseFee, ridePerKmFee].some(v => isNaN(v) || v < 0)) {
-      return notifySystem('ผิดพลาด', 'รัศมีให้Serviçoและค่าธรรมเนียมต้องเป็นตัวเลขที่ไม่ติดลบ', 'error');
+      return notifySystem('Erro', 'รัศมีให้Serviçoและค่าธรรมเนียมต้องเป็นตัวเลขที่ไม่ติดลบ', 'error');
     }
     if ([gpFood, gpDelivery, gpRide, gpService].some(v => isNaN(v) || v < 0 || v > 100)) {
-      return notifySystem('ผิดพลาด', 'อัตรา GP ต้องอยู่ระหว่าง 0% ถึง 100%', 'error');
+      return notifySystem('Erro', 'A taxa GP deve estar entre 0% e 100%', 'error');
     }
 
     const cleanedConfig = {
@@ -341,18 +341,18 @@ export default function AdminView() {
       .single();
     if (error) {
       console.error('Failed to save app_config to Supabase:', error);
-      return notifySystem('ผิดพลาด', `Guardarข้อมูลไม่สำเร็จ: ${error.message}`, 'error');
+      return notifySystem('Erro', `Guardarข้อมูลไม่Concluído: ${error.message}`, 'error');
     }
 
     const persistedConfig = savedRow?.data || cleanedConfig;
     setAppConfig(persistedConfig);
     setEditConfig(persistedConfig);
     setIsConfigDirty(false);
-    notifySystem('สำเร็จ', 'GuardarการDefiniçõesระบบเรียบร้อยแล้ว', 'success');
+    notifySystem('Concluído', 'GuardarการDefiniçõesระบบเรียบร้อยแล้ว', 'success');
   };
 
   // ── Derived metrics ──────────────────────────────────────────────────────
-  // นับเฉพาะ orders ที่สำเร็จ (ไม่นับCancelar/pending)
+  // นับเฉพาะ orders ที่Concluído (ไม่นับCancelar/pending)
   const completedOrders = orders.filter(o => ['completed', 'delivered'].includes(o.status));
   const totalGP   = completedOrders.reduce((s, o) => s + (o.adminGP || 0), 0);
   const gmv       = completedOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
@@ -438,7 +438,7 @@ export default function AdminView() {
   };
 
   const handleClearUserWalletHistory = async (userId, userName) => {
-    if (!window.confirm(`ล้างHistóricoCarteiraของ ${userName} ใช่หรือไม่?\n(รายการจะถูกซ่อน — ยอดเงินคงเดิม)`)) return;
+    if (!window.confirm(`ล้างHistóricoCarteiraของ ${userName} Confirma?\n(Os registos serão ocultados — o saldo permanece igual)`)) return;
     await supabase.rpc('clear_wallet_history', { p_user_id: userId });
     setUserWalletEntries(prev => ({ ...prev, [userId]: [] }));
     notifySystem('Admin', `ล้างHistóricoCarteiraของ ${userName} แล้ว`, 'success');
@@ -447,19 +447,19 @@ export default function AdminView() {
   const handleResetPassword = async () => {
     if (!resetPwdUserId) return;
     const user = allUsers.find(u => u.id === resetPwdUserId);
-    if (!user?.email) return notifySystem('ผิดพลาด', 'ไม่พบอีเมลของUtilizadores', 'error');
+    if (!user?.email) return notifySystem('Erro', 'ไม่พบอีเมลของUtilizadores', 'error');
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${import.meta.env.VITE_APP_URL || window.location.origin}/reset-password`,
     });
-    if (error) return notifySystem('ผิดพลาด', error.message, 'error');
+    if (error) return notifySystem('Erro', error.message, 'error');
     setResetPwdUserId(null);
-    notifySystem('สำเร็จ', `ส่งอีเมลรีเซ็ตรหัสผ่านไปยัง ${user.email} แล้ว`, 'success');
+    notifySystem('Concluído', `ส่งอีเมลรีเซ็ตรหัสผ่านไปยัง ${user.email} แล้ว`, 'success');
   };
 
   const handleAdjust = async () => {
     const amt = parseFloat(adjustAmount);
     if (!adjustUserId || isNaN(amt) || amt === 0 || !adjustDesc) {
-      return notifySystem('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบ', 'error');
+      return notifySystem('Erro', 'Preencha todos os campos', 'error');
     }
     await adminAdjustWallet(adjustUserId, amt, adjustDesc);
     setAdjustUserId(null);
@@ -471,7 +471,7 @@ export default function AdminView() {
   // ── Create promo ──────────────────────────────────────────────────────────
   const handleCreatePromo = () => {
     if (!promoForm.code || !promoForm.value) {
-      return notifySystem('ผิดพลาด', 'กรุณากรอกโค้ดและมูลค่า', 'error');
+      return notifySystem('Erro', 'Indique o código e o valor', 'error');
     }
     createPromoCode({ ...promoForm, value: parseFloat(promoForm.value), minOrder: parseFloat(promoForm.minOrder || 0), maxUses: parseInt(promoForm.maxUses || 100), maxDiscount: parseFloat(promoForm.maxDiscount || 9999) });
     setPromoForm({ code: '', type: 'percent', value: 10, minOrder: 0, maxUses: 100, maxDiscount: 500, expiry: '', description: '' });
@@ -528,7 +528,7 @@ export default function AdminView() {
             const ridersActive   = riders.filter(r => r.status === 'active');
             const pendingCount   = pendingRequests.length;
             const alerts         = [];
-            if (pendingMerchant.length > 0) alerts.push(`⚠️ ${pendingMerchant.length} ออเดอร์รอร้านค้าตอบรับ`);
+            if (pendingMerchant.length > 0) alerts.push(`⚠️ ${pendingMerchant.length} ออเดอร์รอComercianteค้าตอบรับ`);
             if (waitingDispatch.length > 0) alerts.push(`⚠️ ${waitingDispatch.length} ออเดอร์รอEstafeta (ยังไม่มีการจ่ายงาน)`);
             if (pendingCount > 0) alerts.push(`🔔 ${pendingCount} คำขอรอAprovações`);
             return (
@@ -540,11 +540,11 @@ export default function AdminView() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                   <div className="bg-orange-50 rounded-lg p-3 text-center">
                     <div className="text-xl font-black text-violet-600">{activeOrders.length}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">ออเดอร์ Active</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Pedidos activos</div>
                   </div>
                   <div className={`rounded-lg p-3 text-center ${waitingDispatch.length > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
                     <div className={`text-xl font-black ${waitingDispatch.length > 0 ? 'text-red-600' : 'text-green-600'}`}>{waitingDispatch.length}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">รอจ่ายงาน</div>
+                    <div className="text-xs text-gray-500 mt-0.5">A aguardar distribuição</div>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-3 text-center">
                     <div className="text-xl font-black text-blue-600">{ridersOnline.length} / {ridersActive.length}</div>
@@ -563,23 +563,23 @@ export default function AdminView() {
                   </div>
                 )}
                 {alerts.length === 0 && (
-                  <div className="text-xs text-green-700 font-semibold bg-green-50 rounded-lg px-3 py-1.5">✅ ระบบทำงานปกติ ไม่มีการแจ้งเตือน</div>
+                  <div className="text-xs text-green-700 font-semibold bg-green-50 rounded-lg px-3 py-1.5">✅ Sistema operacional, sem alertas</div>
                 )}
               </div>
             );
           })()}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="GP líquido (concluído)" value={`฿${totalGP.toLocaleString()}`}       color="green"  icon={DollarSign} />
-            <StatCard label="GMV (ออเดอร์จบแล้ว)"  value={`฿${gmv.toLocaleString()}`}           color="blue"   icon={TrendingUp} />
+            <StatCard label="GP líquido (concluído)" value={`Kz ${totalGP.toLocaleString()}`}       color="green"  icon={DollarSign} />
+            <StatCard label="GMV (pedidos concluídos)"  value={`Kz ${gmv.toLocaleString()}`}           color="blue"   icon={TrendingUp} />
             <StatCard label="ออเดอร์ทั้งEsgotado"       value={totalOrdersCount}                     color="orange" icon={ShoppingBag} />
             <StatCard label="Estafetas activos"        value={riders.filter(r => r.status === 'active').length} color="purple" icon={Bike} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard label="ออเดอร์วันนี้ (ทั้งEsgotado)" value={todayOrders.length}               color="orange" icon={ShoppingBag} />
-            <StatCard label="GMV วันนี้ (จบแล้ว)"    value={`฿${todayGMV.toLocaleString()}`}  color="blue"   icon={DollarSign} />
-            <StatCard label="GP วันนี้ (จบแล้ว)"     value={`฿${todayGP.toLocaleString()}`}   color="green"  icon={TrendingUp} />
-            <StatCard label="ร้านค้าทั้งEsgotado"         value={restaurants.length}               color="purple" icon={ChefHat} />
+            <StatCard label="GMV hoje (concluído)"    value={`Kz ${todayGMV.toLocaleString()}`}  color="blue"   icon={DollarSign} />
+            <StatCard label="GP hoje (concluído)"     value={`Kz ${todayGP.toLocaleString()}`}   color="green"  icon={TrendingUp} />
+            <StatCard label="Comercianteค้าทั้งEsgotado"         value={restaurants.length}               color="purple" icon={ChefHat} />
           </div>
           {/* ── Carteiraเงิน Admin (GP สะสม) ───────────────────────────────── */}
           {(() => {
@@ -597,7 +597,7 @@ export default function AdminView() {
                     <h2 className="font-bold text-gray-700">Carteiraเงิน Admin — Platform GP</h2>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">฿{adminBal.toLocaleString()}</div>
+                    <div className="text-2xl font-bold text-green-600">Kz {adminBal.toLocaleString()}</div>
                     <div className="text-xs text-gray-400">{displayHistory.length} รายการ</div>
                   </div>
                 </div>
@@ -605,7 +605,7 @@ export default function AdminView() {
                   <div className="p-8 text-center text-gray-400">
                     <Wallet size={36} className="mx-auto mb-2 opacity-20" />
                     <p className="text-sm">ยังไม่มีHistóricoTransacções</p>
-                    <p className="text-xs mt-1">GP จะถูก Credit อัตโนมัติเมื่อออเดอร์ส่งสำเร็จ</p>
+                    <p className="text-xs mt-1">GP จะถูก Credit อัตโนมัติเมื่อออเดอร์ส่งConcluído</p>
                   </div>
                 ) : (
                   <div className="overflow-y-auto max-h-60">
@@ -630,10 +630,10 @@ export default function AdminView() {
                                 <div className="text-xs text-gray-700">{label}</div>
                               </td>
                               <td className={`p-3 text-right font-bold text-sm ${amt > 0 ? 'text-green-600' : amt < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                {amt > 0 ? '+' : amt < 0 ? '-' : ''}฿{Math.abs(amt).toLocaleString()}
+                                {amt > 0 ? '+' : amt < 0 ? '-' : ''}Kz {Math.abs(amt).toLocaleString()}
                               </td>
                               <td className="p-3 text-right text-xs text-gray-400">
-                                {balAfter != null ? `฿${Number(balAfter).toLocaleString()}` : '—'}
+                                {balAfter != null ? `Kz ${Number(balAfter).toLocaleString()}` : '—'}
                               </td>
                             </tr>
                           );
@@ -694,7 +694,7 @@ export default function AdminView() {
                           {order.status === 'cancelled' && <div className="text-xs text-red-400 mt-1">{order.cancelReason}</div>}
                           {order.paymentMethod === 'cash' && <div className="text-xs text-blue-600 mt-1 font-bold">COD</div>}
                         </td>
-                        <td className="p-4 text-right font-bold">฿{(order.grandTotal || 0).toLocaleString()}</td>
+                        <td className="p-4 text-right font-bold">Kz {(order.grandTotal || 0).toLocaleString()}</td>
                         <td className="p-4 text-right">
                           {!['cancelled', 'delivered', 'completed'].includes(order.status) && (
                             <button onClick={() => initiateCancelOrder(order.id)} className="text-red-500 hover:bg-red-50 text-xs px-2 py-1 rounded border border-red-200">Cancelar</button>
@@ -755,7 +755,7 @@ export default function AdminView() {
               )}
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Top Estafeta (งานส่งสำเร็จ)</h2>
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Top Estafeta (งานส่งConcluído)</h2>
               {topRiders.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
                 topRiders.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRiderCnt} color="#3b82f6" />
@@ -796,10 +796,10 @@ export default function AdminView() {
                 const serviceGP = service.reduce((s, o) => s + getAdminGP(o), 0);
                 return (
                   <>
-                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP จากอาหาร</p><p className="text-xl font-bold text-orange-700">฿{foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
-                    <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP จากพัสดุ</p><p className="text-xl font-bold text-blue-700">฿{parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} ออเดอร์</p></div>
-                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากViagem</p><p className="text-xl font-bold text-purple-700">฿{rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
-                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากServiço</p><p className="text-xl font-bold text-emerald-700">฿{serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
+                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP จากcomida</p><p className="text-xl font-bold text-orange-700">Kz {foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
+                    <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP de encomendas</p><p className="text-xl font-bold text-blue-700">Kz {parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} ออเดอร์</p></div>
+                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากViagem</p><p className="text-xl font-bold text-purple-700">Kz {rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
+                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากServiço</p><p className="text-xl font-bold text-emerald-700">Kz {serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
                   </>
                 );
               })()}
@@ -814,7 +814,7 @@ export default function AdminView() {
               </h2>
               <div className="flex items-center gap-3">
                 {walletRows.length > 0 && (
-                  <span className="text-xs text-gray-400">{walletRows.length} Carteira · รวม ฿{walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
+                  <span className="text-xs text-gray-400">{walletRows.length} Carteira · รวม Kz {walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
                 )}
                 <button onClick={loadWalletOverview} className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200">
                   รีเฟรช
@@ -863,12 +863,12 @@ export default function AdminView() {
                         {/* GP badge */}
                         {totalGP > 0 && (
                           <div className="text-[11px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded shrink-0">
-                            GP +฿{totalGP.toLocaleString()}
+                            GP +Kz {totalGP.toLocaleString()}
                           </div>
                         )}
                         {/* balance */}
                         <span className={`text-sm font-bold shrink-0 ml-1 ${row.balance < 0 ? 'text-red-600' : row.balance > 0 ? 'text-green-700' : 'text-gray-400'}`}>
-                          ฿{row.balance.toLocaleString('th-TH',{minimumFractionDigits:2})}
+                          Kz {row.balance.toLocaleString('pt-AO',{minimumFractionDigits:2})}
                         </span>
                         <span className="text-gray-300 text-xs">{isExpanded ? '▲' : '▼'}</span>
                       </div>
@@ -892,7 +892,7 @@ export default function AdminView() {
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0 ml-2">
                                   <span className={`font-bold ${(e.amount||0)>=0?'text-green-600':'text-red-500'}`}>
-                                    {(e.amount||0)>=0?'+':''}{(e.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}
+                                    {(e.amount||0)>=0?'+':''}{(e.amount||0).toLocaleString('pt-AO',{minimumFractionDigits:2})}
                                   </span>
                                   <span className="text-gray-300 text-[10px]">{(e.date||'').slice(0,16)}</span>
                                 </div>
@@ -919,7 +919,7 @@ export default function AdminView() {
                   <h2 className="font-bold text-gray-700 flex items-center gap-2">
                     <TrendingUp size={18} className="text-green-600" /> GP เข้า Admin
                   </h2>
-                  <span className="text-lg font-bold text-green-600">+฿{totalGP.toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
+                  <span className="text-lg font-bold text-green-600">+Kz {totalGP.toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
                 </div>
                 <div className="divide-y max-h-64 overflow-y-auto">
                   {gpHistory.slice(0,100).map((e, i) => (
@@ -931,7 +931,7 @@ export default function AdminView() {
                           {e.refOrderId && <span className="ml-2 font-mono text-gray-300">#{e.refOrderId.slice(-6)}</span>}
                         </div>
                       </div>
-                      <span className="text-sm font-bold text-green-600 shrink-0">+฿{(e.amount||0).toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
+                      <span className="text-sm font-bold text-green-600 shrink-0">+Kz {(e.amount||0).toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
                     </div>
                   ))}
                 </div>
@@ -982,7 +982,7 @@ export default function AdminView() {
                           req.type === 'cancel_order'   ? '🚫 ขอCancelarออเดอร์'  :
                           req.type === 'topup'          ? '💰 เติมเงิน'          :
                           req.type === 'withdraw'       ? '💸 ถอนเงิน'           :
-                          req.type === 'merchant_reg'   ? '🏪 สมัครร้านค้า'      :
+                          req.type === 'merchant_reg'   ? '🏪 สมัครComercianteค้า'      :
                           req.type === 'rider_reg'      ? '🛵 สมัครEstafeta'      :
                           req.type
                         }</span>
@@ -992,8 +992,8 @@ export default function AdminView() {
                         {req.type === 'cancel_order'
                           ? `ขอCancelar #${req.data.orderId?.slice(-8)} — ${req.data.orderType === 'parcel' ? '📦 Entrega de encomenda' : `🍜 ${req.data.restaurantName}`}`
                           : req.type === 'withdraw'
-                            ? `แจ้งถอนเงิน: ฿${Number(req.data.amount).toLocaleString()}`
-                            : (req.data.shopName ? `ร้าน: ${req.data.shopName}` : req.data.realName ? `ผู้สมัคร: ${req.data.realName}` : `฿${req.data.amount}`)}
+                            ? `แจ้งถอนเงิน: Kz ${Number(req.data.amount).toLocaleString()}`
+                            : (req.data.shopName ? `Comerciante: ${req.data.shopName}` : req.data.realName ? `Candidato: ${req.data.realName}` : `Kz ${req.data.amount}`)}
                       </div>
                       {/* cancel_order details */}
                       {req.type === 'cancel_order' && (
@@ -1008,19 +1008,19 @@ export default function AdminView() {
                           </p>
                           <p className="text-sm text-gray-700">
                             <span className="text-gray-400 text-xs">ยอดเงิน: </span>
-                            <strong>฿{(req.data.grandTotal || 0).toLocaleString()}</strong>
+                            <strong>Kz {(req.data.grandTotal || 0).toLocaleString()}</strong>
                             <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-semibold bg-gray-100 text-gray-600">
-                              {req.data.paymentMethod === 'wallet' ? '👛 Wallet' : '💵 เงินสด'}
+                              {req.data.paymentMethod === 'wallet' ? '👛 Wallet' : '💵 Numerário'}
                             </span>
                           </p>
                           {req.data.paymentMethod === 'wallet' && req.data.grandTotal > 0 && (
                             <p className="text-xs text-violet-600 font-semibold bg-orange-50 px-2 py-1 rounded border border-violet-200">
-                              ⚠️ Aprovações = คืนเงิน ฿{(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet Cliente
+                              ⚠️ Aprovações = คืนเงิน Kz {(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet Cliente
                             </p>
                           )}
                           {req.data.paymentMethod === 'cash' && (
                             <p className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
-                              ✅ ชำระเงินสด — ไม่ต้องคืนเงิน
+                              ✅ ชำระNumerário — ไม่ต้องคืนเงิน
                             </p>
                           )}
                         </div>
@@ -1064,9 +1064,9 @@ export default function AdminView() {
                           )}
                           {req.data.shopImage && (
                             req.data.shopImage.startsWith('data:') || req.data.shopImage.startsWith('http') ? (
-                              <button onClick={() => openImagePreview(req.data.shopImage)} className="text-blue-500 text-xs underline flex items-center gap-1 mt-1"><ImageIcon size={12} /> ดูรูปหน้าร้าน</button>
+                              <button onClick={() => openImagePreview(req.data.shopImage)} className="text-blue-500 text-xs underline flex items-center gap-1 mt-1"><ImageIcon size={12} /> ดูรูปหน้าComerciante</button>
                             ) : (
-                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบรูปหน้าร้านแล้ว (ไฟล์ขนาดใหญ่)</span>
+                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบรูปหน้าComercianteแล้ว (ไฟล์ขนาดใหญ่)</span>
                             )
                           )}
                         </div>
@@ -1080,7 +1080,7 @@ export default function AdminView() {
                               <span className="text-gray-400 animate-pulse">กำลังโหลดยอด Wallet…</span>
                             ) : (
                               <span className={`${req.type === 'withdraw' && walletEntry.balance < Number(req.data.amount) ? 'text-red-600' : 'text-blue-600'}`}>
-                                ยอด Wallet ปัจจุบัน: ฿{walletEntry.balance.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ยอด Wallet actual: Kz {walletEntry.balance.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 {req.type === 'withdraw' && walletEntry.balance < Number(req.data.amount) && (
                                   <span className="ml-1 text-red-500 font-bold"> ⚠️ ยอดไม่พอ</span>
                                 )}
@@ -1102,7 +1102,7 @@ export default function AdminView() {
                       >
                         {approvingId === req.id ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> กำลังAprovações...</> : <><Check size={16} /> Aprovações</>}
                       </button>
-                      <button onClick={() => initiateRejectRequest(req.id)} disabled={!!approvingId} className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}><XCircle size={16} /> ปฏิเสธ</button>
+                      <button onClick={() => initiateRejectRequest(req.id)} disabled={!!approvingId} className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}><XCircle size={16} /> Recusar</button>
                     </div>
                   </div>
                 </div>
@@ -1144,7 +1144,7 @@ export default function AdminView() {
                             ))}
                           </div>
                           <div className="text-xs text-gray-400 mt-0.5">{user.email || user.phone || 'ไม่มีข้อมูล'}</div>
-                          <div className="text-sm font-bold text-green-600 mt-0.5">Wallet: ฿{(user.walletBalance || 0).toLocaleString()}</div>
+                          <div className="text-sm font-bold text-green-600 mt-0.5">Wallet: Kz {(user.walletBalance || 0).toLocaleString()}</div>
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
@@ -1214,17 +1214,17 @@ export default function AdminView() {
                       <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-200 animate-fade-in space-y-3">
                         <p className="text-xs font-bold text-gray-600">ปรับยอด Wallet ของ {user.name}</p>
                         <div className="flex gap-2">
-                          <label htmlFor="admin-adjust-amount-input" className="sr-only">จำนวนเงิน</label>
+                          <label htmlFor="admin-adjust-amount-input" className="sr-only">Valor</label>
                           <input
                             id="admin-adjust-amount-input"
                             name="adjustAmount"
                             type="number"
-                            placeholder="จำนวนเงิน (ใส่ - เพื่อหัก)"
+                            placeholder="Valor (ใส่ - เพื่อหัก)"
                             value={adjustAmount}
                             onChange={e => setAdjustAmount(e.target.value)}
                             className="flex-1 border p-2 rounded text-sm"
                             autoComplete="off"
-                            aria-label="จำนวนเงิน"
+                            aria-label="Valor"
                           />
                           <label htmlFor="admin-adjust-desc-input" className="sr-only">คำอธิบาย</label>
                           <input
@@ -1279,7 +1279,7 @@ export default function AdminView() {
                                       <div className="text-gray-400 text-[10px]">{entry.createdAtMs ? formatDateTimeFromMs(entry.createdAtMs) : (entry.date || '')}</div>
                                     </div>
                                     <span className={`font-bold flex-shrink-0 ${amt >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                      {amt >= 0 ? '+' : ''}฿{Math.abs(amt).toLocaleString()}
+                                      {amt >= 0 ? '+' : ''}Kz {Math.abs(amt).toLocaleString()}
                                     </span>
                                   </div>
                                 );
@@ -1308,8 +1308,8 @@ export default function AdminView() {
                 <div key={rest.id} className="border rounded-xl p-3">
                   {editingShop === rest.id ? (
                     <div className="space-y-2">
-                      <label htmlFor="admin-shop-name-input" className="sr-only">ชื่อร้าน</label>
-                      <input id="admin-shop-name-input" name="shopName" value={shopEditForm.name || ''} onChange={e => setShopEditForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อร้าน" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="ชื่อร้าน" />
+                      <label htmlFor="admin-shop-name-input" className="sr-only">ชื่อComerciante</label>
+                      <input id="admin-shop-name-input" name="shopName" value={shopEditForm.name || ''} onChange={e => setShopEditForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อComerciante" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="ชื่อComerciante" />
                       <label htmlFor="admin-shop-phone-input" className="sr-only">เบอร์โทร</label>
                       <input id="admin-shop-phone-input" name="shopPhone" value={shopEditForm.phone || ''} onChange={e => setShopEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="เบอร์โทร" className="w-full border p-2 rounded text-sm" autoComplete="tel" aria-label="เบอร์โทร" />
                       <label htmlFor="admin-shop-category-select" className="sr-only">หมวดหมู่</label>
@@ -1339,7 +1339,7 @@ export default function AdminView() {
                         <button onClick={() => { setEditingShop(rest.id); setShopEditForm({ name: rest.name, phone: rest.phone, category: rest.category, time: rest.time }); }} className="p-1.5 bg-blue-100 text-blue-600 rounded" title="แก้ไข"><Edit size={14} /></button>
                         <button onClick={() => toggleRestaurantStatus(rest.id, 'toggle_open')} className={`p-1.5 rounded ${rest.status === 'open' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'}`} title="เปิด/ปิด"><Power size={14} /></button>
                         <button onClick={() => toggleRestaurantStatus(rest.id, 'ban')} className={`p-1.5 rounded ${rest.status === 'banned' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`} title="แบน"><Ban size={14} /></button>
-                        <button onClick={() => { if (window.confirm(`ลบร้าน "${rest.name}" Sairจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="ลบร้านค้า"><Trash2 size={14} /></button>
+                        <button onClick={() => { if (window.confirm(`ลบComerciante "${rest.name}" Sairจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="ลบComercianteค้า"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   )}
@@ -1386,12 +1386,12 @@ export default function AdminView() {
                 <label htmlFor="admin-promo-type" className="block text-sm font-medium mb-1">ประเภทส่วนลด</label>
                 <select id="admin-promo-type" name="type" value={promoForm.type} onChange={e => setPromoForm(f => ({ ...f, type: e.target.value }))} className="w-full border p-2 rounded-lg">
                   <option value="percent">เปอร์เซ็นต์ (%)</option>
-                  <option value="fixed">จำนวนเงิน (฿)</option>
+                  <option value="fixed">Valor (Kz )</option>
                 </select>
               </div>
-              <div><label htmlFor="admin-promo-value" className="block text-sm font-medium mb-1">มูลค่า ({promoForm.type === 'percent' ? '%' : '฿'})</label><input id="admin-promo-value" name="value" type="number" value={promoForm.value} onChange={e => setPromoForm(f => ({ ...f, value: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-              <div><label htmlFor="admin-promo-minorder" className="block text-sm font-medium mb-1">ยอดขั้นต่ำ (฿)</label><input id="admin-promo-minorder" name="minOrder" type="number" value={promoForm.minOrder} onChange={e => setPromoForm(f => ({ ...f, minOrder: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-              {promoForm.type === 'percent' && <div><label htmlFor="admin-promo-maxdiscount" className="block text-sm font-medium mb-1">ส่วนลดสูงสุด (฿)</label><input id="admin-promo-maxdiscount" name="maxDiscount" type="number" value={promoForm.maxDiscount} onChange={e => setPromoForm(f => ({ ...f, maxDiscount: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>}
+              <div><label htmlFor="admin-promo-value" className="block text-sm font-medium mb-1">มูลค่า ({promoForm.type === 'percent' ? '%' : 'Kz '})</label><input id="admin-promo-value" name="value" type="number" value={promoForm.value} onChange={e => setPromoForm(f => ({ ...f, value: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              <div><label htmlFor="admin-promo-minorder" className="block text-sm font-medium mb-1">ยอดขั้นต่ำ (Kz )</label><input id="admin-promo-minorder" name="minOrder" type="number" value={promoForm.minOrder} onChange={e => setPromoForm(f => ({ ...f, minOrder: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              {promoForm.type === 'percent' && <div><label htmlFor="admin-promo-maxdiscount" className="block text-sm font-medium mb-1">ส่วนลดสูงสุด (Kz )</label><input id="admin-promo-maxdiscount" name="maxDiscount" type="number" value={promoForm.maxDiscount} onChange={e => setPromoForm(f => ({ ...f, maxDiscount: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>}
               <div><label htmlFor="admin-promo-maxuses" className="block text-sm font-medium mb-1">จำนวนครั้งที่ใช้ได้</label><input id="admin-promo-maxuses" name="maxUses" type="number" value={promoForm.maxUses} onChange={e => setPromoForm(f => ({ ...f, maxUses: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               <div><label htmlFor="admin-promo-expiry" className="block text-sm font-medium mb-1">Esgotadoอายุ</label><input id="admin-promo-expiry" name="expiry" type="date" value={promoForm.expiry} onChange={e => setPromoForm(f => ({ ...f, expiry: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
             </div>
@@ -1418,9 +1418,9 @@ export default function AdminView() {
                       </div>
                       <div className="text-sm text-gray-600 mt-1">{promo.description || '-'}</div>
                       <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-500">
-                        <span>ส่วนลด: <strong>{promo.type === 'percent' ? `${promo.value}%` : `฿${promo.value}`}</strong></span>
-                        {promo.minOrder > 0 && <span>ขั้นต่ำ: <strong>฿{promo.minOrder}</strong></span>}
-                        {promo.type === 'percent' && promo.maxDiscount < 9999 && <span>สูงสุด: <strong>฿{promo.maxDiscount}</strong></span>}
+                        <span>ส่วนลด: <strong>{promo.type === 'percent' ? `${promo.value}%` : `Kz ${promo.value}`}</strong></span>
+                        {promo.minOrder > 0 && <span>ขั้นต่ำ: <strong>Kz {promo.minOrder}</strong></span>}
+                        {promo.type === 'percent' && promo.maxDiscount < 9999 && <span>สูงสุด: <strong>Kz {promo.maxDiscount}</strong></span>}
                         <span>ใช้แล้ว: <strong>{promo.usedCount || 0}/{promo.maxUses}</strong></span>
                         {promo.expiry && <span>Esgotadoอายุ: <strong>{promo.expiry}</strong></span>}
                       </div>
@@ -1511,12 +1511,12 @@ export default function AdminView() {
             </div>
           )}
 
-          {/* Merchant chats (Cliente ↔ ร้านค้า) */}
+          {/* Merchant chats (Cliente ↔ Comercianteค้า) */}
           {merchantChats.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-orange-50">
                 <h3 className="font-bold flex items-center gap-2 text-orange-700">
-                  <MessageSquare size={16} /> Cliente ↔ ร้านค้า ({merchantChats.length})
+                  <MessageSquare size={16} /> Cliente ↔ Comercianteค้า ({merchantChats.length})
                 </h3>
               </div>
               <div className="divide-y">
@@ -1584,7 +1584,7 @@ export default function AdminView() {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-teal-50">
                 <h3 className="font-bold flex items-center gap-2 text-teal-700">
-                  <MessageSquare size={16} /> Estafeta ↔ ร้านค้า ({riderMerchantChats.length})
+                  <MessageSquare size={16} /> Estafeta ↔ Comercianteค้า ({riderMerchantChats.length})
                 </h3>
               </div>
               <div className="divide-y">
@@ -1597,7 +1597,7 @@ export default function AdminView() {
                     <div key={chatId} className="p-4 hover:bg-gray-50 flex justify-between items-center gap-2">
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openChatWindow(chatId, order ? `Estafeta ↔ ${order.restaurantName}` : `ออร์เดอร์ ${orderId.slice(0,6)}`, 'admin')}>
                         <div className="font-bold text-sm text-teal-700">
-                          {order ? `Estafeta ↔ ${order.restaurantName || 'ร้านค้า'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
+                          {order ? `Estafeta ↔ ${order.restaurantName || 'Comercianteค้า'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
                         <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
@@ -1641,14 +1641,14 @@ export default function AdminView() {
               <div><label htmlFor="admin-rider-radius" className="block text-sm font-medium mb-1">Rider Job Radius</label><input id="admin-rider-radius" name="riderRadius" type="number" value={editConfig.riderRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, riderRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าServiçoขนส่ง (อาหาร/พัสดุ)</h3>
-              <div><label htmlFor="admin-base-fee" className="block text-sm font-medium mb-1">Base Fee (฿)</label><input id="admin-base-fee" name="baseFee" type="number" value={editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, baseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
-              <div><label htmlFor="admin-per-km-fee" className="block text-sm font-medium mb-1">Per Km Fee (฿/กม.)</label><input id="admin-per-km-fee" name="perKmFee" type="number" value={editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, perKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าServiçoขนส่ง (comida/พัสดุ)</h3>
+              <div><label htmlFor="admin-base-fee" className="block text-sm font-medium mb-1">Base Fee (Kz )</label><input id="admin-base-fee" name="baseFee" type="number" value={editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, baseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-per-km-fee" className="block text-sm font-medium mb-1">Per Km Fee (Kz /กม.)</label><input id="admin-per-km-fee" name="perKmFee" type="number" value={editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, perKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
               <h3 className="font-bold text-purple-600 border-b pb-2 flex items-center gap-2"><Car size={16} /> ค่าServiçoViagemรับส่ง (Ride)</h3>
-              <div><label htmlFor="admin-ride-base-fee" className="block text-sm font-medium mb-1">Ride Base Fee (฿)</label><input id="admin-ride-base-fee" name="rideBaseFee" type="number" value={editConfig.rideBaseFee ?? editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, rideBaseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
-              <div><label htmlFor="admin-ride-per-km-fee" className="block text-sm font-medium mb-1">Ride Per Km Fee (฿/กม.)</label><input id="admin-ride-per-km-fee" name="ridePerKmFee" type="number" value={editConfig.ridePerKmFee ?? editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, ridePerKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-ride-base-fee" className="block text-sm font-medium mb-1">Ride Base Fee (Kz )</label><input id="admin-ride-base-fee" name="rideBaseFee" type="number" value={editConfig.rideBaseFee ?? editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, rideBaseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
+              <div><label htmlFor="admin-ride-per-km-fee" className="block text-sm font-medium mb-1">Ride Per Km Fee (Kz /กม.)</label><input id="admin-ride-per-km-fee" name="ridePerKmFee" type="number" value={editConfig.ridePerKmFee ?? editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, ridePerKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
           </div>
 
@@ -1691,7 +1691,7 @@ export default function AdminView() {
                     className="flex-1 border p-1.5 rounded text-sm"
                   />
                   <div className="flex items-center gap-1 w-32 shrink-0">
-                    <span className="text-xs text-gray-500">฿</span>
+                    <span className="text-xs text-gray-500">Kz </span>
                     <input
                       type="number"
                       value={srv.price}
@@ -1729,7 +1729,7 @@ export default function AdminView() {
             <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><Percent size={16} /> ค่าคอมมิชชั่นตามหมวดหมู่หลัก (GP %)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-violet-600">GP ส่งอาหาร (Food)</label>
+                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-violet-600">GP ส่งcomida (Food)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-food" name="gpFood" type="number" value={editConfig.gpFood ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpFood: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
@@ -1775,10 +1775,10 @@ export default function AdminView() {
             </p>
           </div>
 
-          {/* ── ล้างข้อมูลระบบ ─────────────────────────────────────────── */}
+          {/* ── Limpar dadosระบบ ─────────────────────────────────────────── */}
           <div className="mt-6 border-t pt-6">
             <h3 className="font-bold text-red-600 border-b border-red-100 pb-2 mb-4 flex items-center gap-2">
-              <DatabaseZap size={16} /> ล้างข้อมูลระบบ (ถาวร)
+              <DatabaseZap size={16} /> Limpar dadosระบบ (ถาวร)
             </h3>
             <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบSairจากระบบอย่างถาวร ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p>
 
@@ -1787,8 +1787,8 @@ export default function AdminView() {
                 { key: 'orders',          label: 'ออเดอร์ทั้งEsgotado',                sub: 'Históricoออเดอร์ทุกรายการ',                      color: 'red' },
                 { key: 'walletEntries',   label: 'HistóricoTransacções Wallet',          sub: 'ลบHistóricoเงินเข้า-Sair (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
                 { key: 'wallets',         label: 'ยอดเงิน + Históricoทุก Wallet',   sub: 'ล้างCarteiraทั้งระบบ รวม UID เก่าทั้งEsgotado',     color: 'rose' },
-                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'เติมเงิน / ถอน / สมัครร้านค้า / Estafeta',     color: 'purple' },
-                { key: 'restaurants',     label: 'ร้านค้าทั้งEsgotado',                sub: 'ลบร้านค้าและMenuอาหารทั้งEsgotado',                color: 'orange' },
+                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'เติมเงิน / ถอน / สมัครComercianteค้า / Estafeta',     color: 'purple' },
+                { key: 'restaurants',     label: 'Comercianteค้าทั้งEsgotado',                sub: 'ลบComercianteค้าและMenucomidaทั้งEsgotado',                color: 'orange' },
                 { key: 'riders',          label: 'Estafetaทั้งEsgotado',                sub: 'ลบข้อมูลEstafetaทุกคน',                        color: 'blue' },
                 { key: 'users',           label: 'บัญชีUtilizadoresทั้งEsgotado',            sub: 'ลบ users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
               ].map(({ key, label, sub, color }) => {
@@ -1829,12 +1829,12 @@ export default function AdminView() {
               <button
                 onClick={() => {
                   const anySelected = Object.values(purgeOptions).some(Boolean);
-                  if (!anySelected) return notifySystem('ผิดพลาด', 'กรุณาเลือกประเภทข้อมูลอย่างน้อย 1 รายการ', 'error');
+                  if (!anySelected) return notifySystem('Erro', 'กรุณาเลือกประเภทข้อมูลอย่างน้อย 1 รายการ', 'error');
                   setShowPurgeModal(true);
                 }}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm shadow hover:bg-red-700 transition-colors"
               >
-                <Trash2 size={15} /> ล้างข้อมูลที่เลือก
+                <Trash2 size={15} /> Limpar dadosที่เลือก
               </button>
               <button
                 onClick={() => setShowResetAllModal(true)}
@@ -1870,7 +1870,7 @@ export default function AdminView() {
               {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> HistóricoTransacções Wallet</p>}
               {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + Históricoทุก Wallet</p>}
               {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> คำขอรอดำเนินการทั้งEsgotado</p>}
-              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ร้านค้าทั้งEsgotado</p>}
+              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Comercianteค้าทั้งEsgotado</p>}
               {purgeOptions.riders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Estafetaทั้งEsgotado</p>}
               {purgeOptions.users           && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> บัญชีUtilizadoresทั้งEsgotado</p>}
             </div>
@@ -1910,7 +1910,7 @@ export default function AdminView() {
               </div>
             </div>
             <div className="bg-gray-900 rounded-xl p-3 mb-5 space-y-1.5">
-              {['ออเดอร์ทั้งEsgotado','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','ร้านค้าทั้งEsgotado','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
+              {['ออเดอร์ทั้งEsgotado','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','Comercianteค้าทั้งEsgotado','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
                 <p key={t} className="text-sm text-red-300 flex items-center gap-2"><Trash2 size={13} /> {t}</p>
               ))}
             </div>
@@ -1931,7 +1931,7 @@ export default function AdminView() {
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการCancelarออเดอร์</h3>
             <p className="text-gray-600 mb-2 text-sm">กรุณาระบุเหตุผล:</p>
             <label htmlFor="admin-cancel-reason-textarea" className="sr-only">เหตุผลการCancelar</label>
-            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, ร้านปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
+            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, Comercianteปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
             <div className="flex gap-2">
               <button onClick={() => setShowCancelModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
               <button onClick={confirmCancelOrder} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยัน</button>
@@ -1944,11 +1944,11 @@ export default function AdminView() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-xs text-center">
             <XCircle size={48} className="text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold mb-2">ยืนยันการปฏิเสธคำขอ?</h3>
+            <h3 className="text-lg font-bold mb-2">ยืนยันการRecusarคำขอ?</h3>
             <p className="text-gray-500 mb-6 text-sm">ข้อมูลจะถูกลบSairจากระบบถาวร</p>
             <div className="flex gap-2">
               <button onClick={() => setShowRejectModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
-              <button onClick={confirmRejectRequest} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยันปฏิเสธ</button>
+              <button onClick={confirmRejectRequest} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยันRecusar</button>
             </div>
           </div>
         </div>
@@ -1961,8 +1961,8 @@ export default function AdminView() {
             order_placed:      { label: 'สั่งซื้อ',    cls: 'bg-blue-100 text-blue-700' },
             order_completed:   { label: 'จบงาน',       cls: 'bg-green-100 text-green-700' },
             order_cancelled:   { label: 'Cancelar',      cls: 'bg-red-100 text-red-700' },
-            rider_income:      { label: 'ค่าส่ง',      cls: 'bg-yellow-100 text-yellow-700' },
-            merchant_income:   { label: 'รายได้ร้าน',  cls: 'bg-violet-100 text-orange-700' },
+            rider_income:      { label: 'Taxa de entrega',      cls: 'bg-yellow-100 text-yellow-700' },
+            merchant_income:   { label: 'รายได้Comerciante',  cls: 'bg-violet-100 text-orange-700' },
             admin_gp:          { label: 'GP',           cls: 'bg-purple-100 text-purple-700' },
             topup_approved:    { label: 'เติมเงิน',    cls: 'bg-emerald-100 text-emerald-700' },
             withdraw_approved: { label: 'ถอนเงิน',     cls: 'bg-rose-100 text-rose-700' },
@@ -1974,7 +1974,7 @@ export default function AdminView() {
           const map = {
             admin:    { label: 'Admin',   cls: 'bg-red-100 text-red-700' },
             rider:    { label: 'Estafeta', cls: 'bg-yellow-100 text-yellow-700' },
-            merchant: { label: 'ร้านค้า', cls: 'bg-green-100 text-green-700' },
+            merchant: { label: 'Comercianteค้า', cls: 'bg-green-100 text-green-700' },
             customer: { label: 'Cliente',  cls: 'bg-blue-100 text-blue-700' },
           };
           return map[role] || { label: role || '-', cls: 'bg-gray-100 text-gray-600' };
@@ -2022,7 +2022,7 @@ export default function AdminView() {
                 onClick={handleClearTransactions}
                 className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors whitespace-nowrap"
               >
-                <Trash2 size={15} /> ล้างข้อมูล
+                <Trash2 size={15} /> Limpar dados
               </button>
             </div>
 
@@ -2034,11 +2034,11 @@ export default function AdminView() {
               </div>
               <div className="bg-white rounded-xl p-3 shadow-sm border-l-4 border-green-500 text-center">
                 <p className="text-xs text-gray-400">เงินเข้า</p>
-                <p className="font-bold text-green-600">+฿{totalIn.toLocaleString()}</p>
+                <p className="font-bold text-green-600">+Kz {totalIn.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-xl p-3 shadow-sm border-l-4 border-red-500 text-center">
                 <p className="text-xs text-gray-400">เงินSair</p>
-                <p className="font-bold text-red-500">-฿{Math.abs(totalOut).toLocaleString()}</p>
+                <p className="font-bold text-red-500">-Kz {Math.abs(totalOut).toLocaleString()}</p>
               </div>
             </div>
 
@@ -2087,7 +2087,7 @@ export default function AdminView() {
                             </td>
                             <td className="p-3 text-xs text-gray-600 max-w-[180px] truncate align-top pt-3.5">{entry.desc || '—'}</td>
                             <td className={`p-3 text-right font-bold text-sm whitespace-nowrap align-top pt-3.5 ${amt > 0 ? 'text-green-600' : amt < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                              {amt !== 0 ? `${amt > 0 ? '+' : ''}฿${Math.abs(amt).toLocaleString()}` : '—'}
+                              {amt !== 0 ? `${amt > 0 ? '+' : ''}Kz ${Math.abs(amt).toLocaleString()}` : '—'}
                             </td>
                           </tr>
                         );
