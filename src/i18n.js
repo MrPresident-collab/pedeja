@@ -21,7 +21,8 @@ const resources = {
       "nav_home": "Início",
       "nav_activity": "Atividade",
       "nav_profile": "Perfil",
-      "service_food": "Comida",
+      "service_food": "Fome",
+      "service_shopping": "Compras",
       "service_parcel": "ENVIAR",
       "service_ride": "Viagem",
       "service_service": "Serviço",
@@ -127,8 +128,9 @@ const resources = {
       "nav_profile": "Profile",
 
       // Customer Services
-      "service_food": "Food",
-      "service_parcel": "Parcel",
+      "service_food": "Fome",
+      "service_shopping": "Shopping",
+      "service_parcel": "ENVIAR",
       "service_ride": "Ride",
       "service_service": "Service",
       "search_placeholder": "Search restaurants, food...",
