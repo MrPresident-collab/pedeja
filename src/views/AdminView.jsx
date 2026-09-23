@@ -227,14 +227,14 @@ export default function AdminView() {
   }, [adminTab, txRefreshKey]);  
 
   const handleClearTransactions = async () => {
-    if (!window.confirm('ล้างประวัติธุรกรรมทั้งระบบใช่หรือไม่?')) return;
+    if (!window.confirm('ล้างHistóricoTransacçõesทั้งระบบใช่หรือไม่?')) return;
     const { data: wallets } = await supabase.from('wallets').select('user_id');
     if (wallets?.length) {
       await Promise.all(wallets.map(w => supabase.rpc('clear_wallet_history', { p_user_id: w.user_id })));
     }
     setTxList([]);
     setTxRefreshKey(k => k + 1);
-    notifySystem('ล้างข้อมูล', 'ล้างบันทึกธุรกรรมเรียบร้อยแล้ว', 'success');
+    notifySystem('ล้างข้อมูล', 'ล้างGuardarTransacçõesเรียบร้อยแล้ว', 'success');
   };
 
   // ── Purge state ───────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ export default function AdminView() {
       }
       await Promise.all(tasks);
       setPurgeResult({ ok: true, summary: 'เสร็จสิ้น' });
-      notifySystem('ล้างข้อมูล ✅', 'ลบข้อมูลที่เลือกออกจากระบบเรียบร้อยแล้ว', 'success');
+      notifySystem('ล้างข้อมูล ✅', 'ลบข้อมูลที่เลือกSairจากระบบเรียบร้อยแล้ว', 'success');
     } catch (err) {
       setPurgeResult({ ok: false, summary: `ผิดพลาด: ${err?.message || 'unknown'}` });
     } finally {
@@ -313,7 +313,7 @@ export default function AdminView() {
 
     // Validation
     if ([appRadius, restaurantRadius, riderRadius, baseFee, perKmFee, rideBaseFee, ridePerKmFee].some(v => isNaN(v) || v < 0)) {
-      return notifySystem('ผิดพลาด', 'รัศมีให้บริการและค่าธรรมเนียมต้องเป็นตัวเลขที่ไม่ติดลบ', 'error');
+      return notifySystem('ผิดพลาด', 'รัศมีให้Serviçoและค่าธรรมเนียมต้องเป็นตัวเลขที่ไม่ติดลบ', 'error');
     }
     if ([gpFood, gpDelivery, gpRide, gpService].some(v => isNaN(v) || v < 0 || v > 100)) {
       return notifySystem('ผิดพลาด', 'อัตรา GP ต้องอยู่ระหว่าง 0% ถึง 100%', 'error');
@@ -341,18 +341,18 @@ export default function AdminView() {
       .single();
     if (error) {
       console.error('Failed to save app_config to Supabase:', error);
-      return notifySystem('ผิดพลาด', `บันทึกข้อมูลไม่สำเร็จ: ${error.message}`, 'error');
+      return notifySystem('ผิดพลาด', `Guardarข้อมูลไม่สำเร็จ: ${error.message}`, 'error');
     }
 
     const persistedConfig = savedRow?.data || cleanedConfig;
     setAppConfig(persistedConfig);
     setEditConfig(persistedConfig);
     setIsConfigDirty(false);
-    notifySystem('สำเร็จ', 'บันทึกการตั้งค่าระบบเรียบร้อยแล้ว', 'success');
+    notifySystem('สำเร็จ', 'GuardarการDefiniçõesระบบเรียบร้อยแล้ว', 'success');
   };
 
   // ── Derived metrics ──────────────────────────────────────────────────────
-  // นับเฉพาะ orders ที่สำเร็จ (ไม่นับยกเลิก/pending)
+  // นับเฉพาะ orders ที่สำเร็จ (ไม่นับCancelar/pending)
   const completedOrders = orders.filter(o => ['completed', 'delivered'].includes(o.status));
   const totalGP   = completedOrders.reduce((s, o) => s + (o.adminGP || 0), 0);
   const gmv       = completedOrders.reduce((s, o) => s + (o.grandTotal || 0), 0);
@@ -365,7 +365,7 @@ export default function AdminView() {
   const merchantChats    = allChatIds.filter(k => k.endsWith('-merchant') && !k.endsWith('-rider-merchant'));
   const riderChats       = allChatIds.filter(k => k.endsWith('-rider') && !k.endsWith('-rider-merchant'));
   const totalChatCount   = allChatIds.length;
-  // นับ unread: support chats ที่ข้อความล่าสุดมาจาก non-admin
+  // นับ unread: support chats ที่Mensagensล่าสุดมาจาก non-admin
   const unreadSupportCount = supportChats.filter(id => {
     const msgs = chats[id] || [];
     const last = msgs[msgs.length - 1];
@@ -417,13 +417,13 @@ export default function AdminView() {
   const TABS = [
     { id: 'dashboard',   label: 'ภาพรวม',     icon: BarChart2 },
     { id: 'analytics',   label: 'วิเคราะห์',  icon: TrendingUp },
-    { id: 'approvals',   label: 'อนุมัติ',    icon: Bell,    badge: pendingRequests.length },
-    { id: 'users',       label: 'ผู้ใช้',     icon: Users },
-    { id: 'management',  label: 'จัดการระบบ', icon: Sliders },
-    { id: 'promotions',  label: 'โปรโมชั่น',  icon: Tag,     badge: promoCodes.filter(p => p.active).length },
-    { id: 'ledger',      label: 'ธุรกรรม',    icon: List },
-    { id: 'messages',    label: 'ข้อความ',    icon: MessageSquare, badge: (unreadSupportCount || totalChatCount) || null },
-    { id: 'settings',    label: 'ตั้งค่า',    icon: CreditCard },
+    { id: 'approvals',   label: 'Aprovações',    icon: Bell,    badge: pendingRequests.length },
+    { id: 'users',       label: 'Utilizadores',     icon: Users },
+    { id: 'management',  label: 'Acçõesระบบ', icon: Sliders },
+    { id: 'promotions',  label: 'Promoções',  icon: Tag,     badge: promoCodes.filter(p => p.active).length },
+    { id: 'ledger',      label: 'Transacções',    icon: List },
+    { id: 'messages',    label: 'Mensagens',    icon: MessageSquare, badge: (unreadSupportCount || totalChatCount) || null },
+    { id: 'settings',    label: 'Definições',    icon: CreditCard },
   ];
 
   // ── Wallet adjust ─────────────────────────────────────────────────────────
@@ -438,16 +438,16 @@ export default function AdminView() {
   };
 
   const handleClearUserWalletHistory = async (userId, userName) => {
-    if (!window.confirm(`ล้างประวัติกระเป๋าของ ${userName} ใช่หรือไม่?\n(รายการจะถูกซ่อน — ยอดเงินคงเดิม)`)) return;
+    if (!window.confirm(`ล้างHistóricoCarteiraของ ${userName} ใช่หรือไม่?\n(รายการจะถูกซ่อน — ยอดเงินคงเดิม)`)) return;
     await supabase.rpc('clear_wallet_history', { p_user_id: userId });
     setUserWalletEntries(prev => ({ ...prev, [userId]: [] }));
-    notifySystem('Admin', `ล้างประวัติกระเป๋าของ ${userName} แล้ว`, 'success');
+    notifySystem('Admin', `ล้างHistóricoCarteiraของ ${userName} แล้ว`, 'success');
   };
 
   const handleResetPassword = async () => {
     if (!resetPwdUserId) return;
     const user = allUsers.find(u => u.id === resetPwdUserId);
-    if (!user?.email) return notifySystem('ผิดพลาด', 'ไม่พบอีเมลของผู้ใช้', 'error');
+    if (!user?.email) return notifySystem('ผิดพลาด', 'ไม่พบอีเมลของUtilizadores', 'error');
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${import.meta.env.VITE_APP_URL || window.location.origin}/reset-password`,
     });
@@ -529,8 +529,8 @@ export default function AdminView() {
             const pendingCount   = pendingRequests.length;
             const alerts         = [];
             if (pendingMerchant.length > 0) alerts.push(`⚠️ ${pendingMerchant.length} ออเดอร์รอร้านค้าตอบรับ`);
-            if (waitingDispatch.length > 0) alerts.push(`⚠️ ${waitingDispatch.length} ออเดอร์รอไรเดอร์ (ยังไม่มีการจ่ายงาน)`);
-            if (pendingCount > 0) alerts.push(`🔔 ${pendingCount} คำขอรออนุมัติ`);
+            if (waitingDispatch.length > 0) alerts.push(`⚠️ ${waitingDispatch.length} ออเดอร์รอEstafeta (ยังไม่มีการจ่ายงาน)`);
+            if (pendingCount > 0) alerts.push(`🔔 ${pendingCount} คำขอรอAprovações`);
             return (
               <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border-l-4 border-green-500">
                 <div className="flex items-center gap-2 mb-3">
@@ -548,11 +548,11 @@ export default function AdminView() {
                   </div>
                   <div className="bg-blue-50 rounded-lg p-3 text-center">
                     <div className="text-xl font-black text-blue-600">{ridersOnline.length} / {ridersActive.length}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">ไรเดอร์ Online / Active</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Estafeta Online / Active</div>
                   </div>
                   <div className={`rounded-lg p-3 text-center ${pendingCount > 0 ? 'bg-yellow-50' : 'bg-gray-50'}`}>
                     <div className={`text-xl font-black ${pendingCount > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>{pendingCount}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">รออนุมัติ</div>
+                    <div className="text-xs text-gray-500 mt-0.5">รอAprovações</div>
                   </div>
                 </div>
                 {alerts.length > 0 && (
@@ -570,18 +570,18 @@ export default function AdminView() {
           })()}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="กำไร GP สุทธิ (จบแล้ว)" value={`฿${totalGP.toLocaleString()}`}       color="green"  icon={DollarSign} />
+            <StatCard label="GP líquido (concluído)" value={`฿${totalGP.toLocaleString()}`}       color="green"  icon={DollarSign} />
             <StatCard label="GMV (ออเดอร์จบแล้ว)"  value={`฿${gmv.toLocaleString()}`}           color="blue"   icon={TrendingUp} />
-            <StatCard label="ออเดอร์ทั้งหมด"       value={totalOrdersCount}                     color="orange" icon={ShoppingBag} />
-            <StatCard label="ไรเดอร์ Active"        value={riders.filter(r => r.status === 'active').length} color="purple" icon={Bike} />
+            <StatCard label="ออเดอร์ทั้งEsgotado"       value={totalOrdersCount}                     color="orange" icon={ShoppingBag} />
+            <StatCard label="Estafetas activos"        value={riders.filter(r => r.status === 'active').length} color="purple" icon={Bike} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="ออเดอร์วันนี้ (ทั้งหมด)" value={todayOrders.length}               color="orange" icon={ShoppingBag} />
+            <StatCard label="ออเดอร์วันนี้ (ทั้งEsgotado)" value={todayOrders.length}               color="orange" icon={ShoppingBag} />
             <StatCard label="GMV วันนี้ (จบแล้ว)"    value={`฿${todayGMV.toLocaleString()}`}  color="blue"   icon={DollarSign} />
             <StatCard label="GP วันนี้ (จบแล้ว)"     value={`฿${todayGP.toLocaleString()}`}   color="green"  icon={TrendingUp} />
-            <StatCard label="ร้านค้าทั้งหมด"         value={restaurants.length}               color="purple" icon={ChefHat} />
+            <StatCard label="ร้านค้าทั้งEsgotado"         value={restaurants.length}               color="purple" icon={ChefHat} />
           </div>
-          {/* ── กระเป๋าเงิน Admin (GP สะสม) ───────────────────────────────── */}
+          {/* ── Carteiraเงิน Admin (GP สะสม) ───────────────────────────────── */}
           {(() => {
             const adminBal = userWallet ?? 0;
             const rawHistory = walletHistory?.length ? walletHistory : [];
@@ -594,7 +594,7 @@ export default function AdminView() {
                 <div className="p-4 border-b bg-green-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wallet size={18} className="text-green-600" />
-                    <h2 className="font-bold text-gray-700">กระเป๋าเงิน Admin — Platform GP</h2>
+                    <h2 className="font-bold text-gray-700">Carteiraเงิน Admin — Platform GP</h2>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-green-600">฿{adminBal.toLocaleString()}</div>
@@ -604,7 +604,7 @@ export default function AdminView() {
                 {displayHistory.length === 0 ? (
                   <div className="p-8 text-center text-gray-400">
                     <Wallet size={36} className="mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">ยังไม่มีประวัติธุรกรรม</p>
+                    <p className="text-sm">ยังไม่มีHistóricoTransacções</p>
                     <p className="text-xs mt-1">GP จะถูก Credit อัตโนมัติเมื่อออเดอร์ส่งสำเร็จ</p>
                   </div>
                 ) : (
@@ -612,7 +612,7 @@ export default function AdminView() {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-xs text-gray-500 uppercase sticky top-0">
                         <tr>
-                          <th className="p-3 text-left">วันที่ / รายการ</th>
+                          <th className="p-3 text-left">Data / item</th>
                           <th className="p-3 text-right">จำนวน</th>
                           <th className="p-3 text-right">คงเหลือ (ประมาณ)</th>
                         </tr>
@@ -647,18 +647,18 @@ export default function AdminView() {
           })()}
 
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50 flex items-center gap-2"><ShoppingBag size={16} className="text-gray-500" /><h2 className="font-bold text-gray-700">รายการธุรกรรมล่าสุด</h2></div>
+            <div className="p-4 border-b bg-gray-50 flex items-center gap-2"><ShoppingBag size={16} className="text-gray-500" /><h2 className="font-bold text-gray-700">Transacções recentes</h2></div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
                   <tr>
                     <th className="p-4">ID / เวลา</th>
-                    <th className="p-4">ลูกค้า</th>
-                    <th className="p-4">ร้านค้า/บริการ</th>
-                    <th className="p-4">ไรเดอร์</th>
-                    <th className="p-4">สถานะ</th>
-                    <th className="p-4 text-right">ยอดรวม</th>
-                    <th className="p-4 text-right">จัดการ</th>
+                    <th className="p-4">Cliente</th>
+                    <th className="p-4">Comerciante/serviço</th>
+                    <th className="p-4">Estafeta</th>
+                    <th className="p-4">Estado</th>
+                    <th className="p-4 text-right">Total</th>
+                    <th className="p-4 text-right">Acções</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -677,15 +677,15 @@ export default function AdminView() {
                           {order.type === 'food'
                             ? <><div className="font-bold text-sm">{order.restaurantName}</div><div className="text-xs text-gray-400 flex items-center"><Phone size={10} className="mr-1" /> {restaurant?.phone || '-'}</div></>
                             : order.type === 'parcel'
-                            ? <div className="font-bold text-blue-600 text-sm">ส่งพัสดุ</div>
+                            ? <div className="font-bold text-blue-600 text-sm">Entrega de encomenda</div>
                             : order.type === 'ride'
-                            ? <div className="font-bold text-purple-600 text-sm">🚗 เรียกรถ ({order.vehicleType || 'Car'})</div>
-                            : <div className="font-bold text-emerald-600 text-sm">🛠️ บริการ ({order.serviceCategory || 'Service'})</div>}
+                            ? <div className="font-bold text-purple-600 text-sm">🚗 Viagem ({order.vehicleType || 'Car'})</div>
+                            : <div className="font-bold text-emerald-600 text-sm">🛠️ Serviço ({order.serviceCategory || 'Service'})</div>}
                         </td>
                         <td className="p-4">
                           {rider
                             ? <><div className="font-bold text-sm">{rider.name}</div><div className="text-xs text-gray-400">{rider.phone}</div></>
-                            : <span className="text-gray-400 italic text-xs">รอรับงาน</span>}
+                            : <span className="text-gray-400 italic text-xs">A aguardar estafeta</span>}
                         </td>
                         <td className="p-4">
                           <span className={`text-xs px-2 py-1 rounded-full border ${STATUS_LABELS[order.status]?.bg || 'bg-gray-100'} ${STATUS_LABELS[order.status]?.color || 'text-gray-500'}`}>
@@ -697,7 +697,7 @@ export default function AdminView() {
                         <td className="p-4 text-right font-bold">฿{(order.grandTotal || 0).toLocaleString()}</td>
                         <td className="p-4 text-right">
                           {!['cancelled', 'delivered', 'completed'].includes(order.status) && (
-                            <button onClick={() => initiateCancelOrder(order.id)} className="text-red-500 hover:bg-red-50 text-xs px-2 py-1 rounded border border-red-200">ยกเลิก</button>
+                            <button onClick={() => initiateCancelOrder(order.id)} className="text-red-500 hover:bg-red-50 text-xs px-2 py-1 rounded border border-red-200">Cancelar</button>
                           )}
                         </td>
                       </tr>
@@ -719,7 +719,7 @@ export default function AdminView() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-10 text-center text-gray-400">ยังไม่มีออเดอร์</div>
+                  <div className="p-10 text-center text-gray-400">Ainda não existem pedidos</div>
                 )
               )}
             </div>
@@ -732,7 +732,7 @@ export default function AdminView() {
         <div className="space-y-6">
           {/* Status breakdown */}
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><BarChart2 size={20} className="text-green-600" /> สถานะออเดอร์ทั้งหมด</h2>
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><BarChart2 size={20} className="text-green-600" /> Estadoออเดอร์ทั้งEsgotado</h2>
             {Object.entries(STATUS_LABELS).map(([status, meta]) => (
               <SimpleBar
                 key={status}
@@ -747,7 +747,7 @@ export default function AdminView() {
           {/* Revenue by type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> Top ร้านค้า (ออเดอร์)</h2>
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> Principais comerciantes (pedidos)</h2>
               {topRestaurants.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
                 topRestaurants.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRestCnt} color="#f97316" />
@@ -755,7 +755,7 @@ export default function AdminView() {
               )}
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Top ไรเดอร์ (งานส่งสำเร็จ)</h2>
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Top Estafeta (งานส่งสำเร็จ)</h2>
               {topRiders.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
                 topRiders.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRiderCnt} color="#3b82f6" />
@@ -766,10 +766,10 @@ export default function AdminView() {
 
           {/* Revenue breakdown */}
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><DollarSign size={20} className="text-green-600" /> รายได้แยกประเภท</h2>
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><DollarSign size={20} className="text-green-600" /> Receita por tipo</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
-                // นับเฉพาะ orders ที่จบแล้ว (ไม่นับยกเลิก/กำลังดำเนินการ)
+                // นับเฉพาะ orders ที่จบแล้ว (ไม่นับCancelar/กำลังดำเนินการ)
                 const doneStatus = ['completed', 'delivered'];
                 const food    = orders.filter(o => o.type === 'food'    && doneStatus.includes(o.status));
                 const parcel  = orders.filter(o => o.type === 'parcel'  && doneStatus.includes(o.status));
@@ -798,8 +798,8 @@ export default function AdminView() {
                   <>
                     <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP จากอาหาร</p><p className="text-xl font-bold text-orange-700">฿{foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
                     <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP จากพัสดุ</p><p className="text-xl font-bold text-blue-700">฿{parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} ออเดอร์</p></div>
-                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากเรียกรถ</p><p className="text-xl font-bold text-purple-700">฿{rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
-                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากบริการ</p><p className="text-xl font-bold text-emerald-700">฿{serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
+                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากViagem</p><p className="text-xl font-bold text-purple-700">฿{rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
+                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากServiço</p><p className="text-xl font-bold text-emerald-700">฿{serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
                   </>
                 );
               })()}
@@ -814,7 +814,7 @@ export default function AdminView() {
               </h2>
               <div className="flex items-center gap-3">
                 {walletRows.length > 0 && (
-                  <span className="text-xs text-gray-400">{walletRows.length} กระเป๋า · รวม ฿{walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
+                  <span className="text-xs text-gray-400">{walletRows.length} Carteira · รวม ฿{walletRows.reduce((s,r)=>s+r.balance,0).toLocaleString('th-TH',{minimumFractionDigits:2})}</span>
                 )}
                 <button onClick={loadWalletOverview} className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200">
                   รีเฟรช
@@ -877,9 +877,9 @@ export default function AdminView() {
                       {isExpanded && (
                         <div className="bg-gray-50 border-t px-4 py-3 space-y-1.5 max-h-60 overflow-y-auto">
                           {userWalletLoading[row.uid] ? (
-                            <p className="text-xs text-gray-400 text-center py-2">กำลังโหลดประวัติ…</p>
+                            <p className="text-xs text-gray-400 text-center py-2">กำลังโหลดHistórico…</p>
                           ) : history.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-2">ไม่มีประวัติธุรกรรม</p>
+                            <p className="text-xs text-gray-400 text-center py-2">ไม่มีHistóricoTransacções</p>
                           ) : (
                             history.slice(0, 50).map((e, i) => (
                               <div key={e.id || i} className="flex items-center justify-between text-xs">
@@ -944,7 +944,7 @@ export default function AdminView() {
       {/* ── APPROVALS ─────────────────────────────────────────────────── */}
       {adminTab === 'approvals' && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b"><h2 className="font-bold text-xl flex items-center gap-2"><Bell className="text-green-600" /> รายการรออนุมัติ ({pendingRequests.length})</h2></div>
+          <div className="p-6 border-b"><h2 className="font-bold text-xl flex items-center gap-2"><Bell className="text-green-600" /> รายการรอAprovações ({pendingRequests.length})</h2></div>
           {pendingRequests.length === 0 ? (
             isDataLoading ? (
               <div className="divide-y">
@@ -965,7 +965,7 @@ export default function AdminView() {
                 ))}
               </div>
             ) : (
-              <div className="p-10 text-center text-gray-400"><Check size={40} className="mx-auto mb-2 text-green-400 opacity-40" />ไม่มีรายการรออนุมัติ</div>
+              <div className="p-10 text-center text-gray-400"><Check size={40} className="mx-auto mb-2 text-green-400 opacity-40" />ไม่มีรายการรอAprovações</div>
             )
           ) : (
             <div className="divide-y">
@@ -979,18 +979,18 @@ export default function AdminView() {
                             ? 'bg-red-100 text-red-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>{
-                          req.type === 'cancel_order'   ? '🚫 ขอยกเลิกออเดอร์'  :
+                          req.type === 'cancel_order'   ? '🚫 ขอCancelarออเดอร์'  :
                           req.type === 'topup'          ? '💰 เติมเงิน'          :
                           req.type === 'withdraw'       ? '💸 ถอนเงิน'           :
                           req.type === 'merchant_reg'   ? '🏪 สมัครร้านค้า'      :
-                          req.type === 'rider_reg'      ? '🛵 สมัครไรเดอร์'      :
+                          req.type === 'rider_reg'      ? '🛵 สมัครEstafeta'      :
                           req.type
                         }</span>
                         <span className="text-xs text-gray-400">{req.timestamp}</span>
                       </div>
                       <div className="font-bold text-gray-800 mb-1">
                         {req.type === 'cancel_order'
-                          ? `ขอยกเลิก #${req.data.orderId?.slice(-8)} — ${req.data.orderType === 'parcel' ? '📦 ส่งพัสดุ' : `🍜 ${req.data.restaurantName}`}`
+                          ? `ขอCancelar #${req.data.orderId?.slice(-8)} — ${req.data.orderType === 'parcel' ? '📦 Entrega de encomenda' : `🍜 ${req.data.restaurantName}`}`
                           : req.type === 'withdraw'
                             ? `แจ้งถอนเงิน: ฿${Number(req.data.amount).toLocaleString()}`
                             : (req.data.shopName ? `ร้าน: ${req.data.shopName}` : req.data.realName ? `ผู้สมัคร: ${req.data.realName}` : `฿${req.data.amount}`)}
@@ -1003,7 +1003,7 @@ export default function AdminView() {
                             <strong className="text-red-700">{req.data.reason}</strong>
                           </p>
                           <p className="text-sm text-gray-700">
-                            <span className="text-gray-400 text-xs">สถานะออเดอร์ตอนขอ: </span>
+                            <span className="text-gray-400 text-xs">Estadoออเดอร์ตอนขอ: </span>
                             <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{req.data.prevStatus}</span>
                           </p>
                           <p className="text-sm text-gray-700">
@@ -1015,7 +1015,7 @@ export default function AdminView() {
                           </p>
                           {req.data.paymentMethod === 'wallet' && req.data.grandTotal > 0 && (
                             <p className="text-xs text-violet-600 font-semibold bg-orange-50 px-2 py-1 rounded border border-violet-200">
-                              ⚠️ อนุมัติ = คืนเงิน ฿{(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet ลูกค้า
+                              ⚠️ Aprovações = คืนเงิน ฿{(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet Cliente
                             </p>
                           )}
                           {req.data.paymentMethod === 'cash' && (
@@ -1100,7 +1100,7 @@ export default function AdminView() {
                         disabled={!!approvingId}
                         className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId === req.id ? 'bg-green-300 text-white cursor-not-allowed' : approvingId ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
                       >
-                        {approvingId === req.id ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> กำลังอนุมัติ...</> : <><Check size={16} /> อนุมัติ</>}
+                        {approvingId === req.id ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> กำลังAprovações...</> : <><Check size={16} /> Aprovações</>}
                       </button>
                       <button onClick={() => initiateRejectRequest(req.id)} disabled={!!approvingId} className={`flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-sm ${approvingId ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}><XCircle size={16} /> ปฏิเสธ</button>
                     </div>
@@ -1119,12 +1119,12 @@ export default function AdminView() {
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b bg-gray-50 flex items-center gap-2">
               <Users size={18} className="text-blue-600" />
-              <h2 className="font-bold text-gray-700">ผู้ใช้ที่ลงทะเบียน ({allUsers.length})</h2>
+              <h2 className="font-bold text-gray-700">Utilizadoresที่ลงทะเบียน ({allUsers.length})</h2>
             </div>
             {allUsers.length === 0 ? (
               <div className="p-10 text-center text-gray-400">
                 <Users size={40} className="mx-auto mb-2 opacity-20" />
-                <p>ไม่มีผู้ใช้</p>
+                <p>ไม่มีUtilizadores</p>
               </div>
             ) : (
               <div className="divide-y max-h-[600px] overflow-y-auto">
@@ -1203,7 +1203,7 @@ export default function AdminView() {
                         <p className="text-xs font-bold text-purple-700 mb-1">รีเซ็ตรหัสผ่านของ {user.name}</p>
                         <p className="text-xs text-gray-500 mb-3">ระบบจะส่งลิงก์รีเซ็ตรหัสผ่านไปยัง <strong>{user.email}</strong> ทางอีเมล</p>
                         <div className="flex gap-2">
-                          <button onClick={() => setResetPwdUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">ยกเลิก</button>
+                          <button onClick={() => setResetPwdUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">Cancelar</button>
                           <button onClick={handleResetPassword} className="flex-1 bg-purple-600 text-white py-2 rounded text-sm font-bold">ส่งอีเมลรีเซ็ต</button>
                         </div>
                       </div>
@@ -1240,14 +1240,14 @@ export default function AdminView() {
                           />
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => setAdjustUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">ยกเลิก</button>
+                          <button onClick={() => setAdjustUserId(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm">Cancelar</button>
                           <button onClick={handleAdjust} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">ยืนยัน</button>
                         </div>
 
                         {/* Wallet history */}
                         <div className="border-t pt-3">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-bold text-gray-600">ประวัติธุรกรรม</p>
+                            <p className="text-xs font-bold text-gray-600">HistóricoTransacções</p>
                             <div className="flex gap-2">
                               <button
                                 onClick={() => loadUserWalletEntries(user.id)}
@@ -1257,14 +1257,14 @@ export default function AdminView() {
                                 <button
                                   onClick={() => handleClearUserWalletHistory(user.id, user.name)}
                                   className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded font-bold hover:bg-red-200"
-                                >ล้างประวัติ</button>
+                                >ล้างHistórico</button>
                               )}
                             </div>
                           </div>
                           {userWalletLoading[user.id] ? (
                             <p className="text-xs text-gray-400 text-center py-3">กำลังโหลด...</p>
                           ) : (userWalletEntries[user.id] || []).length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-2">ยังไม่มีประวัติธุรกรรม</p>
+                            <p className="text-xs text-gray-400 text-center py-2">ยังไม่มีHistóricoTransacções</p>
                           ) : (
                             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                               {[...(userWalletEntries[user.id] || [])].sort((a, b) => {
@@ -1302,7 +1302,7 @@ export default function AdminView() {
         <div className="space-y-6">
           {/* Restaurants */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> จัดการร้านค้า ({restaurants.length})</h2>
+            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> Gestão do comerciante ({restaurants.length})</h2>
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {restaurants.map(rest => (
                 <div key={rest.id} className="border rounded-xl p-3">
@@ -1319,8 +1319,8 @@ export default function AdminView() {
                       <label htmlFor="admin-shop-time-input" className="sr-only">เวลาจัดส่ง</label>
                       <input id="admin-shop-time-input" name="shopTime" value={shopEditForm.time || ''} onChange={e => setShopEditForm(f => ({ ...f, time: e.target.value }))} placeholder="เวลาจัดส่ง เช่น 20-30 min" className="w-full border p-2 rounded text-sm" autoComplete="off" aria-label="เวลาจัดส่ง" />
                       <div className="flex gap-2">
-                        <button onClick={() => setEditingShop(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm font-bold">ยกเลิก</button>
-                        <button onClick={saveShopEdit} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">บันทึก</button>
+                        <button onClick={() => setEditingShop(null)} className="flex-1 bg-gray-200 py-2 rounded text-sm font-bold">Cancelar</button>
+                        <button onClick={saveShopEdit} className="flex-1 bg-green-600 text-white py-2 rounded text-sm font-bold">Guardar</button>
                       </div>
                     </div>
                   ) : (
@@ -1331,7 +1331,7 @@ export default function AdminView() {
                           <div className="font-bold text-sm truncate">{rest.name}</div>
                           <div className="text-xs text-gray-500">{rest.category} · {rest.phone}</div>
                           <div className={`text-xs font-bold mt-0.5 ${rest.status === 'open' ? 'text-green-600' : rest.status === 'banned' ? 'text-red-600' : 'text-gray-500'}`}>
-                            {rest.status === 'open' ? '● เปิดอยู่' : rest.status === 'banned' ? '● แบนแล้ว' : '● ปิดอยู่'}
+                            {rest.status === 'open' ? '● Aberto' : rest.status === 'banned' ? '● แบนแล้ว' : '● Fechado'}
                           </div>
                         </div>
                       </div>
@@ -1339,19 +1339,19 @@ export default function AdminView() {
                         <button onClick={() => { setEditingShop(rest.id); setShopEditForm({ name: rest.name, phone: rest.phone, category: rest.category, time: rest.time }); }} className="p-1.5 bg-blue-100 text-blue-600 rounded" title="แก้ไข"><Edit size={14} /></button>
                         <button onClick={() => toggleRestaurantStatus(rest.id, 'toggle_open')} className={`p-1.5 rounded ${rest.status === 'open' ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'}`} title="เปิด/ปิด"><Power size={14} /></button>
                         <button onClick={() => toggleRestaurantStatus(rest.id, 'ban')} className={`p-1.5 rounded ${rest.status === 'banned' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`} title="แบน"><Ban size={14} /></button>
-                        <button onClick={() => { if (window.confirm(`ลบร้าน "${rest.name}" ออกจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="ลบร้านค้า"><Trash2 size={14} /></button>
+                        <button onClick={() => { if (window.confirm(`ลบร้าน "${rest.name}" Sairจากระบบถาวร?`)) deleteRestaurant(rest.id); }} className="p-1.5 bg-gray-800 text-white rounded hover:bg-red-700 transition-colors" title="ลบร้านค้า"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
-              {restaurants.length === 0 && <p className="text-gray-400 text-center py-8">ยังไม่มีร้านค้าในระบบ</p>}
+              {restaurants.length === 0 && <p className="text-gray-400 text-center py-8">Ainda não existe comerciante no sistema</p>}
             </div>
           </div>
 
           {/* Riders */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> จัดการไรเดอร์ ({riders.length})</h2>
+            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> AcçõesEstafeta ({riders.length})</h2>
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {riders.map(rider => (
                 <div key={rider.id} className="flex justify-between items-center border rounded-xl p-3">
@@ -1367,7 +1367,7 @@ export default function AdminView() {
                   </button>
                 </div>
               ))}
-              {riders.length === 0 && <p className="text-gray-400 text-center py-8">ยังไม่มีไรเดอร์ในระบบ</p>}
+              {riders.length === 0 && <p className="text-gray-400 text-center py-8">ยังไม่มีEstafetaในระบบ</p>}
             </div>
           </div>
         </div>
@@ -1393,7 +1393,7 @@ export default function AdminView() {
               <div><label htmlFor="admin-promo-minorder" className="block text-sm font-medium mb-1">ยอดขั้นต่ำ (฿)</label><input id="admin-promo-minorder" name="minOrder" type="number" value={promoForm.minOrder} onChange={e => setPromoForm(f => ({ ...f, minOrder: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               {promoForm.type === 'percent' && <div><label htmlFor="admin-promo-maxdiscount" className="block text-sm font-medium mb-1">ส่วนลดสูงสุด (฿)</label><input id="admin-promo-maxdiscount" name="maxDiscount" type="number" value={promoForm.maxDiscount} onChange={e => setPromoForm(f => ({ ...f, maxDiscount: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>}
               <div><label htmlFor="admin-promo-maxuses" className="block text-sm font-medium mb-1">จำนวนครั้งที่ใช้ได้</label><input id="admin-promo-maxuses" name="maxUses" type="number" value={promoForm.maxUses} onChange={e => setPromoForm(f => ({ ...f, maxUses: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-              <div><label htmlFor="admin-promo-expiry" className="block text-sm font-medium mb-1">หมดอายุ</label><input id="admin-promo-expiry" name="expiry" type="date" value={promoForm.expiry} onChange={e => setPromoForm(f => ({ ...f, expiry: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              <div><label htmlFor="admin-promo-expiry" className="block text-sm font-medium mb-1">Esgotadoอายุ</label><input id="admin-promo-expiry" name="expiry" type="date" value={promoForm.expiry} onChange={e => setPromoForm(f => ({ ...f, expiry: e.target.value }))} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
             </div>
             <button onClick={handleCreatePromo} className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-700 flex items-center gap-2">
               <PlusCircle size={18} /> สร้างโค้ด
@@ -1402,7 +1402,7 @@ export default function AdminView() {
 
           {/* Promo list */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-gray-50"><h2 className="font-bold text-gray-700">โค้ดทั้งหมด ({promoCodes.length})</h2></div>
+            <div className="p-4 border-b bg-gray-50"><h2 className="font-bold text-gray-700">โค้ดทั้งEsgotado ({promoCodes.length})</h2></div>
             {promoCodes.length === 0 ? (
               <div className="p-10 text-center text-gray-400"><Tag size={36} className="mx-auto mb-2 opacity-20" />ยังไม่มีโค้ดส่วนลด</div>
             ) : (
@@ -1422,7 +1422,7 @@ export default function AdminView() {
                         {promo.minOrder > 0 && <span>ขั้นต่ำ: <strong>฿{promo.minOrder}</strong></span>}
                         {promo.type === 'percent' && promo.maxDiscount < 9999 && <span>สูงสุด: <strong>฿{promo.maxDiscount}</strong></span>}
                         <span>ใช้แล้ว: <strong>{promo.usedCount || 0}/{promo.maxUses}</strong></span>
-                        {promo.expiry && <span>หมดอายุ: <strong>{promo.expiry}</strong></span>}
+                        {promo.expiry && <span>Esgotadoอายุ: <strong>{promo.expiry}</strong></span>}
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -1445,16 +1445,16 @@ export default function AdminView() {
 
           {totalChatCount === 0 && (
             <div className="bg-white rounded-xl p-10 text-center text-gray-400 shadow-sm">
-              <MessageSquare size={36} className="mx-auto mb-2 opacity-20" />ไม่มีข้อความ
+              <MessageSquare size={36} className="mx-auto mb-2 opacity-20" />ไม่มีMensagens
             </div>
           )}
 
-          {/* Support chats (ลูกค้า ↔ Admin) */}
+          {/* Support chats (Cliente ↔ Admin) */}
           {supportChats.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-purple-50 flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2 text-purple-700">
-                  <MessageSquare size={16} /> ลูกค้า ↔ เจ้าหน้าที่ ({supportChats.length})
+                  <MessageSquare size={16} /> Cliente ↔ เจ้าหน้าที่ ({supportChats.length})
                 </h3>
                 {unreadSupportCount > 0 && (
                   <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -1469,16 +1469,16 @@ export default function AdminView() {
                   const identifier   = isOrderFormat
                     ? chatId.replace('-support', '')
                     : chatId.replace('support-', '');
-                  // หาชื่อลูกค้าจาก order (ถ้าเป็น orderId format)
+                  // หาชื่อClienteจาก order (ถ้าเป็น orderId format)
                   const relatedOrder = isOrderFormat
                     ? orders.find(o => o.id === identifier)
                     : null;
                   const displayName  = relatedOrder
-                    ? `ออเดอร์ #${identifier.slice(-6)} (${relatedOrder.customerName || 'ลูกค้า'})`
-                    : `ลูกค้า: ${identifier.slice(0, 8)}...`;
+                    ? `ออเดอร์ #${identifier.slice(-6)} (${relatedOrder.customerName || 'Cliente'})`
+                    : `Cliente: ${identifier.slice(0, 8)}...`;
                   const chatTitle    = relatedOrder
                     ? `Support — ออเดอร์ #${identifier.slice(-6)}`
-                    : `ลูกค้า ${identifier.slice(0, 8)}...`;
+                    : `Cliente ${identifier.slice(0, 8)}...`;
 
                   const msgs    = chats[chatId] || [];
                   const lastMsg = msgs[msgs.length - 1];
@@ -1492,7 +1492,7 @@ export default function AdminView() {
                           {hasUnread && <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
-                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} ข้อความ</div>
+                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
                       <button
                         onClick={() => openChatWindow(chatId, chatTitle, 'admin')}
@@ -1511,12 +1511,12 @@ export default function AdminView() {
             </div>
           )}
 
-          {/* Merchant chats (ลูกค้า ↔ ร้านค้า) */}
+          {/* Merchant chats (Cliente ↔ ร้านค้า) */}
           {merchantChats.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-orange-50">
                 <h3 className="font-bold flex items-center gap-2 text-orange-700">
-                  <MessageSquare size={16} /> ลูกค้า ↔ ร้านค้า ({merchantChats.length})
+                  <MessageSquare size={16} /> Cliente ↔ ร้านค้า ({merchantChats.length})
                 </h3>
               </div>
               <div className="divide-y">
@@ -1532,7 +1532,7 @@ export default function AdminView() {
                           {order ? `${order.customerName} ↔ ${order.restaurantName}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
-                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} ข้อความ</div>
+                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
                       <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
                         className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
@@ -1545,12 +1545,12 @@ export default function AdminView() {
             </div>
           )}
 
-          {/* Rider chats (ลูกค้า ↔ ไรเดอร์) */}
+          {/* Rider chats (Cliente ↔ Estafeta) */}
           {riderChats.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-blue-50">
                 <h3 className="font-bold flex items-center gap-2 text-blue-700">
-                  <MessageSquare size={16} /> ลูกค้า ↔ ไรเดอร์ ({riderChats.length})
+                  <MessageSquare size={16} /> Cliente ↔ Estafeta ({riderChats.length})
                 </h3>
               </div>
               <div className="divide-y">
@@ -1561,12 +1561,12 @@ export default function AdminView() {
                   const lastMsg = msgs[msgs.length - 1];
                   return (
                     <div key={chatId} className="p-4 hover:bg-gray-50 flex justify-between items-center gap-2">
-                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openChatWindow(chatId, order ? `${order.customerName} ↔ ไรเดอร์` : `ออร์เดอร์ ${orderId.slice(0,6)}`, 'admin')}>
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openChatWindow(chatId, order ? `${order.customerName} ↔ Estafeta` : `ออร์เดอร์ ${orderId.slice(0,6)}`, 'admin')}>
                         <div className="font-bold text-sm text-blue-700">
-                          {order ? `${order.customerName} ↔ ${order.riderName || 'ไรเดอร์'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
+                          {order ? `${order.customerName} ↔ ${order.riderName || 'Estafeta'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
-                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} ข้อความ</div>
+                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
                       <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
                         className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
@@ -1584,7 +1584,7 @@ export default function AdminView() {
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-teal-50">
                 <h3 className="font-bold flex items-center gap-2 text-teal-700">
-                  <MessageSquare size={16} /> ไรเดอร์ ↔ ร้านค้า ({riderMerchantChats.length})
+                  <MessageSquare size={16} /> Estafeta ↔ ร้านค้า ({riderMerchantChats.length})
                 </h3>
               </div>
               <div className="divide-y">
@@ -1595,12 +1595,12 @@ export default function AdminView() {
                   const lastMsg = msgs[msgs.length - 1];
                   return (
                     <div key={chatId} className="p-4 hover:bg-gray-50 flex justify-between items-center gap-2">
-                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openChatWindow(chatId, order ? `ไรเดอร์ ↔ ${order.restaurantName}` : `ออร์เดอร์ ${orderId.slice(0,6)}`, 'admin')}>
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openChatWindow(chatId, order ? `Estafeta ↔ ${order.restaurantName}` : `ออร์เดอร์ ${orderId.slice(0,6)}`, 'admin')}>
                         <div className="font-bold text-sm text-teal-700">
-                          {order ? `ไรเดอร์ ↔ ${order.restaurantName || 'ร้านค้า'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
+                          {order ? `Estafeta ↔ ${order.restaurantName || 'ร้านค้า'}` : `ออร์เดอร์ ${orderId.slice(0,6)}...`}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{lastMsg?.text || 'เริ่มสนทนา'}</div>
-                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} ข้อความ</div>
+                        <div className="text-[10px] text-gray-400">{lastMsg?.time} · {msgs.length} Mensagens</div>
                       </div>
                       <button onClick={() => { if(window.confirm('ลบแชทนี้?')) deleteChat(chatId); }}
                         className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 flex-shrink-0" title="ลบแชท">
@@ -1619,7 +1619,7 @@ export default function AdminView() {
       {/* ── SETTINGS ──────────────────────────────────────────────────── */}
       {adminTab === 'settings' && (
         <div className="bg-white p-6 rounded-xl shadow-sm">
-          <h2 className="font-bold text-xl mb-6 flex items-center gap-2"><Sliders /> ตั้งค่าระบบ</h2>
+          <h2 className="font-bold text-xl mb-6 flex items-center gap-2"><Sliders /> Definiçõesระบบ</h2>
 
           {/* Bank info */}
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-8">
@@ -1635,18 +1635,18 @@ export default function AdminView() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><MapIcon size={16} /> รัศมีให้บริการ (กม.)</h3>
+              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><MapIcon size={16} /> รัศมีให้Serviço (กม.)</h3>
               <div><label htmlFor="admin-app-radius" className="block text-sm font-medium mb-1">App Service Radius</label><input id="admin-app-radius" name="appRadius" type="number" value={editConfig.appRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, appRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-restaurant-radius" className="block text-sm font-medium mb-1">Restaurant Delivery Radius</label><input id="admin-restaurant-radius" name="restaurantRadius" type="number" value={editConfig.restaurantRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, restaurantRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-rider-radius" className="block text-sm font-medium mb-1">Rider Job Radius</label><input id="admin-rider-radius" name="riderRadius" type="number" value={editConfig.riderRadius ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, riderRadius: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าบริการขนส่ง (อาหาร/พัสดุ)</h3>
+              <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><DollarSign size={16} /> ค่าServiçoขนส่ง (อาหาร/พัสดุ)</h3>
               <div><label htmlFor="admin-base-fee" className="block text-sm font-medium mb-1">Base Fee (฿)</label><input id="admin-base-fee" name="baseFee" type="number" value={editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, baseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-per-km-fee" className="block text-sm font-medium mb-1">Per Km Fee (฿/กม.)</label><input id="admin-per-km-fee" name="perKmFee" type="number" value={editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, perKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-purple-600 border-b pb-2 flex items-center gap-2"><Car size={16} /> ค่าบริการเรียกรถรับส่ง (Ride)</h3>
+              <h3 className="font-bold text-purple-600 border-b pb-2 flex items-center gap-2"><Car size={16} /> ค่าServiçoViagemรับส่ง (Ride)</h3>
               <div><label htmlFor="admin-ride-base-fee" className="block text-sm font-medium mb-1">Ride Base Fee (฿)</label><input id="admin-ride-base-fee" name="rideBaseFee" type="number" value={editConfig.rideBaseFee ?? editConfig.baseFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, rideBaseFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
               <div><label htmlFor="admin-ride-per-km-fee" className="block text-sm font-medium mb-1">Ride Per Km Fee (฿/กม.)</label><input id="admin-ride-per-km-fee" name="ridePerKmFee" type="number" value={editConfig.ridePerKmFee ?? editConfig.perKmFee ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, ridePerKmFee: e.target.value }); }} className="w-full border p-2 rounded" autoComplete="off" /></div>
             </div>
@@ -1656,12 +1656,12 @@ export default function AdminView() {
           <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mb-8">
             <div className="flex items-center justify-between border-b border-emerald-200 pb-2 mb-4">
               <h3 className="font-bold text-emerald-800 flex items-center gap-2">
-                <Sliders size={18} /> ตัวเลือกตัวเลือกบริการทั่วไป (Service)
+                <Sliders size={18} /> ตัวเลือกตัวเลือกServiçoทั่วไป (Service)
               </h3>
               <button
                 type="button"
                 onClick={() => {
-                  const name = prompt('ระบุชื่อบริการเพิ่มเติม:');
+                  const name = prompt('ระบุชื่อServiçoเพิ่มเติม:');
                   if (!name) return;
                   const priceStr = prompt('ระบุราคาเริ่มต้น (บาท):', '300');
                   const price = parseFloat(priceStr) || 0;
@@ -1672,7 +1672,7 @@ export default function AdminView() {
                 }}
                 className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-700 flex items-center gap-1"
               >
-                <PlusCircle size={14} /> เพิ่มตัวเลือกบริการ
+                <PlusCircle size={14} /> Adicionar opçãoServiço
               </button>
             </div>
             <div className="space-y-2">
@@ -1687,7 +1687,7 @@ export default function AdminView() {
                       setIsConfigDirty(true);
                       setEditConfig({ ...editConfig, extraServices: list });
                     }}
-                    placeholder="ชื่อบริการ"
+                    placeholder="ชื่อServiço"
                     className="flex-1 border p-1.5 rounded text-sm"
                   />
                   <div className="flex items-center gap-1 w-32 shrink-0">
@@ -1720,7 +1720,7 @@ export default function AdminView() {
                 </div>
               ))}
               {(!editConfig.extraServices || editConfig.extraServices.length === 0) && (
-                <p className="text-xs text-gray-400 text-center py-3">ยังไม่มีตัวเลือกบริการเพิ่มเติม กด "เพิ่มตัวเลือกบริการ" เพื่อสร้างใหม่</p>
+                <p className="text-xs text-gray-400 text-center py-3">ยังไม่มีตัวเลือกServiçoเพิ่มเติม กด "Adicionar opçãoServiço" เพื่อสร้างใหม่</p>
               )}
             </div>
           </div>
@@ -1736,21 +1736,21 @@ export default function AdminView() {
                 </div>
               </div>
               <div>
-                <label htmlFor="admin-gp-delivery" className="block text-sm font-medium mb-1 text-blue-600">GP ส่งพัสดุ (Parcel / Delivery)</label>
+                <label htmlFor="admin-gp-delivery" className="block text-sm font-medium mb-1 text-blue-600">GP Entrega de encomenda (Parcel / Delivery)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-delivery" name="gpDelivery" type="number" value={editConfig.gpDelivery ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpDelivery: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
                 </div>
               </div>
               <div>
-                <label htmlFor="admin-gp-ride" className="block text-sm font-medium mb-1 text-purple-600">GP เรียกรถรับส่ง (Ride Hailing)</label>
+                <label htmlFor="admin-gp-ride" className="block text-sm font-medium mb-1 text-purple-600">GP Viagemรับส่ง (Ride Hailing)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-ride" name="gpRide" type="number" value={editConfig.gpRide ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpRide: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
                 </div>
               </div>
               <div>
-                <label htmlFor="admin-gp-service" className="block text-sm font-medium mb-1 text-emerald-600">GP บริการทั่วไป (Services)</label>
+                <label htmlFor="admin-gp-service" className="block text-sm font-medium mb-1 text-emerald-600">GP Serviçoทั่วไป (Services)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-service" name="gpService" type="number" value={editConfig.gpService ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpService: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
@@ -1760,7 +1760,7 @@ export default function AdminView() {
           </div>
 
           <button onClick={saveConfig} className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow hover:bg-green-700 flex items-center gap-2">
-            <Save size={18} /> บันทึกการตั้งค่าทั้งหมด
+            <Save size={18} /> GuardarการDefiniçõesทั้งEsgotado
           </button>
 
           {/* ── เครื่องมือระบบ ────────────────────────────────────────────── */}
@@ -1780,17 +1780,17 @@ export default function AdminView() {
             <h3 className="font-bold text-red-600 border-b border-red-100 pb-2 mb-4 flex items-center gap-2">
               <DatabaseZap size={16} /> ล้างข้อมูลระบบ (ถาวร)
             </h3>
-            <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบออกจากระบบอย่างถาวร ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p>
+            <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบSairจากระบบอย่างถาวร ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               {[
-                { key: 'orders',          label: 'ออเดอร์ทั้งหมด',                sub: 'ประวัติออเดอร์ทุกรายการ',                      color: 'red' },
-                { key: 'walletEntries',   label: 'ประวัติธุรกรรม Wallet',          sub: 'ลบประวัติเงินเข้า-ออก (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
-                { key: 'wallets',         label: 'ยอดเงิน + ประวัติทุก Wallet',   sub: 'ล้างกระเป๋าทั้งระบบ รวม UID เก่าทั้งหมด',     color: 'rose' },
-                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'เติมเงิน / ถอน / สมัครร้านค้า / ไรเดอร์',     color: 'purple' },
-                { key: 'restaurants',     label: 'ร้านค้าทั้งหมด',                sub: 'ลบร้านค้าและเมนูอาหารทั้งหมด',                color: 'orange' },
-                { key: 'riders',          label: 'ไรเดอร์ทั้งหมด',                sub: 'ลบข้อมูลไรเดอร์ทุกคน',                        color: 'blue' },
-                { key: 'users',           label: 'บัญชีผู้ใช้ทั้งหมด',            sub: 'ลบ users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
+                { key: 'orders',          label: 'ออเดอร์ทั้งEsgotado',                sub: 'Históricoออเดอร์ทุกรายการ',                      color: 'red' },
+                { key: 'walletEntries',   label: 'HistóricoTransacções Wallet',          sub: 'ลบHistóricoเงินเข้า-Sair (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
+                { key: 'wallets',         label: 'ยอดเงิน + Históricoทุก Wallet',   sub: 'ล้างCarteiraทั้งระบบ รวม UID เก่าทั้งEsgotado',     color: 'rose' },
+                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'เติมเงิน / ถอน / สมัครร้านค้า / Estafeta',     color: 'purple' },
+                { key: 'restaurants',     label: 'ร้านค้าทั้งEsgotado',                sub: 'ลบร้านค้าและMenuอาหารทั้งEsgotado',                color: 'orange' },
+                { key: 'riders',          label: 'Estafetaทั้งEsgotado',                sub: 'ลบข้อมูลEstafetaทุกคน',                        color: 'blue' },
+                { key: 'users',           label: 'บัญชีUtilizadoresทั้งEsgotado',            sub: 'ลบ users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
               ].map(({ key, label, sub, color }) => {
                 const colorMap = {
                   red:    'border-red-200 bg-red-50',
@@ -1840,7 +1840,7 @@ export default function AdminView() {
                 onClick={() => setShowResetAllModal(true)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm shadow hover:bg-black transition-colors"
               >
-                <DatabaseZap size={15} /> รีเซ็ตระบบทั้งหมด
+                <DatabaseZap size={15} /> รีเซ็ตระบบทั้งEsgotado
               </button>
               {purgeResult && (
                 <span className={`text-sm px-3 py-1.5 rounded-lg border ${purgeResult.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
@@ -1866,13 +1866,13 @@ export default function AdminView() {
             </div>
 
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 space-y-1.5">
-              {purgeOptions.orders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ออเดอร์ทั้งหมด</p>}
-              {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ประวัติธุรกรรม Wallet</p>}
-              {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + ประวัติทุก Wallet</p>}
-              {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> คำขอรอดำเนินการทั้งหมด</p>}
-              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ร้านค้าทั้งหมด</p>}
-              {purgeOptions.riders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ไรเดอร์ทั้งหมด</p>}
-              {purgeOptions.users           && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> บัญชีผู้ใช้ทั้งหมด</p>}
+              {purgeOptions.orders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ออเดอร์ทั้งEsgotado</p>}
+              {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> HistóricoTransacções Wallet</p>}
+              {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + Históricoทุก Wallet</p>}
+              {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> คำขอรอดำเนินการทั้งEsgotado</p>}
+              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ร้านค้าทั้งEsgotado</p>}
+              {purgeOptions.riders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Estafetaทั้งEsgotado</p>}
+              {purgeOptions.users           && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> บัญชีUtilizadoresทั้งEsgotado</p>}
             </div>
 
             <div className="flex gap-2">
@@ -1881,7 +1881,7 @@ export default function AdminView() {
                 disabled={purgeLoading}
                 className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors"
               >
-                ยกเลิก
+                Cancelar
               </button>
               <button
                 onClick={handlePurge}
@@ -1905,20 +1905,20 @@ export default function AdminView() {
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-gray-900 rounded-full"><DatabaseZap size={22} className="text-white" /></div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">รีเซ็ตระบบทั้งหมด</h3>
-                <p className="text-xs text-red-500 font-medium">ข้อมูลทั้งหมดจะถูกลบถาวร กู้คืนไม่ได้</p>
+                <h3 className="text-lg font-bold text-gray-900">รีเซ็ตระบบทั้งEsgotado</h3>
+                <p className="text-xs text-red-500 font-medium">ข้อมูลทั้งEsgotadoจะถูกลบถาวร กู้คืนไม่ได้</p>
               </div>
             </div>
             <div className="bg-gray-900 rounded-xl p-3 mb-5 space-y-1.5">
-              {['ออเดอร์ทั้งหมด','ยอดเงิน + ประวัติทุก Wallet','คำขอรอดำเนินการ','ร้านค้าทั้งหมด','ไรเดอร์ทั้งหมด','บัญชีผู้ใช้ทั้งหมด'].map(t => (
+              {['ออเดอร์ทั้งEsgotado','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','ร้านค้าทั้งEsgotado','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
                 <p key={t} className="text-sm text-red-300 flex items-center gap-2"><Trash2 size={13} /> {t}</p>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mb-4 text-center">แอดมินจะยังคง Login อยู่ แต่ข้อมูลทั้งหมดในระบบจะหายไป</p>
+            <p className="text-xs text-gray-400 mb-4 text-center">แอดมินจะยังคง Login อยู่ แต่ข้อมูลทั้งEsgotadoในระบบจะหายไป</p>
             <div className="flex gap-2">
-              <button onClick={() => setShowResetAllModal(false)} disabled={purgeLoading} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors">ยกเลิก</button>
+              <button onClick={() => setShowResetAllModal(false)} disabled={purgeLoading} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
               <button onClick={() => handlePurge(true)} disabled={purgeLoading} className="flex-1 bg-gray-900 text-white py-2.5 rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2">
-                {purgeLoading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> กำลังรีเซ็ต...</> : <><DatabaseZap size={15} /> ยืนยันรีเซ็ตทั้งหมด</>}
+                {purgeLoading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> กำลังรีเซ็ต...</> : <><DatabaseZap size={15} /> ยืนยันรีเซ็ตทั้งEsgotado</>}
               </button>
             </div>
           </div>
@@ -1928,12 +1928,12 @@ export default function AdminView() {
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการยกเลิกออเดอร์</h3>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการCancelarออเดอร์</h3>
             <p className="text-gray-600 mb-2 text-sm">กรุณาระบุเหตุผล:</p>
-            <label htmlFor="admin-cancel-reason-textarea" className="sr-only">เหตุผลการยกเลิก</label>
-            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อลูกค้าไม่ได้, ร้านปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
+            <label htmlFor="admin-cancel-reason-textarea" className="sr-only">เหตุผลการCancelar</label>
+            <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, ร้านปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
             <div className="flex gap-2">
-              <button onClick={() => setShowCancelModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">ยกเลิก</button>
+              <button onClick={() => setShowCancelModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
               <button onClick={confirmCancelOrder} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยัน</button>
             </div>
           </div>
@@ -1945,22 +1945,22 @@ export default function AdminView() {
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-xs text-center">
             <XCircle size={48} className="text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-bold mb-2">ยืนยันการปฏิเสธคำขอ?</h3>
-            <p className="text-gray-500 mb-6 text-sm">ข้อมูลจะถูกลบออกจากระบบถาวร</p>
+            <p className="text-gray-500 mb-6 text-sm">ข้อมูลจะถูกลบSairจากระบบถาวร</p>
             <div className="flex gap-2">
-              <button onClick={() => setShowRejectModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">ยกเลิก</button>
+              <button onClick={() => setShowRejectModal(false)} className="flex-1 bg-gray-200 py-2 rounded-lg font-bold">Cancelar</button>
               <button onClick={confirmRejectRequest} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">ยืนยันปฏิเสธ</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── ธุรกรรมทั้งระบบ ─────────────────────────────────────────────── */}
+      {/* ── Transacçõesทั้งระบบ ─────────────────────────────────────────────── */}
       {adminTab === 'ledger' && (() => {
         const txTypeBadge = (type) => {
           const map = {
             order_placed:      { label: 'สั่งซื้อ',    cls: 'bg-blue-100 text-blue-700' },
             order_completed:   { label: 'จบงาน',       cls: 'bg-green-100 text-green-700' },
-            order_cancelled:   { label: 'ยกเลิก',      cls: 'bg-red-100 text-red-700' },
+            order_cancelled:   { label: 'Cancelar',      cls: 'bg-red-100 text-red-700' },
             rider_income:      { label: 'ค่าส่ง',      cls: 'bg-yellow-100 text-yellow-700' },
             merchant_income:   { label: 'รายได้ร้าน',  cls: 'bg-violet-100 text-orange-700' },
             admin_gp:          { label: 'GP',           cls: 'bg-purple-100 text-purple-700' },
@@ -1973,9 +1973,9 @@ export default function AdminView() {
         const txRoleBadge = (role) => {
           const map = {
             admin:    { label: 'Admin',   cls: 'bg-red-100 text-red-700' },
-            rider:    { label: 'ไรเดอร์', cls: 'bg-yellow-100 text-yellow-700' },
+            rider:    { label: 'Estafeta', cls: 'bg-yellow-100 text-yellow-700' },
             merchant: { label: 'ร้านค้า', cls: 'bg-green-100 text-green-700' },
-            customer: { label: 'ลูกค้า',  cls: 'bg-blue-100 text-blue-700' },
+            customer: { label: 'Cliente',  cls: 'bg-blue-100 text-blue-700' },
           };
           return map[role] || { label: role || '-', cls: 'bg-gray-100 text-gray-600' };
         };
@@ -2000,7 +2000,7 @@ export default function AdminView() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
               <div className="flex-1">
                 <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  <List size={18} className="text-green-600" /> ธุรกรรมทั้งระบบ
+                  <List size={18} className="text-green-600" /> Transacçõesทั้งระบบ
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {txLoading ? 'กำลังโหลด...' : `${filtered.length} รายการ`}
@@ -2029,7 +2029,7 @@ export default function AdminView() {
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="bg-white rounded-xl p-3 shadow-sm border-l-4 border-gray-300 text-center">
-                <p className="text-xs text-gray-400">ทั้งหมด</p>
+                <p className="text-xs text-gray-400">ทั้งEsgotado</p>
                 <p className="font-bold text-gray-700">{filtered.length}</p>
               </div>
               <div className="bg-white rounded-xl p-3 shadow-sm border-l-4 border-green-500 text-center">
@@ -2037,7 +2037,7 @@ export default function AdminView() {
                 <p className="font-bold text-green-600">+฿{totalIn.toLocaleString()}</p>
               </div>
               <div className="bg-white rounded-xl p-3 shadow-sm border-l-4 border-red-500 text-center">
-                <p className="text-xs text-gray-400">เงินออก</p>
+                <p className="text-xs text-gray-400">เงินSair</p>
                 <p className="font-bold text-red-500">-฿{Math.abs(totalOut).toLocaleString()}</p>
               </div>
             </div>
@@ -2050,7 +2050,7 @@ export default function AdminView() {
             ) : filtered.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center text-gray-400 shadow-sm">
                 <Wallet size={40} className="mx-auto mb-3 opacity-20" />
-                <p className="font-semibold">ยังไม่มีข้อมูลธุรกรรม</p>
+                <p className="font-semibold">ยังไม่มีข้อมูลTransacções</p>
                 <p className="text-xs mt-1">ข้อมูลจะแสดงเมื่อมีการสั่งซื้อ / เติมเงิน / ถอนเงิน</p>
               </div>
             ) : (
@@ -2061,7 +2061,7 @@ export default function AdminView() {
                       <tr>
                         <th className="p-3 text-left">เวลา</th>
                         <th className="p-3 text-left">ประเภท</th>
-                        <th className="p-3 text-left">ผู้ใช้</th>
+                        <th className="p-3 text-left">Utilizadores</th>
                         <th className="p-3 text-left">รายการ</th>
                         <th className="p-3 text-right">จำนวน</th>
                       </tr>
