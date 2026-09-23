@@ -117,7 +117,7 @@ export default function InstallBanner() {
               </button>
             </div>
 
-            {/* ปุ่มFechar */}
+            {/* botão Fechar */}
             <button
               onClick={handleDismiss}
               className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors"
@@ -136,7 +136,7 @@ export default function InstallBanner() {
             <div className="h-1 bg-gradient-to-r from-orange-400 to-orange-600" />
             <div className="p-5">
               <div className="flex justify-between items-start mb-4">
-                <p className="font-bold text-gray-900">วิธีInstalarบน iPhone / iPad</p>
+                <p className="font-bold text-gray-900">Como instalar no iPhone / iPad</p>
                 <button onClick={handleDismiss} className="text-gray-400 hover:text-gray-600">
                   <X size={20} />
                 </button>
@@ -155,7 +155,7 @@ export default function InstallBanner() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                  <span>แตะ <strong>"เพิ่ม"</strong> no canto superior direito</span>
+                  <span>Toque em <strong>"Adicionar"</strong> no canto superior direito</span>
                 </li>
               </ol>
               <button
