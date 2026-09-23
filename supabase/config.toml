@@ -1,4 +1,4 @@
-project_id = "boomrider-local"
+project_id = "pedeja-local"
 
 [api]
 enabled = true
