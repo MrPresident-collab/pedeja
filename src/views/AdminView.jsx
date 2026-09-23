@@ -366,7 +366,7 @@ export default function AdminView() {
   const riderChats       = allChatIds.filter(k => k.endsWith('-rider') && !k.endsWith('-rider-merchant'));
   const totalChatCount   = allChatIds.length;
   //  não lidas: support chats  que Mensagensúltima non-admin
-  const não lidasSupportCount = supportChats.filter(id => {
+  const unreadSupportCount = supportChats.filter(id => {
     const msgs = chats[id] || [];
     const last = msgs[msgs.length - 1];
     return last && last.sender !== 'admin';
@@ -422,7 +422,7 @@ export default function AdminView() {
     { id: 'management',  label: 'Acções do sistema', icon: Sliders },
     { id: 'promotions',  label: 'Promoções',  icon: Tag,     badge: promoCodes.filter(p => p.active).length },
     { id: 'ledger',      label: 'Transacções',    icon: List },
-    { id: 'messages',    label: 'Mensagens',    icon: MessageSquare, badge: (não lidasSupportCount || totalChatCount) || null },
+    { id: 'messages',    label: 'Mensagens',    icon: MessageSquare, badge: (unreadSupportCount || totalChatCount) || null },
     { id: 'settings',    label: 'Definições',    icon: CreditCard },
   ];
 
@@ -1456,9 +1456,9 @@ export default function AdminView() {
                 <h3 className="font-bold flex items-center gap-2 text-purple-700">
                   <MessageSquare size={16} /> Cliente ↔ suporte ({supportChats.length})
                 </h3>
-                {não lidasSupportCount > 0 && (
+                {unreadSupportCount > 0 && (
                   <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {não lidasSupportCount} novo
+                    {unreadSupportCount} novo
                   </span>
                 )}
               </div>
