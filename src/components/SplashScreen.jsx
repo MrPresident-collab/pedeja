@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const LUANDA_IMAGE =
-  'https://upload.wikimedia.org/wikipedia/commons/2/22/Marginal_of_Luanda.JPG';
+  'https://images.pexels.com/photos/29568692/pexels-photo-29568692.jpeg?cs=srgb&dl=pexels-cardoso-lopes-lopes-2017574706-29568692.jpg&fm=jpg';
 
 export default function SplashScreen({ onContinue }) {
   const [pressed, setPressed] = useState(false);
