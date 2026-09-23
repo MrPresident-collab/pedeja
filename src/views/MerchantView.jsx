@@ -45,21 +45,21 @@ export default function MerchantView() {
   const [showSoundPanel, setShowSoundPanel] = useState(false);
   const [customSoundName, setCustomSoundName] = useState(() => {
     const s = getMerchantNotifSound();
-    return s ? 'เสียงที่เลือกไว้' : null;
+    return s ? 'Som seleccionado' : null;
   });
 
   const handleSoundFilePick = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      notifySystem('ไฟล์ใหญ่เกิน', 'กรุณาเลือกไฟล์เสียงขนาดไม่เกิน 2MB', 'error');
+      notifySystem('Ficheiro demasiado grande', 'Seleccione um ficheiro de áudio até 2 MB', 'error');
       return;
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setMerchantNotifSound(ev.target.result);
       setCustomSoundName(file.name);
-      notifySystem('บันทึกเสียงแล้ว ✅', file.name, 'success');
+      notifySystem('Som guardado ✅', file.name, 'success');
     };
     reader.readAsDataURL(file);
   };
@@ -114,7 +114,7 @@ export default function MerchantView() {
   };
 
   const saveMenu = () => {
-    if (!editForm.name || !editForm.price) return notifySystem("ผิดพลาด", "กรุณากรอกชื่อและราคา", "error");
+    if (!editForm.name || !editForm.price) return notifySystem("ผิดพลาด", "Indique o nome e o preço", "error");
     if (isEditingMenu === 'new') {
       handleAddMenuItem(myShop.id, { ...editForm, price: parseFloat(editForm.price) });
     } else {
@@ -126,19 +126,19 @@ export default function MerchantView() {
   if (!myShop) return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
       <ChefHat size={56} className="text-gray-300 mb-4" />
-      <h2 className="text-xl font-bold text-gray-700 mb-2">ยังไม่มีร้านค้าในระบบ</h2>
-      <p className="text-gray-500 text-sm mb-2">อาจเกิดจากการสมัครยังไม่ผ่านการอนุมัติ</p>
+      <h2 className="text-xl font-bold text-gray-700 mb-2">Ainda não existe comerciante no sistema</h2>
+      <p className="text-gray-500 text-sm mb-2">O registo pode ainda não ter sido aprovado</p>
       <p className="text-xs text-gray-400 mb-2">ID: {userProfile.id || currentUser?.id}</p>
-      <p className="text-xs text-gray-400 mb-6">สิทธิ์: {userRoles.join(', ')}</p>
+      <p className="text-xs text-gray-400 mb-6">Permissões: {userRoles.join(', ')}</p>
       <button
-        onClick={() => { syncRoles(); notifySystem("กำลังตรวจสอบ", "โหลดข้อมูลล่าสุดแล้ว", "info"); }}
+        onClick={() => { syncRoles(); notifySystem("A verificar", "โหลดข้อมูลล่าสุดแล้ว", "info"); }}
         className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-      >🔄 ตรวจสอบสถานะอีกครั้ง</button>
+      >🔄 ตรวจสอบEstadoอีกครั้ง</button>
       <button
         onClick={() => { setActiveRole('customer'); setProfileSubView('reg_merchant'); setActiveTab('profile'); }}
         className="bg-violet-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
-      >สมัครเปิดร้านใหม่</button>
-      <button onClick={() => setActiveRole('customer')} className="text-gray-500 text-sm underline">กลับหน้าหลัก</button>
+      >Registar novo comerciante</button>
+      <button onClick={() => setActiveRole('customer')} className="text-gray-500 text-sm underline">Voltar ao início</button>
     </div>
   );
 
@@ -146,17 +146,17 @@ export default function MerchantView() {
     <div className="min-h-screen bg-gray-50 pt-14 pb-10">
       <header className="bg-white shadow p-4 mb-4 sticky top-0 z-30">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-bold flex items-center"><ChefHat className="mr-2 text-green-600" /> จัดการร้านค้า</h1>
+          <h1 className="text-xl font-bold flex items-center"><ChefHat className="mr-2 text-green-600" /> Gestão do comerciante</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSoundPanel(v => !v)}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full transition-colors ${showSoundPanel ? 'bg-violet-100 text-violet-600 border border-orange-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-              title="ตั้งค่าเสียงแจ้งเตือน"
+              title="Definições de som de notificações"
             >
               <Bell size={13} className={customSoundName ? 'text-violet-500' : ''} />
               {customSoundName ? <span className="text-violet-600">•</span> : null}
             </button>
-            <button onClick={() => setActiveRole('customer')} className="flex items-center text-sm bg-gray-200 px-3 py-1 rounded-full hover:bg-gray-300"><LogOut size={14} className="mr-1" /> ออก</button>
+            <button onClick={() => setActiveRole('customer')} className="flex items-center text-sm bg-gray-200 px-3 py-1 rounded-full hover:bg-gray-300"><LogOut size={14} className="mr-1" /> Sair</button>
           </div>
         </div>
 
@@ -165,31 +165,31 @@ export default function MerchantView() {
           <div className="bg-orange-50 border border-violet-200 rounded-xl p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
               <h4 className="font-bold text-sm text-gray-700 flex items-center gap-1.5">
-                <Bell size={14} className="text-violet-500" /> เสียงแจ้งเตือนออเดอร์ใหม่
+                <Bell size={14} className="text-violet-500" /> Som de novos pedidos
               </h4>
               <button onClick={() => setShowSoundPanel(false)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
             </div>
             <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-lg text-xs bg-white border border-gray-200">
               <Bell size={12} className={customSoundName ? 'text-violet-500' : 'text-gray-400'} />
-              <span className="flex-1 truncate text-gray-700">{customSoundName || 'เสียงเริ่มต้น (Beep)'}</span>
+              <span className="flex-1 truncate text-gray-700">{customSoundName || 'Som predefinido (Beep)'}</span>
               {customSoundName && (
                 <button
-                  onClick={() => { setMerchantNotifSound(null); setCustomSoundName(null); notifySystem('ลบเสียงแล้ว', 'ใช้เสียงเริ่มต้น', 'info'); }}
+                  onClick={() => { setMerchantNotifSound(null); setCustomSoundName(null); notifySystem('Som removido', 'Usar som predefinido', 'info'); }}
                   className="text-red-400 hover:text-red-600 font-bold"
                 >ลบ</button>
               )}
             </div>
             <div className="flex gap-2">
               <label htmlFor="merchant-notif-sound-file" className="flex-1 flex items-center justify-center gap-1 py-2 bg-violet-500 text-white rounded-lg cursor-pointer hover:bg-violet-600 active:scale-95 transition-all text-xs font-bold">
-                <Bell size={13} /> เลือกเสียงจากเครื่อง
+                <Bell size={13} /> Escolher som do dispositivo
                 <input id="merchant-notif-sound-file" name="soundFile" type="file" accept="audio/*" className="hidden" onChange={handleSoundFilePick} />
               </label>
               <button
-                onClick={() => { playOrderNotificationSound(); notifySystem('🔊 ทดสอบเสียง', 'กำลังเล่น...', 'info'); }}
+                onClick={() => { playOrderNotificationSound(); notifySystem('🔊 Testar som', 'A reproduzir...', 'info'); }}
                 className="px-3 py-2 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 active:scale-95 transition-all text-xs font-bold"
               >🔊 ทดสอบ</button>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5">รองรับไฟล์ .mp3 .wav .ogg ขนาดไม่เกิน 2MB • บันทึกไว้บนเครื่องนี้เท่านั้น</p>
+            <p className="text-[10px] text-gray-400 mt-1.5">Aceita .mp3, .wav e .ogg até 2 MB • Guardado apenas neste dispositivo</p>
           </div>
         )}
 
@@ -197,7 +197,7 @@ export default function MerchantView() {
         <div className="relative h-36 w-full rounded-xl overflow-hidden mb-3 group">
           <img src={myShop.image} className="w-full h-full object-cover" alt="shop" />
           <label htmlFor="merchant-shop-photo-file" className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-sm font-bold">
-            <Camera className="mr-2" size={18} /> เปลี่ยนรูปหน้าร้าน
+            <Camera className="mr-2" size={18} /> Alterar imagem do estabelecimento
             <input id="merchant-shop-photo-file" name="shopPhoto" type="file" accept="image/*" className="hidden" onChange={(e) => handleShopPhotoChange(myShop.id, e)} />
           </label>
         </div>
@@ -207,7 +207,7 @@ export default function MerchantView() {
             <div className="font-bold text-lg">{myShop.name}</div>
             <div className="text-xs text-gray-500 flex items-center gap-1">
               <span className={myShop.status === 'open' ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
-                ● {myShop.status === 'open' ? 'เปิดอยู่' : 'ปิดอยู่'}
+                ● {myShop.status === 'open' ? 'Aberto' : 'Fechado'}
               </span>
               {myShop.location && myShop.location.lat !== 13.7563 && (
                 <span className="text-gray-400 ml-1">
@@ -220,13 +220,13 @@ export default function MerchantView() {
             onClick={() => handleToggleShopStatus(myShop.id)}
             className={`px-4 py-2 rounded-lg font-bold text-white text-sm flex items-center ${myShop.status === 'open' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
           >
-            {myShop.status === 'open' ? <><ToggleRight className="mr-1" size={16} /> ปิดร้าน</> : <><ToggleLeft className="mr-1" size={16} /> เปิดร้าน</>}
+            {myShop.status === 'open' ? <><ToggleRight className="mr-1" size={16} /> Fechar estabelecimento</> : <><ToggleLeft className="mr-1" size={16} /> เFechar estabelecimento</>}
           </button>
         </div>
 
         {/* รายได้วันนี้ */}
         <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 flex justify-between items-center mb-3">
-          <span className="text-gray-600 text-sm">รายได้สุทธิ (สำเร็จแล้ว)</span>
+          <span className="text-gray-600 text-sm">Receita líquida (concluída)</span>
           <span className="text-xl font-bold text-green-700">฿{myRevenue.toFixed(0)}</span>
         </div>
 
@@ -237,7 +237,7 @@ export default function MerchantView() {
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 relative ${merchantTab === 'orders' ? 'bg-white shadow text-violet-600' : 'text-gray-500'}`}
           >
             <Bell size={13} />
-            ออเดอร์ใหม่
+            Novos pedidos
             {newOrders.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
                 {newOrders.length}
@@ -249,40 +249,40 @@ export default function MerchantView() {
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'active' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
           >
             <Clock size={13} />
-            กำลังทำ ({activeOrders.length})
+            Em preparação ({activeOrders.length})
           </button>
           <button
             onClick={() => setMerchantTab('menu')}
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'menu' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}
           >
             <ChefHat size={13} />
-            เมนู
+            Menu
           </button>
           <button
             onClick={() => setMerchantTab('location')}
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'location' ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}
           >
             <MapPin size={13} />
-            ที่ตั้ง
+            Localização
           </button>
           <button
             onClick={() => setMerchantTab('wallet')}
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'wallet' ? 'bg-white shadow text-green-600' : 'text-gray-500'}`}
           >
             <Wallet size={13} />
-            กระเป๋า
+            Carteira
           </button>
           <button
             onClick={() => setMerchantTab('analytics')}
             className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 ${merchantTab === 'analytics' ? 'bg-white shadow text-purple-600' : 'text-gray-500'}`}
           >
             <TrendingUp size={13} />
-            สถิติ
+            Estatísticas
           </button>
         </div>
       </header>
 
-      {/* ── ออเดอร์ใหม่ (pending) ─────────────────────────────────────── */}
+      {/* ── Novos pedidos (pending) ─────────────────────────────────────── */}
       {merchantTab === 'orders' && (
         <div className="px-4">
           {newOrders.length === 0 ? (
@@ -308,8 +308,8 @@ export default function MerchantView() {
             ) : (
               <div className="text-center text-gray-400 mt-16 py-8">
                 <Bell size={44} className="mx-auto mb-3 opacity-20" />
-                <p className="font-bold text-gray-500">ไม่มีออเดอร์ใหม่</p>
-                <p className="text-xs text-gray-400 mt-1">ออเดอร์ใหม่จะแสดงที่นี่พร้อมเสียงแจ้งเตือน</p>
+                <p className="font-bold text-gray-500">ไม่มีNovos pedidos</p>
+                <p className="text-xs text-gray-400 mt-1">Novos pedidosจะแสดงที่นี่พร้อมเสียงแจ้งเตือน</p>
               </div>
             )
           ) : (
@@ -332,13 +332,13 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── กำลังทำ / รอไรเดอร์ ───────────────────────────────────────── */}
+      {/* ── Em preparação / รอEstafeta ───────────────────────────────────────── */}
       {merchantTab === 'active' && (
         <div className="px-4">
           {activeOrders.length === 0 ? (
             <div className="text-center text-gray-400 mt-16 py-8">
               <Clock size={44} className="mx-auto mb-3 opacity-20" />
-              <p className="font-bold text-gray-500">ไม่มีออเดอร์ที่กำลังดำเนินการ</p>
+              <p className="font-bold text-gray-500">Sem pedidos em curso</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -354,10 +354,10 @@ export default function MerchantView() {
               ))}
             </div>
           )}
-          {/* ประวัติย่อ */}
+          {/* Históricoย่อ */}
           {doneOrders.length > 0 && (
             <div className="mt-6">
-              <h4 className="text-xs font-bold text-gray-400 mb-2 flex items-center gap-1"><History size={12} /> ประวัติ ({doneOrders.length})</h4>
+              <h4 className="text-xs font-bold text-gray-400 mb-2 flex items-center gap-1"><History size={12} /> Histórico ({doneOrders.length})</h4>
               <div className="space-y-2">
                 {doneOrders.slice(0, 10).map(order => {
                   const inTransit = ['picking_up', 'delivering'].includes(order.status);
@@ -370,7 +370,7 @@ export default function MerchantView() {
                       </div>
                       <div className="text-right">
                         <span className={`text-xs font-bold ${isDone ? 'text-green-600' : inTransit ? 'text-blue-500' : 'text-red-400'}`}>
-                          {isDone ? `+฿${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 กำลังส่ง' : 'ยกเลิก'}
+                          {isDone ? `+฿${getMerchantIncome(order).toFixed(0)}` : inTransit ? '🚚 กำลังส่ง' : 'Cancelar'}
                         </span>
                       </div>
                     </div>
@@ -382,7 +382,7 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── จัดการเมนู ────────────────────────────────────────────────── */}
+      {/* ── AcçõesMenu ────────────────────────────────────────────────── */}
       {merchantTab === 'menu' && (
         <div className="px-4">
           {!isEditingMenu ? (
@@ -391,7 +391,7 @@ export default function MerchantView() {
                 onClick={() => openEditMenu(null)}
                 className="w-full bg-green-100 text-green-700 py-3 rounded-xl font-bold mb-4 border-2 border-green-200 flex items-center justify-center"
               >
-                <Plus className="mr-2" /> เพิ่มเมนูใหม่
+                <Plus className="mr-2" /> เพิ่มMenuใหม่
               </button>
               <div className="space-y-4">
                 {(menuItems[myShop.id] || []).map(item => (
@@ -412,30 +412,30 @@ export default function MerchantView() {
                           onClick={() => handleToggleItemAvailability(myShop.id, item.id)}
                           className={`px-3 py-1 rounded-full text-xs font-bold ${item.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
                         >
-                          {item.available ? 'มีขาย' : 'หมด'}
+                          {item.available ? 'Disponível' : 'Esgotado'}
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
                 {(menuItems[myShop.id] || []).length === 0 && (
-                  <p className="text-gray-400 text-center py-8 text-sm">ยังไม่มีเมนู กดปุ่มด้านบนเพื่อเพิ่ม</p>
+                  <p className="text-gray-400 text-center py-8 text-sm">ยังไม่มีMenu กดปุ่มด้านบนเพื่อเพิ่ม</p>
                 )}
               </div>
             </>
           ) : (
             <div className="bg-white p-6 rounded-xl shadow-lg">
-              <h3 className="font-bold text-lg mb-4">{isEditingMenu === 'new' ? 'เพิ่มเมนูใหม่' : 'แก้ไขเมนู'}</h3>
+              <h3 className="font-bold text-lg mb-4">{isEditingMenu === 'new' ? 'เพิ่มMenuใหม่' : 'แก้ไขMenu'}</h3>
               <div className="space-y-3">
-                <label htmlFor="merchant-menu-name-input" className="sr-only">ชื่ออาหาร</label>
-                <input id="merchant-menu-name-input" name="name" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="ชื่ออาหาร" className="w-full border p-2 rounded" autoComplete="off" aria-label="ชื่ออาหาร" />
-                <label htmlFor="merchant-menu-price-input" className="sr-only">ราคา (บาท)</label>
-                <input id="merchant-menu-price-input" name="price" type="number" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} placeholder="ราคา (บาท)" className="w-full border p-2 rounded" autoComplete="off" aria-label="ราคา (บาท)" />
-                <label htmlFor="merchant-menu-desc-input" className="sr-only">รายละเอียด</label>
-                <textarea id="merchant-menu-desc-input" name="desc" value={editForm.desc} onChange={e => setEditForm({ ...editForm, desc: e.target.value })} placeholder="รายละเอียด" className="w-full border p-2 rounded" autoComplete="off" aria-label="รายละเอียด" />
+                <label htmlFor="merchant-menu-name-input" className="sr-only">Nome do prato</label>
+                <input id="merchant-menu-name-input" name="name" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Nome do prato" className="w-full border p-2 rounded" autoComplete="off" aria-label="Nome do prato" />
+                <label htmlFor="merchant-menu-price-input" className="sr-only">Preço (Kz)</label>
+                <input id="merchant-menu-price-input" name="price" type="number" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} placeholder="Preço (Kz)" className="w-full border p-2 rounded" autoComplete="off" aria-label="Preço (Kz)" />
+                <label htmlFor="merchant-menu-desc-input" className="sr-only">Descrição</label>
+                <textarea id="merchant-menu-desc-input" name="desc" value={editForm.desc} onChange={e => setEditForm({ ...editForm, desc: e.target.value })} placeholder="Descrição" className="w-full border p-2 rounded" autoComplete="off" aria-label="Descrição" />
 
                 <div>
-                  <label htmlFor="merchant-menu-tag-select" className="block text-xs font-semibold text-gray-600 mb-1">ป้ายกำกับ (Tag)</label>
+                  <label htmlFor="merchant-menu-tag-select" className="block text-xs font-semibold text-gray-600 mb-1">Etiqueta</label>
                   <select
                     id="merchant-menu-tag-select"
                     name="tag"
@@ -443,7 +443,7 @@ export default function MerchantView() {
                     onChange={e => setEditForm({ ...editForm, tag: e.target.value })}
                     className="w-full border p-2 rounded text-sm"
                   >
-                    <option value="">-- ไม่มีป้ายกำกับ --</option>
+                    <option value="">-- Sem etiqueta --</option>
                     {MENU_TAGS.map(t => (
                       <option key={t} value={t}>{t}</option>
                     ))}
@@ -453,13 +453,13 @@ export default function MerchantView() {
                 {/* Additional Options / Toppings */}
                 <div className="border-t border-gray-100 pt-3">
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-bold text-gray-700">ตัวเลือกเพิ่มเติม / ท็อปปิ้ง</label>
+                    <label className="text-xs font-bold text-gray-700">Opções adicionais / extras</label>
                     <button
                       type="button"
                       onClick={addEditFormOption}
                       className="text-xs text-violet-600 font-bold flex items-center gap-1 hover:underline"
                     >
-                      <Plus size={12} /> เพิ่มตัวเลือก
+                      <Plus size={12} /> Adicionar opção
                     </button>
                   </div>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -467,14 +467,14 @@ export default function MerchantView() {
                       <div key={idx} className="flex gap-2 items-center">
                         <input
                           type="text"
-                          placeholder="ชื่อตัวเลือก (เช่น ไข่ดาว)"
+                          placeholder="Nome da opção (ex.: ovo estrelado)"
                           value={opt.name}
                           onChange={e => updateEditFormOption(idx, 'name', e.target.value)}
                           className="flex-1 border p-1.5 text-xs rounded"
                         />
                         <input
                           type="number"
-                          placeholder="ราคาเพิ่ม (฿)"
+                          placeholder="Preço adicional (Kz)"
                           value={opt.price}
                           onChange={e => updateEditFormOption(idx, 'price', e.target.value)}
                           className="w-20 border p-1.5 text-xs rounded"
@@ -491,34 +491,34 @@ export default function MerchantView() {
                   </div>
                 </div>
                 <div className="mb-2">
-                  <label htmlFor="merchant-menu-photo-file" className="block text-sm text-gray-500 mb-1">รูปภาพอาหาร</label>
+                  <label htmlFor="merchant-menu-photo-file" className="block text-sm text-gray-500 mb-1">Imagem do prato</label>
                   <label htmlFor="merchant-menu-photo-file" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block text-gray-500 hover:bg-gray-50 ${editForm._imageUploading ? 'opacity-60 pointer-events-none' : ''}`}>
                     {editForm._imageUploading ? (
                       <div className="flex flex-col items-center py-2">
                         <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-2" />
-                        <span className="text-xs text-green-600">กำลังอัปโหลดรูป...</span>
+                        <span className="text-xs text-green-600">A carregar imagem...</span>
                       </div>
                     ) : editForm.image ? (
                       <div className="relative">
                         <img src={editForm.image} className="h-32 w-full object-cover rounded-lg mx-auto" alt="food" />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 hover:opacity-100 rounded-lg transition-opacity">
-                          <Camera className="mr-2" /> เปลี่ยนรูป
+                          <Camera className="mr-2" /> Alterar imagem
                         </div>
                       </div>
                     ) : (
-                      <><ImageIcon className="mx-auto mb-2 text-gray-400" /><span>กดเพื่อเลือกรูป หรือ ถ่ายรูป</span></>
+                      <><ImageIcon className="mx-auto mb-2 text-gray-400" /><span>Toque para escolher ou tirar uma fotografia</span></>
                     )}
                     <input id="merchant-menu-photo-file" name="menuPhoto" type="file" accept="image/*" className="hidden" onChange={handleMenuPhotoSelect} />
                   </label>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <button onClick={() => setIsEditingMenu(null)} className="flex-1 bg-gray-200 py-3 rounded font-bold">ยกเลิก</button>
+                  <button onClick={() => setIsEditingMenu(null)} className="flex-1 bg-gray-200 py-3 rounded font-bold">Cancelar</button>
                   <button
                     onClick={saveMenu}
                     disabled={!!editForm._imageUploading}
                     className={`flex-1 py-3 rounded font-bold text-white ${editForm._imageUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600'}`}
                   >
-                    {editForm._imageUploading ? 'กำลังอัปโหลด...' : 'บันทึก'}
+                    {editForm._imageUploading ? 'A carregar...' : 'Guardar'}
                   </button>
                 </div>
               </div>
@@ -527,28 +527,28 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── ที่ตั้งร้านค้า ─────────────────────────────────────────────── */}
+      {/* ── Localizaçãoร้านค้า ─────────────────────────────────────────────── */}
       {merchantTab === 'location' && (
         <div className="px-4">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-blue-100 mb-4">
             <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
-              <MapPin size={16} className="text-blue-500" /> ที่ตั้งร้านค้าของคุณ
+              <MapPin size={16} className="text-blue-500" /> Localizaçãoร้านค้าของคุณ
             </h3>
             <p className="text-xs text-gray-500 mb-3">
-              ตำแหน่งนี้ใช้แสดงระยะทางให้ลูกค้า และส่งงานให้ไรเดอร์ในรัศมี {appConfig?.riderRadius || 5} กม. — <strong>ต้องตั้งให้ถูกต้อง</strong>
+              ตำแหน่งนี้ใช้แสดงระยะทางให้Cliente และส่งงานให้Estafetaในรัศมี {appConfig?.riderRadius || 5} กม. — <strong>A localização deve estar correcta</strong>
             </p>
 
             {/* ตำแหน่งปัจจุบัน */}
             <div className="text-xs text-gray-500 mb-3 space-y-0.5">
               <div>
-                📍 ที่ตั้งร้านตอนนี้:{' '}
+                📍 Localizaçãoร้านตอนนี้:{' '}
                 {myShop.location
                   ? `${myShop.location.lat.toFixed(4)}, ${myShop.location.lng.toFixed(4)}`
-                  : <span className="text-red-400 font-bold">ยังไม่ได้ตั้ง</span>}
+                  : <span className="text-red-400 font-bold">Ainda não definida</span>}
               </div>
               {pendingShopLocation && (
                 <div className="text-blue-600 font-bold">
-                  🔵 เลือกใหม่: {pendingShopLocation.lat.toFixed(4)}, {pendingShopLocation.lng.toFixed(4)}
+                  🔵 Escolher novamente: {pendingShopLocation.lat.toFixed(4)}, {pendingShopLocation.lng.toFixed(4)}
                 </div>
               )}
             </div>
@@ -562,7 +562,7 @@ export default function MerchantView() {
                 className="h-64"
               />
             </div>
-            <p className="text-[10px] text-gray-400 mb-3 text-center">แตะบนแผนที่เพื่อปักหมุดที่ตั้งร้านค้า</p>
+            <p className="text-[10px] text-gray-400 mb-3 text-center">แตะบนแผนที่เพื่อปักหมุดLocalizaçãoร้านค้า</p>
 
             {/* GPS อัตโนมัติ */}
             <button
@@ -576,10 +576,10 @@ export default function MerchantView() {
               }}
               className="w-full py-2 rounded-lg bg-gray-100 text-gray-600 text-sm font-bold mb-2 hover:bg-gray-200 active:scale-95 transition-all"
             >
-              📡 ใช้ GPS ปัจจุบันเป็นที่ตั้งร้าน
+              📡 ใช้ GPS ปัจจุบันเป็นLocalizaçãoร้าน
             </button>
 
-            {/* บันทึก */}
+            {/* Guardar */}
             <button
               disabled={!pendingShopLocation || savingShopLocation}
               onClick={async () => {
@@ -596,24 +596,24 @@ export default function MerchantView() {
               }`}
             >
               {savingShopLocation ? (
-                <><Loader size={16} className="animate-spin" /> กำลังบันทึก...</>
+                <><Loader size={16} className="animate-spin" /> กำลังGuardar...</>
               ) : (
-                <><MapPin size={16} /> บันทึกที่ตั้งร้าน</>
+                <><MapPin size={16} /> GuardarLocalizaçãoร้าน</>
               )}
             </button>
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-bold">📋 ที่ตั้งร้านมีผลต่อ:</p>
-            <p>• <strong>ลูกค้า</strong> — เห็นร้านคุณเรียงตามระยะทางจากตำแหน่งลูกค้า</p>
-            <p>• <strong>ไรเดอร์</strong> — รับงานจากร้านในรัศมี {appConfig?.riderRadius || 5} กม. จากจุดรับงานของไรเดอร์</p>
-            <p>• <strong>แผนที่</strong> — ลูกค้าเห็นหมุดร้านถูกต้องบนแผนที่</p>
+            <p className="font-bold">📋 Localizaçãoร้านมีผลต่อ:</p>
+            <p>• <strong>Cliente</strong> — เห็นร้านคุณเรียงตามระยะทางจากตำแหน่งCliente</p>
+            <p>• <strong>Estafeta</strong> — รับงานจากร้านในรัศมี {appConfig?.riderRadius || 5} กม. จากจุดรับงานของEstafeta</p>
+            <p>• <strong>แผนที่</strong> — Clienteเห็นหมุดร้านถูกต้องบนแผนที่</p>
           </div>
         </div>
       )}
 
 
-      {/* ── กระเป๋าเงิน ───────────────────────────────────────────────── */}
+      {/* ── Carteiraเงิน ───────────────────────────────────────────────── */}
       {merchantTab === 'wallet' && (
         <div className="px-4">
           {/* ยอดคงเหลือ */}
@@ -623,15 +623,15 @@ export default function MerchantView() {
               <span className="text-green-100 text-sm">ยอดเงินคงเหลือ</span>
             </div>
             <div className="text-3xl font-bold">฿{(userWallet ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            <div className="text-green-200 text-xs mt-1">รายได้จากออเดอร์จะเข้ากระเป๋าอัตโนมัติ</div>
+            <div className="text-green-200 text-xs mt-1">รายได้จากออเดอร์จะเข้าCarteiraอัตโนมัติ</div>
           </div>
 
-          {/* ประวัติธุรกรรม */}
-          <h3 className="font-bold text-base mb-3 text-gray-700">ประวัติธุรกรรม</h3>
+          {/* HistóricoTransacções */}
+          <h3 className="font-bold text-base mb-3 text-gray-700">HistóricoTransacções</h3>
           {!walletHistory || walletHistory.length === 0 ? (
             <div className="text-center text-gray-400 py-10">
               <Wallet size={36} className="mx-auto mb-2 opacity-20" />
-              <p className="text-sm">ยังไม่มีประวัติ</p>
+              <p className="text-sm">ยังไม่มีHistórico</p>
               <p className="text-xs mt-1 text-gray-400">รายได้จะแสดงเมื่อออเดอร์ส่งสำเร็จ</p>
             </div>
           ) : (
@@ -659,7 +659,7 @@ export default function MerchantView() {
         </div>
       )}
 
-      {/* ── สถิติร้านค้า ───────────────────────────────────────────────── */}
+      {/* ── Estatísticasร้านค้า ───────────────────────────────────────────────── */}
       {merchantTab === 'analytics' && (() => {
         const done = myOrders.filter(o => ['delivered', 'completed'].includes(o.status));
         const cancelled = myOrders.filter(o => o.status === 'cancelled');
@@ -669,7 +669,7 @@ export default function MerchantView() {
         const allRevenue = done.reduce((s, o) => s + getMerchantIncome(o), 0);
         const avgOrder = done.length > 0 ? allRevenue / done.length : 0;
 
-        // Top เมนูขายดี
+        // Top Menuขายดี
         const itemCounts = {};
         done.forEach(o => (o.items || []).forEach(item => {
           itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty;
@@ -701,7 +701,7 @@ export default function MerchantView() {
                 <p className="text-xs text-gray-400">{todayDone.length} ออเดอร์</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <p className="text-xs text-gray-400 mb-1">รวมทั้งหมด</p>
+                <p className="text-xs text-gray-400 mb-1">รวมทั้งEsgotado</p>
                 <p className="text-xl font-black text-purple-600">฿{allRevenue.toLocaleString()}</p>
                 <p className="text-xs text-gray-400">{done.length} ออเดอร์สำเร็จ</p>
               </div>
@@ -711,10 +711,10 @@ export default function MerchantView() {
                 <p className="text-xs text-gray-400">ต่อออเดอร์</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <p className="text-xs text-gray-400 mb-1">ยกเลิก</p>
+                <p className="text-xs text-gray-400 mb-1">Cancelar</p>
                 <p className="text-xl font-black text-red-500">{cancelled.length}</p>
                 <p className="text-xs text-gray-400">
-                  {myOrders.length > 0 ? `${((cancelled.length / myOrders.length) * 100).toFixed(0)}%` : '0%'} ของทั้งหมด
+                  {myOrders.length > 0 ? `${((cancelled.length / myOrders.length) * 100).toFixed(0)}%` : '0%'} ของทั้งEsgotado
                 </p>
               </div>
             </div>
@@ -722,7 +722,7 @@ export default function MerchantView() {
             {/* Top items */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <h3 className="font-bold text-sm text-gray-700 mb-3 flex items-center gap-1.5">
-                <BarChart2 size={15} className="text-violet-500" /> เมนูขายดี
+                <BarChart2 size={15} className="text-violet-500" /> Menuขายดี
               </h3>
               {topItems.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">ยังไม่มีข้อมูล</p>
@@ -767,7 +767,7 @@ export default function MerchantView() {
               </h3>
               {[
                 { label: 'สำเร็จ', count: done.length, color: '#22c55e' },
-                { label: 'ยกเลิก', count: cancelled.length, color: '#ef4444' },
+                { label: 'Cancelar', count: cancelled.length, color: '#ef4444' },
                 { label: 'กำลังดำเนินการ', count: myOrders.length - done.length - cancelled.length, color: '#3b82f6' },
               ].map(row => (
                 <div key={row.label} className="flex items-center gap-2 mb-2">
@@ -791,7 +791,7 @@ export default function MerchantView() {
             <div className="bg-violet-500 px-5 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2 text-white">
                 <XCircle size={20} />
-                <h3 className="font-bold text-base">ขอยกเลิกออเดอร์ (รอ Admin อนุมัติ)</h3>
+                <h3 className="font-bold text-base">ขอCancelarออเดอร์ (รอ Admin Aprovações)</h3>
               </div>
               <button onClick={() => setShowCancelModal(false)} className="text-white/80 hover:text-white">
                 <X size={20} />
@@ -801,13 +801,13 @@ export default function MerchantView() {
             <div className="p-5">
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 mb-3 flex items-start gap-2">
                 <span className="text-yellow-600 mt-0.5">⚠️</span>
-                <p className="text-xs text-yellow-700">คำขอยกเลิกจะถูกส่งให้ <strong>Admin</strong> อนุมัติก่อน ระบบจะคืนเงินให้ลูกค้าหลัง Admin ยืนยัน</p>
+                <p className="text-xs text-yellow-700">คำขอCancelarจะถูกส่งให้ <strong>Admin</strong> Aprovaçõesก่อน ระบบจะคืนเงินให้Clienteหลัง Admin ยืนยัน</p>
               </div>
               <p className="text-sm text-gray-600 mb-3">
                 กรุณาระบุเหตุผล เพื่อให้ Admin พิจารณา
               </p>
               <div className="space-y-2 mb-4">
-                {['สินค้าหมด / ร้านปิด', 'วัตถุดิบไม่พร้อม', 'ปริมาณสั่งมากเกินไป', 'อื่นๆ'].map(preset => (
+                {['สินค้าEsgotado / ร้านปิด', 'วัตถุดิบไม่พร้อม', 'ปริมาณสั่งมากเกินไป', 'อื่นๆ'].map(preset => (
                   <button
                     key={preset}
                     onClick={() => setCancelReasonInput(preset)}
@@ -832,7 +832,7 @@ export default function MerchantView() {
                 autoComplete="off"
               />
               <p className="text-xs text-gray-400 mt-1.5">
-                * หากลูกค้าชำระผ่าน Wallet ระบบจะคืนเงินให้อัตโนมัติ
+                * หากClienteชำระผ่าน Wallet ระบบจะคืนเงินให้อัตโนมัติ
               </p>
             </div>
             {/* Footer */}
@@ -841,7 +841,7 @@ export default function MerchantView() {
                 onClick={() => setShowCancelModal(false)}
                 className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 active:scale-95 transition-all"
               >
-                ไม่ยกเลิก
+                ไม่Cancelar
               </button>
               <button
                 onClick={() => {
@@ -877,7 +877,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
     delivering:      'bg-cyan-100 text-cyan-800',
   };
 
-  // ยกเลิกได้เฉพาะก่อนที่ไรเดอร์จะรับงาน
+  // Cancelarได้เฉพาะก่อนที่Estafetaจะรับงาน
   const canCancel = ['pending', 'preparing', 'ready_to_pickup'].includes(order.status);
 
   return (
@@ -942,7 +942,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         </div>
       )}
 
-      {/* ปุ่มควบคุม — สถานะออเดอร์ */}
+      {/* ปุ่มควบคุม — Estadoออเดอร์ */}
       <div className="flex gap-2 mb-2">
         {order.status === 'pending' && (
           <button
@@ -957,38 +957,38 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
             onClick={() => updateOrderStatus(order.id, 'ready_to_pickup')}
             className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-bold text-xs hover:bg-blue-600 active:scale-95 transition-all"
           >
-            🛵 เรียกไรเดอร์
+            🛵 เรียกEstafeta
           </button>
         )}
         {order.status === 'ready_to_pickup' && (
           <div className="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            ⏳ รอไรเดอร์รับงาน...
+            ⏳ รอEstafetaรับงาน...
           </div>
         )}
         {order.status === 'rider_accepted' && (
           <div className="flex-1 bg-indigo-50 text-indigo-600 border border-indigo-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🛵 ไรเดอร์กำลังมารับอาหาร
+            🛵 Estafetaกำลังมารับอาหาร
           </div>
         )}
         {order.status === 'picking_up' && (
           <div className="flex-1 bg-purple-50 text-purple-700 border border-purple-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🏪 ไรเดอร์ถึงร้านแล้ว / รอรับอาหาร
+            🏪 Estafetaถึงร้านแล้ว / รอรับอาหาร
           </div>
         )}
         {['delivering', 'delivered', 'completed'].includes(order.status) && (
           <div className="flex-1 bg-indigo-50 text-indigo-600 border border-indigo-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center">
-            🛵 ไรเดอร์กำลังส่ง
+            🛵 Estafetaกำลังส่ง
           </div>
         )}
       </div>
 
-      {/* ปุ่มยกเลิก — แสดงเฉพาะก่อนไรเดอร์รับงาน */}
+      {/* ปุ่มCancelar — แสดงเฉพาะก่อนEstafetaรับงาน */}
       {canCancel && (
         <button
           onClick={() => onCancel(order.id)}
           className="w-full py-2 rounded-lg border border-red-300 text-red-600 bg-red-50 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-red-100 active:scale-95 transition-all"
         >
-          <XCircle size={14} /> ยกเลิกออเดอร์นี้
+          <XCircle size={14} /> Cancelarออเดอร์นี้
         </button>
       )}
     </div>
