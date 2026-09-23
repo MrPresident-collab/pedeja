@@ -31,7 +31,7 @@ export default function TopUpModal() {
             <div className="bg-white p-1.5 rounded-lg shadow-sm border flex items-center justify-center min-w-[96px] min-h-[96px]">
               {appConfig.adminPaymentReference ? (
                 <PaymentQR
-                  promptPayId={appConfig.adminPaymentReference}
+                  paymentReference={appConfig.adminPaymentReference}
                   amount={parseFloat(withdrawAmount) || 0}
                   size={96}
                 />
@@ -43,7 +43,7 @@ export default function TopUpModal() {
                 />
               ) : (
                 <PaymentQR
-                  promptPayId=""
+                  paymentReference=""
                   amount={parseFloat(withdrawAmount) || 0}
                   size={96}
                 />
@@ -99,7 +99,7 @@ export default function TopUpModal() {
               if (!topUpSlip) return alert('Anexe o comprovativo da transferência');
               requestTopUp(parseFloat(withdrawAmount), topUpSlip);
             } else {
-              alert('กรุณาระบุValor');
+              alert('Indique o valor');
             }
           }}
           className="w-full bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center"
