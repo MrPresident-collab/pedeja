@@ -16,13 +16,13 @@ const calcETA = (fromLoc, toLoc) => {
 };
 
 const STATUS_LABELS = {
-  pending:         { label: 'รอร้านรับออเดอร์',          color: 'bg-orange-100 text-orange-600' },
-  preparing:       { label: 'กำลังเตรียมอาหาร',          color: 'bg-blue-100 text-blue-600' },
-  ready_to_pickup: { label: 'รอไรเดอร์รับงาน',           color: 'bg-purple-100 text-purple-600' },
-  rider_accepted:  { label: 'ไรเดอร์รับงานแล้ว',         color: 'bg-indigo-100 text-indigo-600' },
-  picking_up:      { label: 'ไรเดอร์ถึงจุดรับแล้ว',      color: 'bg-indigo-100 text-indigo-700' },
-  delivering:      { label: '🛵 กำลังส่งของหาคุณ!',      color: 'bg-blue-100 text-blue-700' },
-  delivered:       { label: '📦 ไรเดอร์ถึงที่หมายแล้ว!', color: 'bg-teal-100 text-teal-700' },
+  pending:         { label: 'A aguardar confirmação do comerciante',          color: 'bg-orange-100 text-orange-600' },
+  preparing:       { label: 'A preparar comida',          color: 'bg-blue-100 text-blue-600' },
+  ready_to_pickup: { label: 'A aguardar estafeta',           color: 'bg-purple-100 text-purple-600' },
+  rider_accepted:  { label: 'Estafeta aceitou',         color: 'bg-indigo-100 text-indigo-600' },
+  picking_up:      { label: 'Estafeta chegou ao ponto de recolha',      color: 'bg-indigo-100 text-indigo-700' },
+  delivering:      { label: '🛵 A entregar',      color: 'bg-blue-100 text-blue-700' },
+  delivered:       { label: '📦 Estafeta chegou ao destino', color: 'bg-teal-100 text-teal-700' },
 };
 
 const TRACKING_STATUSES = ['rider_accepted', 'picking_up', 'delivering'];
@@ -120,7 +120,7 @@ export default function ActivityTab() {
       {inProgress.length > 0 && (
         <>
           <h2 className="text-lg font-bold mb-3 text-orange-600 flex items-center gap-2">
-            <Bike size={18} /> กำลังดำเนินการ ({inProgress.length})
+            <Bike size={18} /> Em curso ({inProgress.length})
           </h2>
           {inProgress.map(order => {
             const s = STATUS_LABELS[order.status] || { label: order.status, color: 'bg-gray-100 text-gray-600' };
@@ -133,7 +133,7 @@ export default function ActivityTab() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-bold text-gray-900">
-                        {order.type === 'parcel' ? '📦 ส่งพัสดุด่วน' : order.restaurantName}
+                        {order.type === 'parcel' ? '📦 Entrega de encomenda' : order.restaurantName}
                       </h3>
                       <p className="text-xs text-gray-400 mt-0.5">{order.id} · {order.createdAt || order.timestamp}</p>
                     </div>
@@ -143,14 +143,14 @@ export default function ActivityTab() {
                     <div className="bg-blue-50 rounded-lg p-2.5 space-y-1.5">
                       <div className="flex items-start gap-2">
                         <MapPin size={13} className="text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-gray-700"><span className="font-semibold text-green-700">รับ: </span>{order.pickup}</span>
+                        <span className="text-xs text-gray-700"><span className="font-semibold text-green-700">Recolha: </span>{order.pickup}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Navigation size={13} className="text-red-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-gray-700"><span className="font-semibold text-red-600">ส่ง: </span>{order.dropoff}</span>
+                        <span className="text-xs text-gray-700"><span className="font-semibold text-red-600">Entrega: </span>{order.dropoff}</span>
                       </div>
                       {order.distance > 0 && (
-                        <p className="text-xs text-gray-400 pl-5">ระยะทาง {order.distance} กม. · {order.weight} kg</p>
+                        <p className="text-xs text-gray-400 pl-5">Distância {order.distance} กม. · {order.weight} kg</p>
                       )}
                     </div>
                   )}
@@ -160,15 +160,15 @@ export default function ActivityTab() {
                         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 flex items-center gap-2">
                           <Clock size={13} className="text-yellow-500 shrink-0" />
                           <div>
-                            <p className="text-yellow-700 font-bold text-xs">⏳ รอ Admin อนุมัติการยกเลิก</p>
-                            <p className="text-yellow-600 text-[11px] mt-0.5">คำขอยกเลิกกำลังรอการตรวจสอบ</p>
+                            <p className="text-yellow-700 font-bold text-xs">⏳ A aguardar aprovação do Admin para cancelamento</p>
+                            <p className="text-yellow-600 text-[11px] mt-0.5">O pedido de cancelamento aguarda revisão</p>
                           </div>
                         </div>
                       ) : order.status === 'pending' ? (
                         <button
                           onClick={() => {
-                            if (window.confirm('ยืนยันการยกเลิกออเดอร์นี้?')) {
-                              cancelOrderDirectly(order.id, 'ลูกค้ายกเลิก');
+                            if (window.confirm('Confirma o cancelamento deste pedido?')) {
+                              cancelOrderDirectly(order.id, 'Cancelado pelo cliente');
                             }
                           }}
                           className="w-full text-center text-xs text-red-500 font-semibold hover:text-white py-2 hover:bg-red-500 rounded-xl transition-all border border-red-200 hover:border-red-500"
@@ -197,10 +197,10 @@ export default function ActivityTab() {
                           <span className="text-lg">🛵</span>
                           <div>
                             <p className={`text-xs font-bold ${isDelivering ? 'text-white' : 'text-indigo-700'}`}>
-                              {order.riderName || 'ไรเดอร์'}
+                              {order.riderName || 'Estafeta'}
                             </p>
                             <p className={`text-[10px] ${isDelivering ? 'text-blue-100' : 'text-indigo-400'}`}>
-                              {isDelivering ? 'กำลังมาส่งให้คุณ!' : order.status === 'picking_up' ? 'กำลังรับของ' : 'รับงานแล้ว'}
+                              {isDelivering ? 'A caminho da sua morada!' : order.status === 'picking_up' ? 'A recolher' : 'Entrega aceite'}
                             </p>
                           </div>
                         </div>
@@ -215,7 +215,7 @@ export default function ActivityTab() {
                             onClick={() => setTrackingOrderId(order.id)}
                             className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 ${isDelivering ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'} active:scale-95 transition-all`}
                           >
-                            <MapPin size={11} /> เต็มจอ
+                            <MapPin size={11} /> Ecrã inteiro
                           </button>
                         </div>
                       </div>
@@ -237,24 +237,24 @@ export default function ActivityTab() {
                     <div className="px-4 py-3 bg-orange-100 border-t border-orange-200 flex items-center gap-3">
                       <Banknote size={22} className="text-orange-600 shrink-0" />
                       <div className="flex-1">
-                        <p className="text-orange-800 font-bold text-sm">เตรียมจ่ายเงินสดให้ไรเดอร์</p>
-                        <p className="text-orange-600 text-xs mt-0.5">ยอดที่ต้องจ่าย <span className="font-black text-base text-orange-700">฿{(order.grandTotal || 0).toLocaleString()}</span></p>
+                        <p className="text-orange-800 font-bold text-sm">เตรียมจ่ายเงินสดให้Estafeta</p>
+                        <p className="text-orange-600 text-xs mt-0.5">Valor a pagar <span className="font-black text-base text-orange-700">Kz {(order.grandTotal || 0).toLocaleString()}</span></p>
                       </div>
                     </div>
                   ) : (
                     <div className="px-4 py-2.5 bg-green-50 border-t border-green-100 flex items-center gap-2">
                       <span className="text-base">👛</span>
-                      <span className="text-xs text-green-700 font-semibold">ตัดเงินจาก Wallet แล้ว — ไม่ต้องจ่ายเพิ่ม</span>
+                      <span className="text-xs text-green-700 font-semibold">Pago pela carteira — não é necessário pagar mais</span>
                     </div>
                   )
                 ) : (
                   <div className="px-4 py-2 bg-orange-50 border-t border-orange-100 flex items-center justify-between">
                     <div className="text-xs text-gray-500">
-                      {order.paymentMethod === 'cash' ? '💵 ชำระเงินสด' : '👛 ตัดจาก Wallet'}
+                      {order.paymentMethod === 'cash' ? '💵 Pagamento em numerário' : '👛 Pago pela carteira'}
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-gray-400 mr-1">ยอดชำระ</span>
-                      <span className="text-lg font-black text-orange-600">฿{(order.grandTotal || 0).toLocaleString()}</span>
+                      <span className="text-xs text-gray-400 mr-1">Valor pago</span>
+                      <span className="text-lg font-black text-orange-600">Kz {(order.grandTotal || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 )}
@@ -263,10 +263,10 @@ export default function ActivityTab() {
                   <div className="px-3 pt-2 pb-3">
                     {order.deliveryProofUrl && (
                       <div className="mb-3 rounded-xl overflow-hidden border-2 border-teal-200">
-                        <img src={order.deliveryProofUrl} alt="หลักฐานการส่ง" className="w-full object-cover max-h-48" />
+                        <img src={order.deliveryProofUrl} alt="Comprovativo de entrega" className="w-full object-cover max-h-48" />
                         <div className="bg-teal-50 px-3 py-1.5 flex items-center gap-1.5">
                           <CheckCircle size={13} className="text-teal-600" />
-                          <span className="text-xs text-teal-700 font-semibold">รูปหลักฐานการส่งจากไรเดอร์</span>
+                          <span className="text-xs text-teal-700 font-semibold">รูปComprovativo de entregaจากEstafeta</span>
                         </div>
                       </div>
                     )}
@@ -275,15 +275,15 @@ export default function ActivityTab() {
                       className="w-full bg-teal-500 text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-teal-400 active:scale-95 transition-all shadow-lg shadow-teal-900/20 animate-pulse"
                     >
                       <CheckCircle size={18} />
-                      {order.type === 'parcel' ? 'ยืนยันรับสินค้าเรียบร้อยแล้ว'
-                        : order.type === 'ride' ? 'ยืนยันการเดินทางเรียบร้อยแล้ว'
-                        : order.type === 'service' ? 'ยืนยันรับบริการเรียบร้อยแล้ว'
-                        : 'ยืนยันรับอาหารเรียบร้อยแล้ว'}
+                      {order.type === 'parcel' ? 'Recepção da encomenda confirmada'
+                        : order.type === 'ride' ? 'Viagem confirmada'
+                        : order.type === 'service' ? 'Serviço confirmado'
+                        : 'Recepção da comida confirmada'}
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-1.5">
                       {order.paymentMethod === 'cash'
-                        ? '✅ ตรวจสอบรูปหลักฐานด้านบน แล้วกดหลังรับของและจ่ายเงินให้ไรเดอร์'
-                        : '✅ ตรวจสอบรูปหลักฐานด้านบน แล้วกดเพื่อยืนยันว่าได้รับของแล้ว'}
+                        ? '✅ ตรวจสอบรูปหลักฐานด้านบน แล้วกดหลังรับของและจ่ายเงินให้Estafeta'
+                        : '✅ Verifique o comprovativo acima e confirme a recepção'}
                     </p>
                   </div>
                 )}
@@ -306,7 +306,7 @@ export default function ActivityTab() {
                     ) : null;
                   })()}
                   <button
-                    onClick={() => openChatWindow('support-' + userProfile.id, 'เจ้าหน้าที่ (Admin)', 'customer')}
+                    onClick={() => openChatWindow('support-' + userProfile.id, 'Suporte (Admin)', 'customer')}
                     className="flex-1 min-w-[110px] bg-blue-50 text-blue-700 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 hover:bg-blue-100 active:scale-95 transition-all"
                   >
                     <MessageSquare size={13} /> Support
@@ -321,7 +321,7 @@ export default function ActivityTab() {
       {justDone.length > 0 && (
         <>
           <h2 className="text-lg font-bold mb-3 text-green-600 flex items-center gap-2 mt-4">
-            <CheckCircle size={18} /> จบงานแล้ว ({justDone.length})
+            <CheckCircle size={18} /> Concluído ({justDone.length})
           </h2>
           {justDone.map(order => (
             <div key={order.id} className="bg-white mb-4 rounded-2xl shadow-sm overflow-hidden border-2 border-green-400">
@@ -330,15 +330,15 @@ export default function ActivityTab() {
                   <CheckCircle size={20} className="text-green-500" />
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm">จัดส่งสำเร็จแล้ว! 🎉</p>
-                  <p className="text-green-100 text-xs">ของถึงมือคุณเรียบร้อย</p>
+                  <p className="text-white font-bold text-sm">Entrega concluída! 🎉</p>
+                  <p className="text-green-100 text-xs">A encomenda chegou ao seu destino</p>
                 </div>
               </div>
               <div className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-900">
-                      {order.type === 'parcel' ? '📦 ส่งพัสดุด่วน' : order.restaurantName}
+                      {order.type === 'parcel' ? '📦 Entrega de encomenda' : order.restaurantName}
                     </h3>
                     <p className="text-xs text-gray-400 mt-0.5">{order.id} · {order.createdAt || order.timestamp}</p>
                     {order.type === 'parcel' && order.dropoff && (
@@ -346,16 +346,16 @@ export default function ActivityTab() {
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-700">✅ จบงานแล้ว</span>
-                    <div className="font-bold text-gray-800 mt-1">฿{(order.grandTotal || 0).toLocaleString()}</div>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-700">✅ Concluído</span>
+                    <div className="font-bold text-gray-800 mt-1">Kz {(order.grandTotal || 0).toLocaleString()}</div>
                   </div>
                 </div>
                 {order.paymentMethod === 'cash' ? (
                   <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 flex items-center gap-2">
                     <Banknote size={18} className="text-orange-500 shrink-0" />
                     <div>
-                      <p className="text-orange-700 font-bold text-sm">เตรียมจ่ายเงินสด ฿{(order.grandTotal || 0).toLocaleString()}</p>
-                      <p className="text-orange-500 text-xs">ชำระให้ไรเดอร์โดยตรง</p>
+                      <p className="text-orange-700 font-bold text-sm">เตรียมจ่ายเงินสด Kz {(order.grandTotal || 0).toLocaleString()}</p>
+                      <p className="text-orange-500 text-xs">ชำระให้Estafetaโดยตรง</p>
                     </div>
                   </div>
                 ) : (
@@ -390,7 +390,7 @@ export default function ActivityTab() {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-gray-800">
-                    {order.type === 'parcel' ? '📦 ส่งพัสดุด่วน' : order.restaurantName}
+                    {order.type === 'parcel' ? '📦 Entrega de encomenda' : order.restaurantName}
                   </h3>
                   <p className="text-xs text-gray-400">{order.id} · {order.createdAt || order.timestamp}</p>
                   {order.type === 'parcel' && order.dropoff && (
@@ -404,7 +404,7 @@ export default function ActivityTab() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${order.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
                     {order.status === 'cancelled' ? 'ยกเลิกแล้ว' : 'จัดส่งสำเร็จ ✓'}
                   </span>
-                  <div className="font-bold text-gray-800 mt-1">฿{(order.grandTotal || 0).toLocaleString()}</div>
+                  <div className="font-bold text-gray-800 mt-1">Kz {(order.grandTotal || 0).toLocaleString()}</div>
                 </div>
               </div>
               {order.status === 'completed' && !order.rated && (
@@ -450,7 +450,7 @@ export default function ActivityTab() {
               {cancelReqOrderId && (() => {
                 const o = orders.find(x => x.id === cancelReqOrderId);
                 return o?.paymentMethod === 'wallet'
-                  ? ` — หาก Admin อนุมัติ จะคืนเงิน ฿${(o.grandTotal || 0).toLocaleString()} เข้า Wallet ให้`
+                  ? ` — หาก Admin อนุมัติ จะคืนเงิน Kz ${(o.grandTotal || 0).toLocaleString()} เข้า Wallet ให้`
                   : '';
               })()}
             </p>
@@ -521,9 +521,9 @@ export default function ActivityTab() {
               </button>
               <div className="text-center flex-1 mx-3">
                 <p className="text-white font-black text-sm">
-                  {isDelivering ? '🛵 กำลังส่งให้คุณ!' : o.status === 'picking_up' ? '🏪 ไรเดอร์ถึงร้านแล้ว' : '✅ ไรเดอร์รับงานแล้ว'}
+                  {isDelivering ? '🛵 กำลังส่งให้คุณ!' : o.status === 'picking_up' ? '🏪 Estafetaถึงร้านแล้ว' : '✅ Estafeta aceitou'}
                 </p>
-                <p className="text-blue-100 text-xs mt-0.5">{o.riderName || 'ไรเดอร์'}</p>
+                <p className="text-blue-100 text-xs mt-0.5">{o.riderName || 'Estafeta'}</p>
               </div>
               {eta ? (
                 <div className="text-right bg-white/20 rounded-xl px-3 py-1.5">
@@ -546,7 +546,7 @@ export default function ActivityTab() {
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-[10px]">🛵</span>
-                    <span className="text-gray-600 font-medium">ไรเดอร์</span>
+                    <span className="text-gray-600 font-medium">Estafeta</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px]">🏪</span>
