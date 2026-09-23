@@ -103,58 +103,10 @@
     </script>
   </head>
   <body>
-    <!-- Inline critical CSS splash to prevent FOUC -->
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0}
-      body{background:#fff;font-family:'Ubuntu',sans-serif;}
-      #root{height:100%;width:100%;}
-      .app-splash{
-        position:fixed;inset:0;background:#6D28D9;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        z-index:9999;transition:opacity .4s ease;
-      }
-      .app-splash.hidden{opacity:0;pointer-events:none;}
-      .splash-logo{font-size:2.5rem;font-weight:800;color:#fff;letter-spacing:-1px;}
-      .splash-sub{font-size:.9rem;color:rgba(255,255,255,.8);margin-top:.5rem;}
-      .splash-spinner{
-        width:40px;height:40px;border:3px solid rgba(255,255,255,.3);
-        border-top:3px solid #fff;border-radius:50%;
-        animation:spin .8s linear infinite;margin-top:2rem;
-      }
-      @keyframes spin{to{transform:rotate(360deg)}}
-    </style>
-
-    <!-- Kill any stale service workers immediately, before React loads -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          regs.forEach(function(r) { r.unregister(); });
-        }).catch(function(){});
-      }
-    </script>
-
-    <!-- Splash Screen -->
-    <div id="app-splash" class="app-splash">
-      <div class="splash-logo">Pedejá</div>
-      <div class="splash-sub">Peça. Nós entregamos.</div>
-      <div class="splash-spinner"></div>
-    </div>
-
     <div id="root"></div>
     <div id="modal-root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Hide splash after React mounts
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          var splash = document.getElementById('app-splash');
-          if (splash) {
-            splash.classList.add('hidden');
-            setTimeout(function() { splash.remove(); }, 500);
-          }
-        }, 800);
-      });
-
       // Global safety net: clear SW + caches then hard-reload
       function __boomHardReset() {
         var keys = ['boomrider_orders','boomrider_pending_requests','boomrider_restaurants',
