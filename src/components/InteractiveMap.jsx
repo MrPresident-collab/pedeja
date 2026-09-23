@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Crosshair, Navigation, Search, Loader2, X } from 'lucide-react';
 
-// OpenStreetMap Standard — ฟรี 100%, ไม่มี Watermark, ไม่ต้องใช้ API Key
+// OpenStreetMap Standard — sem marca de água e sem chave de API.
 const TILE_URL  = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -91,7 +91,7 @@ export default function InteractiveMap({
   centerOverride,
   className = '',
   trackingMode = false,       // ใช้ animated rider icon + auto-follow
-  autoFollow = false,         // pan map ตามไรเดอร์ real-time
+  autoFollow = false,         // pan map ตามEstafeta real-time
   showRoute = true,           // วาดเส้นทางถนน OSRM อัตโนมัติ ( view mode )
 }) {
   const containerRef  = useRef(null);
@@ -257,14 +257,14 @@ export default function InteractiveMap({
         if (userLocation) {
           const m = L.marker([userLocation.lat, userLocation.lng], {
             icon: makeIcon(L, '#22c55e', '🏠'),
-          }).addTo(map).bindPopup('ตำแหน่งของคุณ');
+          }).addTo(map).bindPopup('A sua localização');
           markersRef.current.user = m;
           latlngs.push([userLocation.lat, userLocation.lng]);
         }
         if (shopLocation) {
           const m = L.marker([shopLocation.lat, shopLocation.lng], {
             icon: makeIcon(L, '#f97316', '🏪'),
-          }).addTo(map).bindPopup('ร้านอาหาร / จุดรับ');
+          }).addTo(map).bindPopup('Restaurante / ponto de recolha');
           markersRef.current.shop = m;
           latlngs.push([shopLocation.lat, shopLocation.lng]);
         }
@@ -273,7 +273,7 @@ export default function InteractiveMap({
             ? makeRiderTrackingIcon(L)
             : makeIcon(L, '#3b82f6', '🛵');
           const m = L.marker([riderLocation.lat, riderLocation.lng], { icon })
-            .addTo(map).bindPopup('ไรเดอร์');
+            .addTo(map).bindPopup('Estafeta');
           markersRef.current.rider = m;
           latlngs.push([riderLocation.lat, riderLocation.lng]);
         }
@@ -306,7 +306,7 @@ export default function InteractiveMap({
     const L = leafletRef.current;
     const map = mapRef.current;
 
-    // คำนวณเส้นทาง OSRM ระหว่างจุดรับและจุดส่ง หรือ ไรเดอร์
+    // คำนวณเส้นทาง OSRM ระหว่างจุดรับและจุดส่ง หรือ Estafeta
     let waypoints = [];
     if (riderLocation && shopLocation) {
       waypoints = [riderLocation, shopLocation];
@@ -395,7 +395,7 @@ export default function InteractiveMap({
           ? makeRiderTrackingIcon(L, 0)
           : makeIcon(L, '#3b82f6', '🛵');
         markersRef.current.rider = L.marker([targetLat, targetLng], { icon })
-          .addTo(mapRef.current).bindPopup('ไรเดอร์');
+          .addTo(mapRef.current).bindPopup('Estafeta');
         riderAnimRef.current.currentPos = { lat: targetLat, lng: targetLng };
       } else {
         const startPos = riderAnimRef.current.currentPos || { lat: targetLat, lng: targetLng };
@@ -679,10 +679,10 @@ export default function InteractiveMap({
       : 'border-green-500';
 
   const hintText = isParcel
-    ? (activeParcelTarget === 'pickup'  ? '📍 แตะแผนที่เพื่อเลือกจุดรับของ'
-     : activeParcelTarget === 'dropoff' ? '🏁 แตะแผนที่เพื่อเลือกจุดส่งของ'
-     : '📍 กรุณาเลือกประเภทหมุดก่อน')
-    : '📍 แตะแผนที่เพื่อปักหมุดตำแหน่ง';
+    ? (activeParcelTarget === 'pickup'  ? '📍 Toque no mapa para escolher o ponto de recolha'
+     : activeParcelTarget === 'dropoff' ? '🏁 Toque no mapa para escolher o ponto de entrega'
+     : '📍 Seleccione primeiro o tipo de ponto')
+    : '📍 Toque no mapa para marcar a localização';
 
   return (
     <div
@@ -697,11 +697,11 @@ export default function InteractiveMap({
         <div className="absolute top-2 left-2 z-[1000] bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-md border border-gray-100 flex items-center gap-2 text-xs font-semibold text-gray-800">
           <div className="flex items-center gap-1 text-blue-600">
             <Navigation size={13} />
-            <span>{routeMeta.distanceKm} กม.</span>
+            <span>{routeMeta.distanceKm} km</span>
           </div>
           <span className="text-gray-300">|</span>
           <div className="flex items-center gap-1 text-emerald-600">
-            <span>⏱️ ประมาณ {routeMeta.durationMin} นาที</span>
+            <span>⏱️ Aprox. {routeMeta.durationMin} นาที</span>
           </div>
         </div>
       )}
@@ -724,7 +724,7 @@ export default function InteractiveMap({
             }
           }}
           className="absolute bottom-3 right-3 z-[1000] bg-white/95 backdrop-blur-sm p-2 rounded-xl shadow-md border border-gray-200 text-gray-700 hover:text-green-600 active:scale-95 transition-all"
-          title="จัดตำแหน่งมุมมองแผนที่ใหม่"
+          title="Recentrar mapa"
         >
           <Crosshair size={18} />
         </button>
@@ -745,7 +745,7 @@ export default function InteractiveMap({
                     setShowSearchResults(true);
                   }
                 }}
-                placeholder="ค้นหาชื่อสถานที่, ถนน, ซอย..."
+                placeholder="Pesquisar local, rua, bairro..."
                 className="w-full py-2 px-2 text-xs text-gray-800 bg-transparent border-none focus:outline-none"
               />
               {isSearching ? (
@@ -770,7 +770,7 @@ export default function InteractiveMap({
               <div className="mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto divide-y divide-gray-100">
                 {!searchQuery.trim() && searchHistory.length > 0 && (
                   <div className="px-3 py-1 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    🕒 ประวัติการค้นหาล่าสุด
+                    🕒 Pesquisas recentes
                   </div>
                 )}
                 {(!searchQuery.trim() ? searchHistory : searchResults).map((res) => (
@@ -809,7 +809,7 @@ export default function InteractiveMap({
               className="flex items-center gap-2 bg-green-500 hover:bg-green-600 active:scale-95 text-white px-4 py-2 rounded-2xl font-bold text-sm shadow-lg disabled:opacity-60 transition-all"
             >
               <Crosshair size={15} className={locating ? 'animate-spin' : ''} />
-              {locating ? 'กำลังหาตำแหน่ง GPS...' : 'ใช้ GPS ตำแหน่งปัจจุบัน'}
+              {locating ? 'A obter localização GPS...' : 'Usar localização GPS actual'}
             </button>
             {pinned && (
               <div className="bg-white/90 backdrop-blur-sm text-xs text-green-700 font-semibold px-3 py-1 rounded-full shadow">
