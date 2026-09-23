@@ -178,10 +178,10 @@ export default function ActivityTab() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => { setCancelReqOrderId(order.id); setCancelReqReason(''); setShowCancelReqModal(true); }}
+                          onClick={() => requestCancelOrder(order.id, 'Cancelamento solicitado pelo cliente')}
                           className="w-full text-center text-xs text-gray-400 hover:text-red-500 py-1.5 hover:bg-red-50 rounded-lg transition-all border border-dashed border-gray-200 hover:border-red-200"
                         >
-                          ✕ Pedir cancelamento do pedidoนี้
+                          ✕ Cancelamento não disponível neste estado
                         </button>
                       )}
                     </div>
