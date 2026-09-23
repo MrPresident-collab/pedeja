@@ -155,7 +155,7 @@ export default function ProfileTab() {
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button
-              onClick={() => { setProfileSubView('pin_location'); setUserPinLoc(null); }}
+              onClick={() => setProfileSubView('pin_location')}
               className="w-full p-4 flex items-center justify-between hover:bg-blue-50 border-b"
             >
               <div className="flex items-center">
