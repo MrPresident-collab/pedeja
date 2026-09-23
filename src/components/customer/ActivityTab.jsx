@@ -173,7 +173,7 @@ export default function ActivityTab() {
                           }}
                           className="w-full text-center text-xs text-red-500 font-semibold hover:text-white py-2 hover:bg-red-500 rounded-xl transition-all border border-red-200 hover:border-red-500"
                         >
-                          ✕ ยกเลิกออเดอร์ทันที
+                          ✕ cancelarpedidoทันที
                         </button>
                       ) : (
                         <button
@@ -428,7 +428,7 @@ export default function ActivityTab() {
           <ShoppingBag size={48} className="mx-auto mb-3 opacity-20" />
           <p className="font-medium">Ainda não existem pedidos</p>
           <button onClick={() => setActiveTab('home')} className="mt-3 text-orange-500 font-bold text-sm underline">
-            สั่งอาหารเลย!
+            สั่งcomidaเลย!
           </button>
         </div>
       )}
@@ -446,7 +446,7 @@ export default function ActivityTab() {
               <h3 className="font-bold text-gray-800 text-base">Pedir cancelamento do pedido</h3>
             </div>
             <p className="text-xs text-gray-500 mb-4 pl-1">
-              คำขอจะส่งไปยัง Admin เพื่อตรวจสอบ
+              pedidoจะentregaไปยัง Admin เพื่อverificar
               {cancelReqOrderId && (() => {
                 const o = orders.find(x => x.id === cancelReqOrderId);
                 return o?.paymentMethod === 'wallet'
@@ -483,7 +483,7 @@ export default function ActivityTab() {
                 onClick={() => setShowCancelReqModal(false)}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all"
               >
-                ยกเลิก
+                cancelar
               </button>
               <button
                 onClick={() => {
@@ -495,7 +495,7 @@ export default function ActivityTab() {
                 }}
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 active:scale-95 transition-all"
               >
-                ส่งคำขอยกเลิก
+                entregapedidocancelar
               </button>
             </div>
           </div>
