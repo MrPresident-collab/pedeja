@@ -97,7 +97,7 @@ export default function RiderView() {
 
   // Online/offline toggle (persisted per rider)
   const [isOnline, setIsOnline] = useState(() => {
-    const key = `boomrider_rider_online_${userProfile.id || currentUser?.id}`;
+    const key = `pedeja_rider_online_${userProfile.id || currentUser?.id}`;
     return localStorage.getItem(key) !== 'false';
   });
 
@@ -169,7 +169,7 @@ export default function RiderView() {
   const toggleOnline = () => {
     setIsOnline(prev => {
       const next = !prev;
-      const key = `boomrider_rider_online_${userProfile.id || currentUser?.id}`;
+      const key = `pedeja_rider_online_${userProfile.id || currentUser?.id}`;
       localStorage.setItem(key, String(next));
       // The isOnline effect above writes the new availability once.
       return next;
@@ -351,14 +351,14 @@ export default function RiderView() {
 
       <div className="p-4 bg-gray-800 shadow-lg">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-bold flex items-center"><Bike className="mr-2 text-green-400" /> BoomRider</h1>
+          <h1 className="text-xl font-bold flex items-center"><Bike className="mr-2 text-green-400" /> Pedejá</h1>
           <div className="flex items-center gap-2">
             {/* Language Switcher */}
             <button
               onClick={() => {
                 const nextLang = i18n.language === 'th' ? 'en' : 'th';
                 i18n.changeLanguage(nextLang);
-                localStorage.setItem('boomrider_lang', nextLang);
+                localStorage.setItem('pedeja_lang', nextLang);
               }}
               className="bg-gray-700 text-gray-200 hover:bg-gray-600 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
             >
