@@ -233,7 +233,7 @@ export default function ProfileTab() {
                 <label htmlFor="withdraw-amount-input" className="sr-only">Indique o valor</label>
                 <input id="withdraw-amount-input" name="withdrawAmount" type="number" placeholder="Indique o valor" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="w-full text-black p-2 rounded text-center font-bold" autoComplete="off" />
                 <label htmlFor="withdraw-bank-input" className="sr-only">Nome do banco</label>
-                <input id="withdraw-bank-input" name="withdrawBank" type="text" placeholder="Nome do banco (เช่น กสิกร)" value={withdrawBank} onChange={e => setWithdrawBank(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
+                <input id="withdraw-bank-input" name="withdrawBank" type="text" placeholder="Nome do banco (ex.: BFA)" value={withdrawBank} onChange={e => setWithdrawBank(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
                 <label htmlFor="withdraw-account-input" className="sr-only">Número da conta</label>
                 <input id="withdraw-account-input" name="withdrawAccount" type="text" placeholder="Número da conta" value={withdrawAccount} onChange={e => setWithdrawAccount(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
                 <label htmlFor="withdraw-name-input" className="sr-only">Titular da conta</label>
@@ -262,7 +262,7 @@ export default function ProfileTab() {
           </div>
           <h3 className="font-bold text-base mb-3 text-gray-700">Histórico de transacções</h3>
           {walletHistory.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 text-sm">ยังไม่มีHistórico de transacções</div>
+            <div className="text-center text-gray-400 py-8 text-sm">Ainda não existem transacções</div>
           ) : (
             <div className="space-y-2">
               {[...walletHistory].sort((a, b) => {
@@ -317,10 +317,10 @@ export default function ProfileTab() {
                 className="h-64"
               />
             </div>
-            <p className="text-[10px] text-gray-400 text-center mb-3">แตะบนแผนที่เพื่อปักหมุดตำแหน่งของคุณ</p>
+            <p className="text-[10px] text-gray-400 text-center mb-3">Toque no mapa para marcar a sua localização</p>
             <button
               onClick={() => {
-                if (!navigator.geolocation) return notifySystem('ไม่รองรับ', 'Browser นี้ไม่รองรับ GPS', 'error');
+                if (!navigator.geolocation) return notifySystem('Não suportado', 'Browser นี้Não suportado GPS', 'error');
                 navigator.geolocation.getCurrentPosition(
                   pos => setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
                   () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
@@ -329,7 +329,7 @@ export default function ProfileTab() {
               }}
               className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold mb-3 flex items-center justify-center gap-2 hover:bg-gray-200 active:scale-95 transition-all"
             >
-              <Crosshair size={15} /> ใช้ GPS ตำแหน่งปัจจุบัน
+              <Crosshair size={15} /> Usar localização GPS actual
             </button>
             <button
               disabled={!userPinLoc || userPinSaving}
@@ -348,8 +348,8 @@ export default function ProfileTab() {
               }`}
             >
               {userPinSaving
-                ? <><Save size={16} className="animate-spin" /> กำลังบันทึก...</>
-                : <><MapPin size={16} /> บันทึกA minha localização</>}
+                ? <><Save size={16} className="animate-spin" /> A guardar...</>
+                : <><MapPin size={16} /> Guardar a minha localização</>}
             </button>
           </div>
 
@@ -357,13 +357,13 @@ export default function ProfileTab() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
-                <MapPin size={18} className="text-green-500" /> ที่อยู่บันทึกไว้ของฉัน
+                <MapPin size={18} className="text-green-500" /> As minhas moradas guardadas
               </h3>
               <button
                 onClick={() => { setNewAddrMode(v => !v); setEditingAddrId(null); }}
                 className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 ${newAddrMode ? 'bg-gray-200 text-gray-600' : 'bg-green-500 text-white'}`}
               >
-                {newAddrMode ? '✕ Cancelar' : <><Plus size={14} /> เพิ่มที่อยู่</>}
+                {newAddrMode ? '✕ Cancelar' : <><Plus size={14} /> Adicionar morada</>}
               </button>
             </div>
 
@@ -397,7 +397,7 @@ export default function ProfileTab() {
                           }}
                           className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-0.5 ${editingAddrId === addr.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500'}`}
                         >
-                          <MapPin size={13} /> {editingAddrId === addr.id ? 'ปิด' : 'แก้หมุด'}
+                          <MapPin size={13} /> {editingAddrId === addr.id ? 'Fechar' : 'Editar localização'}
                         </button>
                         <button
                           onClick={() => handleDeleteAddress(addr.id)}
@@ -410,7 +410,7 @@ export default function ProfileTab() {
 
                     {editingAddrId === addr.id && (
                       <div className="border-t border-blue-100 bg-blue-50 p-3">
-                        <p className="text-xs text-blue-700 font-bold mb-2">📍 แตะแผนที่เพื่อย้ายหมุดที่อยู่นี้</p>
+                        <p className="text-xs text-blue-700 font-bold mb-2">📍 Toque no mapa para mover o marcador desta morada</p>
                         <div className="rounded-xl overflow-hidden border-2 border-blue-300 mb-2">
                           <InteractiveMap
                             mode="select"
@@ -435,7 +435,7 @@ export default function ProfileTab() {
                             }}
                             className="flex-1 py-2 rounded-lg bg-white border border-blue-200 text-blue-600 text-xs font-bold flex items-center justify-center gap-1 hover:bg-blue-50"
                           >
-                            <Crosshair size={13} /> GPS ปัจจุบัน
+                            <Crosshair size={13} /> GPS actual
                           </button>
                           <button
                             disabled={!editAddrPinLoc || editAddrSaving}
@@ -455,7 +455,7 @@ export default function ProfileTab() {
                           >
                             {editAddrSaving
                               ? <><Save size={13} className="animate-spin" /> บันทึก...</>
-                              : <><Save size={13} /> บันทึกหมุด</>}
+                              : <><Save size={13} /> Guardar marcador</>}
                           </button>
                         </div>
                       </div>
@@ -466,14 +466,14 @@ export default function ProfileTab() {
               {userAddresses.length === 0 && !newAddrMode && (
                 <div className="text-center py-6 text-gray-400">
                   <MapPin size={32} className="mx-auto mb-1 opacity-30" />
-                  <p className="text-xs">ยังไม่มีที่อยู่บันทึกไว้ กดปุ่ม "เพิ่มที่อยู่" ด้านบนเพื่อเพิ่ม</p>
+                  <p className="text-xs">ยังไม่มีที่อยู่บันทึกไว้ กดปุ่ม "Adicionar morada" ด้านบนเพื่อเพิ่ม</p>
                 </div>
               )}
             </div>
 
             {newAddrMode && (
               <div className="bg-gray-50 border-2 border-green-200 p-3 rounded-2xl mt-2">
-                <h4 className="font-bold text-green-700 mb-2 flex items-center gap-1 text-sm"><MapPin size={14} /> เพิ่มที่อยู่ใหม่</h4>
+                <h4 className="font-bold text-green-700 mb-2 flex items-center gap-1 text-sm"><MapPin size={14} /> Adicionar moradaใหม่</h4>
                 <div className="rounded-xl overflow-hidden border-2 border-green-300 mb-2">
                   <InteractiveMap
                     mode="select"
@@ -482,42 +482,42 @@ export default function ProfileTab() {
                     className="h-56"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 text-center mb-2">แตะบนแผนที่เพื่อปักหมุดตำแหน่ง</p>
+                <p className="text-[10px] text-gray-400 text-center mb-2">Toque no mapa para marcar a localização</p>
                 <button
                   onClick={getCurrentLocationForForm}
                   className="w-full py-2 rounded-lg bg-white border border-green-200 text-green-600 text-xs font-bold mb-2 flex items-center justify-center gap-1 hover:bg-green-50 active:scale-95 transition-all"
                 >
-                  <Crosshair size={13} /> ใช้ GPS ตำแหน่งปัจจุบัน
+                  <Crosshair size={13} /> Usar localização GPS actual
                 </button>
                 {newAddr.location && (
                   <p className="text-xs text-green-600 font-bold text-center mb-2">
                     ✅ ปักหมุดแล้ว: {newAddr.location.lat.toFixed(4)}, {newAddr.location.lng.toFixed(4)}
                   </p>
                 )}
-                <label htmlFor="new-addr-label-input" className="sr-only">ชื่อสถานที่</label>
+                <label htmlFor="new-addr-label-input" className="sr-only">Nome do local</label>
                 <input
                   id="new-addr-label-input"
                   name="label"
                   value={newAddr.label}
                   onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
-                  placeholder="ชื่อสถานที่ เช่น บ้าน, ที่ทำงาน"
+                  placeholder="Nome do local เช่น บ้าน, ที่ทำงาน"
                   className="w-full p-2 border rounded-lg mb-2 text-xs"
                   autoComplete="off"
                 />
-                <label htmlFor="new-addr-full-input" className="sr-only">รายละเอียดเพิ่มเติม</label>
+                <label htmlFor="new-addr-full-input" className="sr-only">Detalhes adicionais</label>
                 <textarea
                   id="new-addr-full-input"
                   name="fullAddr"
                   value={newAddr.fullAddr}
                   onChange={e => setNewAddr({ ...newAddr, fullAddr: e.target.value })}
-                  placeholder="รายละเอียดเพิ่มเติม / จุดสังเกต (ไม่บังคับ)"
+                  placeholder="Detalhes adicionais / จุดสังเกต (opcional)"
                   rows={2}
                   className="w-full p-2 border rounded-lg mb-2 text-xs resize-none"
                   autoComplete="off"
                 />
                 <button
                   onClick={() => {
-                    if (!newAddr.label) return notifySystem('ผิดพลาด', 'กรุณาใส่ชื่อสถานที่', 'error');
+                    if (!newAddr.label) return notifySystem('ผิดพลาด', 'กรุณาใส่Nome do local', 'error');
                     if (!newAddr.location) return notifySystem('ผิดพลาด', 'กรุณาปักหมุดบนแผนที่ก่อน', 'error');
                     const addrText = newAddr.fullAddr || `${newAddr.location.lat.toFixed(5)}, ${newAddr.location.lng.toFixed(5)}`;
                     handleAddAddress({ ...newAddr, fullAddr: addrText });
@@ -658,7 +658,7 @@ export default function ProfileTab() {
                 {riderRegForm.idCardImage && <img src={riderRegForm.idCardImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="id" />}
               </div>
               <div className="mb-4">
-                <label htmlFor="rider-reg-profileimage" className="text-sm mb-1 block">รูปโปรไฟล์ไรเดอร์ (ไม่บังคับ)</label>
+                <label htmlFor="rider-reg-profileimage" className="text-sm mb-1 block">รูปโปรไฟล์ไรเดอร์ (opcional)</label>
                 <label htmlFor="rider-reg-profileimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${riderRegForm.profileImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
                   {riderRegForm.profileImage ? <><Check className="inline mr-1" /> เลือกแล้ว</> : <><Camera className="inline mr-1" /> ถ่ายรูป/เลือกรูป</>}
                   <input id="rider-reg-profileimage" name="profileImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setRiderRegForm, 'profileImage')} />
