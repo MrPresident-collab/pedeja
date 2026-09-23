@@ -136,7 +136,7 @@ export default function MerchantView() {
       >🔄 ตรวจสอบสถานะอีกครั้ง</button>
       <button
         onClick={() => { setActiveRole('customer'); setProfileSubView('reg_merchant'); setActiveTab('profile'); }}
-        className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
+        className="bg-violet-500 text-white px-6 py-3 rounded-xl font-bold mb-3 shadow w-full max-w-xs"
       >สมัครเปิดร้านใหม่</button>
       <button onClick={() => setActiveRole('customer')} className="text-gray-500 text-sm underline">กลับหน้าหลัก</button>
     </div>
@@ -150,11 +150,11 @@ export default function MerchantView() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSoundPanel(v => !v)}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full transition-colors ${showSoundPanel ? 'bg-orange-100 text-orange-600 border border-orange-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full transition-colors ${showSoundPanel ? 'bg-violet-100 text-violet-600 border border-orange-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
               title="ตั้งค่าเสียงแจ้งเตือน"
             >
-              <Bell size={13} className={customSoundName ? 'text-orange-500' : ''} />
-              {customSoundName ? <span className="text-orange-600">•</span> : null}
+              <Bell size={13} className={customSoundName ? 'text-violet-500' : ''} />
+              {customSoundName ? <span className="text-violet-600">•</span> : null}
             </button>
             <button onClick={() => setActiveRole('customer')} className="flex items-center text-sm bg-gray-200 px-3 py-1 rounded-full hover:bg-gray-300"><LogOut size={14} className="mr-1" /> ออก</button>
           </div>
@@ -162,15 +162,15 @@ export default function MerchantView() {
 
         {/* Sound settings panel */}
         {showSoundPanel && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3">
+          <div className="bg-orange-50 border border-violet-200 rounded-xl p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
               <h4 className="font-bold text-sm text-gray-700 flex items-center gap-1.5">
-                <Bell size={14} className="text-orange-500" /> เสียงแจ้งเตือนออเดอร์ใหม่
+                <Bell size={14} className="text-violet-500" /> เสียงแจ้งเตือนออเดอร์ใหม่
               </h4>
               <button onClick={() => setShowSoundPanel(false)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
             </div>
             <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-lg text-xs bg-white border border-gray-200">
-              <Bell size={12} className={customSoundName ? 'text-orange-500' : 'text-gray-400'} />
+              <Bell size={12} className={customSoundName ? 'text-violet-500' : 'text-gray-400'} />
               <span className="flex-1 truncate text-gray-700">{customSoundName || 'เสียงเริ่มต้น (Beep)'}</span>
               {customSoundName && (
                 <button
@@ -180,7 +180,7 @@ export default function MerchantView() {
               )}
             </div>
             <div className="flex gap-2">
-              <label htmlFor="merchant-notif-sound-file" className="flex-1 flex items-center justify-center gap-1 py-2 bg-orange-500 text-white rounded-lg cursor-pointer hover:bg-orange-600 active:scale-95 transition-all text-xs font-bold">
+              <label htmlFor="merchant-notif-sound-file" className="flex-1 flex items-center justify-center gap-1 py-2 bg-violet-500 text-white rounded-lg cursor-pointer hover:bg-violet-600 active:scale-95 transition-all text-xs font-bold">
                 <Bell size={13} /> เลือกเสียงจากเครื่อง
                 <input id="merchant-notif-sound-file" name="soundFile" type="file" accept="audio/*" className="hidden" onChange={handleSoundFilePick} />
               </label>
@@ -234,7 +234,7 @@ export default function MerchantView() {
         <div className="flex bg-gray-100 p-1 rounded-lg gap-1">
           <button
             onClick={() => setMerchantTab('orders')}
-            className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 relative ${merchantTab === 'orders' ? 'bg-white shadow text-orange-600' : 'text-gray-500'}`}
+            className={`flex-1 py-2 rounded-md font-bold text-xs flex items-center justify-center gap-1 relative ${merchantTab === 'orders' ? 'bg-white shadow text-violet-600' : 'text-gray-500'}`}
           >
             <Bell size={13} />
             ออเดอร์ใหม่
@@ -457,7 +457,7 @@ export default function MerchantView() {
                     <button
                       type="button"
                       onClick={addEditFormOption}
-                      className="text-xs text-orange-600 font-bold flex items-center gap-1 hover:underline"
+                      className="text-xs text-violet-600 font-bold flex items-center gap-1 hover:underline"
                     >
                       <Plus size={12} /> เพิ่มตัวเลือก
                     </button>
@@ -722,7 +722,7 @@ export default function MerchantView() {
             {/* Top items */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
               <h3 className="font-bold text-sm text-gray-700 mb-3 flex items-center gap-1.5">
-                <BarChart2 size={15} className="text-orange-500" /> เมนูขายดี
+                <BarChart2 size={15} className="text-violet-500" /> เมนูขายดี
               </h3>
               {topItems.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">ยังไม่มีข้อมูล</p>
@@ -730,7 +730,7 @@ export default function MerchantView() {
                 <div key={item.name} className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-gray-500 w-24 shrink-0 truncate">{item.name}</span>
                   <div className="flex-1 bg-gray-100 rounded-full h-3.5 overflow-hidden">
-                    <div className="h-full rounded-full bg-orange-400 transition-all duration-500" style={{ width: `${(item.qty / maxQty) * 100}%` }} />
+                    <div className="h-full rounded-full bg-violet-400 transition-all duration-500" style={{ width: `${(item.qty / maxQty) * 100}%` }} />
                   </div>
                   <span className="text-xs font-bold text-gray-700 w-8 text-right">{item.qty}</span>
                 </div>
@@ -788,7 +788,7 @@ export default function MerchantView() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             {/* Header */}
-            <div className="bg-orange-500 px-5 py-4 flex justify-between items-center">
+            <div className="bg-violet-500 px-5 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2 text-white">
                 <XCircle size={20} />
                 <h3 className="font-bold text-base">ขอยกเลิกออเดอร์ (รอ Admin อนุมัติ)</h3>
@@ -851,7 +851,7 @@ export default function MerchantView() {
                 disabled={!cancelReasonInput.trim()}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                   cancelReasonInput.trim()
-                    ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-100'
+                    ? 'bg-violet-500 text-white hover:bg-violet-600 shadow-lg shadow-orange-100'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -870,7 +870,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
   const borderColor = highlight === 'orange' ? 'border-orange-400' : 'border-blue-400';
   const badgeBg = {
     pending:         'bg-yellow-100 text-yellow-800',
-    preparing:       'bg-orange-100 text-orange-800',
+    preparing:       'bg-violet-100 text-orange-800',
     ready_to_pickup: 'bg-blue-100 text-blue-800',
     rider_accepted:  'bg-indigo-100 text-indigo-800',
     picking_up:      'bg-purple-100 text-purple-800',
@@ -922,7 +922,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
           {order.customerPhone && (
             <a
               href={`tel:${order.customerPhone}`}
-              className="flex-1 min-w-[110px] bg-orange-50 text-orange-600 border border-orange-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center hover:bg-orange-100 active:scale-95 transition-all"
+              className="flex-1 min-w-[110px] bg-orange-50 text-violet-600 border border-violet-200 py-2 rounded-lg font-bold text-xs flex items-center justify-center hover:bg-violet-100 active:scale-95 transition-all"
             >
               📞 <span className="ml-1">{order.customerPhone}</span>
             </a>
@@ -947,7 +947,7 @@ function OrderCard({ order, riders, updateOrderStatus, onCancel, highlight }) {
         {order.status === 'pending' && (
           <button
             onClick={() => updateOrderStatus(order.id, 'preparing')}
-            className="flex-1 bg-orange-500 text-white py-2 rounded-lg font-bold text-xs hover:bg-orange-600 active:scale-95 transition-all"
+            className="flex-1 bg-violet-500 text-white py-2 rounded-lg font-bold text-xs hover:bg-violet-600 active:scale-95 transition-all"
           >
             ✅ รับออเดอร์
           </button>
