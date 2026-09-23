@@ -1,6 +1,6 @@
 import { useWalletActions } from './useWalletActions';
 
-export function usecarteiraActions(deps) {
+export function useCarteiraActions(deps) {
   const wallet = useWalletActions({
     ...deps,
     userWallet: deps.usercarteira,
