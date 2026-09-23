@@ -457,7 +457,7 @@ export default function InteractiveMap({
     };
   }, [riderLocation, centerOverride]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── pan เมื่อ centerOverride เปลี่ยน (select mode) ───────────────────────
+  // ── pan when centerOverride changes ───────────────────────
   useEffect(() => {
     if (!mapRef.current || !centerOverride || mode !== 'select') return;
     mapRef.current.panTo([centerOverride.lat, centerOverride.lng], { animate: true });
@@ -732,7 +732,7 @@ export default function InteractiveMap({
 
       {mode === 'select' && (
         <>
-          {/* ช่องค้นหาที่อยู่ภาษาไทย (Nominatim) */}
+          {/* Pesquisa de morada (Nominatim) */}
           <div className="absolute top-2 left-2 right-2 z-[1000]">
             <div className="relative flex items-center bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200">
               <Search size={16} className="text-gray-400 ml-3 shrink-0" />
@@ -765,7 +765,7 @@ export default function InteractiveMap({
               ) : null}
             </div>
 
-            {/* ผลการค้นหา Dropdown + ประวัติการค้นหาร่าสุด */}
+            {/* Resultados da pesquisa + histórico recente */}
             {showSearchResults && (
               <div className="mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto divide-y divide-gray-100">
                 {!searchQuery.trim() && searchHistory.length > 0 && (
@@ -792,7 +792,7 @@ export default function InteractiveMap({
             )}
           </div>
 
-          {/* คำแนะนำบนสุด */}
+          {/* Sugestões principais */}
           <div
             className={`absolute top-12 left-1/2 -translate-x-1/2 text-white text-xs px-3 py-1 rounded-full shadow pointer-events-none z-[999] whitespace-nowrap backdrop-blur-sm ${
               isParcel && activeParcelTarget === 'dropoff' ? 'bg-red-600/90' : 'bg-green-600/90'
@@ -801,7 +801,7 @@ export default function InteractiveMap({
             {hintText}
           </div>
 
-          {/* ปุ่ม GPS + พิกัด */}
+          {/* GPS + coordenadas */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-[1000]">
             <button
               onClick={useGPS}
