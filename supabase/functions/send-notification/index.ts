@@ -80,8 +80,8 @@ const buildNotification = async (payload: WebhookPayload) => {
 
   if (payload.table === 'job_offers' && payload.type === 'INSERT') {
     if (record.rider_user_id) users.add(String(record.rider_user_id));
-    title = '🛵 งานใหม่เข้ามา!';
-    body = `คุณมีออเดอร์ใหม่ #${String(record.order_id || '').slice(-6)} รอรับงาน`;
+    title = '🛵 Nova entrega disponível!';
+    body = `Tem um novo pedido #${String(record.order_id || '').slice(-6)} a aguardar aceitação`;
     channel = 'new_jobs'; kind = 'new_job'; orderId = String(record.order_id || '');
   } else if (payload.table === 'orders' && payload.type === 'INSERT') {
     let merchantOwnerId = data.restaurantOwnerId;
@@ -90,7 +90,7 @@ const buildNotification = async (payload: WebhookPayload) => {
       if (restData?.[0]?.owner_id) merchantOwnerId = restData[0].owner_id;
     }
     [data.customerId, merchantOwnerId].filter(Boolean).forEach(id => users.add(String(id)));
-    title = '🛎️ ออเดอร์ใหม่'; body = `ออเดอร์ #${orderId.slice(-6)} ถูกสร้างเรียบร้อยแล้ว`;
+    title = '🛎️ Novo pedido'; body = `ออเดอร์ #${orderId.slice(-6)} foi criado`;
     channel = 'merchant_orders'; kind = 'new_order';
   } else if (payload.table === 'orders' && payload.type === 'UPDATE') {
     const oldData = rowData(payload.old_record || {});
@@ -108,18 +108,18 @@ const buildNotification = async (payload: WebhookPayload) => {
     [data.customerId, merchantOwnerId, riderUserId]
       .filter(Boolean).forEach(id => users.add(String(id)));
     const labels: Json = {
-      preparing: 'ร้านกำลังเตรียมอาหาร', ready_to_pickup: 'อาหารพร้อมรับแล้ว',
-      rider_accepted: 'ไรเดอร์รับงานแล้ว', picking_up: 'ไรเดอร์ถึงจุดรับแล้ว',
-      delivering: 'กำลังเดินทางไปส่ง', delivered: 'สินค้าเดินทางถึงแล้ว',
-      completed: 'จัดส่งสำเร็จ', cancelled: 'ออเดอร์ถูกยกเลิก',
+      preparing: 'O comerciante está a preparar o pedido', ready_to_pickup: 'O pedido está pronto para recolha',
+      rider_accepted: 'O estafeta aceitou o pedido', picking_up: 'O estafeta chegou ao ponto de recolha',
+      delivering: 'A caminho da entrega', delivered: 'A encomenda chegou',
+      completed: 'Entrega concluída', cancelled: 'Pedido cancelado',
     };
-    title = `📦 อัปเดตออเดอร์ #${orderId.slice(-6)}`;
-    body = labels[data.status] || `สถานะเปลี่ยนเป็น ${data.status}`;
+    title = `📦 Actualização do pedido #${orderId.slice(-6)}`;
+    body = labels[data.status] || `Estado alterado para ${data.status}`;
   } else if (payload.table === 'admin_notifs' && payload.type === 'INSERT') {
     const roles = await rest('user_roles?select=user_id&role=eq.admin');
     roles?.forEach((row: Json) => users.add(String(row.user_id)));
     title = String(record.title || 'BoomRider Admin');
-    body = String(record.message || 'มีเหตุการณ์ใหม่ที่ต้องตรวจสอบ');
+    body = String(record.message || 'Existe um novo evento para verificar');
     channel = 'admin_alerts'; kind = 'admin_alert';
   } else return null;
 
