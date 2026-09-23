@@ -208,7 +208,7 @@ export default function ActivityTab() {
                           {eta && (
                             <div className={`text-right ${isDelivering ? 'text-white' : 'text-indigo-700'}`}>
                               <p className="text-xs font-black">~{eta.mins} min</p>
-                              <p className={`text-[10px] ${isDelivering ? 'text-blue-100' : 'text-indigo-400'}`}>{eta.km} กม.</p>
+                              <p className={`text-[10px] ${isDelivering ? 'text-blue-100' : 'text-indigo-400'}`}>{eta.km} km</p>
                             </div>
                           )}
                           <button
@@ -354,7 +354,7 @@ export default function ActivityTab() {
                   <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 flex items-center gap-2">
                     <Banknote size={18} className="text-orange-500 shrink-0" />
                     <div>
-                      <p className="text-orange-700 font-bold text-sm">เตรียมจ่ายเงินสด Kz {(order.grandTotal || 0).toLocaleString()}</p>
+                      <p className="text-orange-700 font-bold text-sm">Prepare o numerário Kz {(order.grandTotal || 0).toLocaleString()}</p>
                       <p className="text-orange-500 text-xs">Pagar directamente ao estafeta</p>
                     </div>
                   </div>
@@ -412,11 +412,11 @@ export default function ActivityTab() {
                   onClick={() => openRatingModal(order)}
                   className="mt-2 w-full bg-yellow-50 border border-yellow-300 text-yellow-700 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 hover:bg-yellow-100 active:scale-95 transition-all"
                 >
-                  <Star size={13} className="fill-current" /> ให้คะแนน
+                  <Star size={13} className="fill-current" /> Avaliar
                 </button>
               )}
               {order.status === 'completed' && order.rated && (
-                <p className="mt-2 text-center text-xs text-green-500 font-semibold">⭐ รีวิวแล้ว</p>
+                <p className="mt-2 text-center text-xs text-green-500 font-semibold">⭐ Avaliado</p>
               )}
             </div>
           ))}
@@ -450,7 +450,7 @@ export default function ActivityTab() {
               {cancelReqOrderId && (() => {
                 const o = orders.find(x => x.id === cancelReqOrderId);
                 return o?.paymentMethod === 'wallet'
-                  ? ` — หาก Admin อนุมัติ จะคืนเงิน Kz ${(o.grandTotal || 0).toLocaleString()} เข้า Wallet ให้`
+                  ? ` — Se o Admin aprovar, será reembolsado Kz ${(o.grandTotal || 0).toLocaleString()} para a carteira`
                   : '';
               })()}
             </p>
@@ -528,7 +528,7 @@ export default function ActivityTab() {
               {eta ? (
                 <div className="text-right bg-white/20 rounded-xl px-3 py-1.5">
                   <p className="text-white font-black text-sm leading-tight">~{eta.mins} min</p>
-                  <p className="text-blue-100 text-[10px]">{eta.km} กม.</p>
+                  <p className="text-blue-100 text-[10px]">{eta.km} km</p>
                 </div>
               ) : <div className="w-16" />}
             </div>
@@ -550,11 +550,11 @@ export default function ActivityTab() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-[10px]">🏪</span>
-                    <span className="text-gray-600 font-medium">{o.type === 'parcel' ? 'จุดรับ' : 'ร้าน'}</span>
+                    <span className="text-gray-600 font-medium">{o.type === 'parcel' ? 'Ponto de recolha' : 'Comerciante'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-[10px]">🏠</span>
-                    <span className="text-gray-600 font-medium">ที่ส่ง</span>
+                    <span className="text-gray-600 font-medium">Entrega</span>
                   </div>
                   <div className="flex items-center gap-1.5 ml-auto">
                     <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse" />
@@ -562,7 +562,7 @@ export default function ActivityTab() {
                   </div>
                 </div>
                 {o.type === 'parcel' && o.dropoff && (
-                  <p className="text-[10px] text-gray-400 mt-1.5 truncate">📦 ส่งถึง: {o.dropoff}</p>
+                  <p className="text-[10px] text-gray-400 mt-1.5 truncate">📦 Entregar em: {o.dropoff}</p>
                 )}
                 {o.type === 'food' && (
                   <p className="text-[10px] text-gray-400 mt-1.5 truncate">🍽️ {o.restaurantName}</p>
