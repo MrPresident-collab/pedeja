@@ -1,131 +1,355 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
+import { supabase } from '../lib/supabase';
+
+function ZungueiraIllustration() {
+  return (
+    <div className="mx-auto mb-4 h-28 w-40" aria-hidden="true">
+      <svg viewBox="0 0 180 130" className="h-full w-full">
+        <path d="M8 18 C42 3 72 32 103 17 C128 5 150 12 172 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-violet-300" />
+        <path d="M20 31 C58 19 83 42 112 29 C135 19 153 25 166 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-violet-200" />
+        <circle cx="91" cy="62" r="15" fill="currentColor" className="text-amber-200" />
+        <path d="M75 59 C77 42 106 39 109 59 C101 51 86 51 75 59Z" fill="currentColor" className="text-gray-800" />
+        <path d="M72 77 C79 70 102 70 111 78 L119 111 L63 111Z" fill="currentColor" className="text-violet-600" />
+        <path d="M67 82 C54 86 45 96 40 109" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" className="text-violet-600" />
+        <path d="M113 81 C126 84 136 94 140 106" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" className="text-violet-600" />
+        <path d="M49 91 Q91 72 134 92 L129 112 L54 112Z" fill="currentColor" className="text-amber-400" />
+        <path d="M55 91 Q91 76 128 91" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-700" />
+      </svg>
+    </div>
+  );
+}
 
 export default function AuthView() {
-  const { t } = useTranslation();
   const {
     authMode, setAuthMode,
-    loginForm, setLoginForm,
-    registerForm, setRegisterForm,
-    handleLogin, handleRegister,
-    authLoading,
+    authLoading, setAuthLoading,
     toasts, removeToast,
+    setLoginForm, setRegisterForm,
+    registerForm,
+    notifySystem,
   } = useApp();
-  const [showForgot, setShowForgot] = useState(false);
+
+  const [loginMethod, setLoginMethod] = useState('phone');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpStage, setOtpStage] = useState(false);
+  const [otpPhone, setOtpPhone] = useState('');
+  const [address, setAddress] = useState('');
+
+  const resetLogin = () => {
+    setIdentifier('');
+    setPassword('');
+    setOtp('');
+    setOtpStage(false);
+    setOtpPhone('');
+  };
+
+  const switchMode = (mode) => {
+    resetLogin();
+    setAuthMode(mode);
+  };
+
+  const handleEmailLogin = async () => {
+    const email = identifier.trim().toLowerCase();
+    if (!email) return notifySystem('Erro', 'Indique o e-mail', 'error');
+    if (!email.includes('@')) return notifySystem('Erro', 'Indique um e-mail válido', 'error');
+    if (!password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
+
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return notifySystem('Erro', error.message, 'error');
+      setLoginForm({ phone: '', email: '', password: '' });
+      notifySystem('Concluído', 'Sessão iniciada.', 'success');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const sendPhoneOtp = async () => {
+    const phone = identifier.trim();
+    if (!phone) return notifySystem('Erro', 'Indique o número de telefone', 'error');
+
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: { shouldCreateUser: false },
+      });
+      if (error) return notifySystem('Erro', error.message, 'error');
+      setOtpPhone(phone);
+      setOtpStage(true);
+      notifySystem('Código enviado', 'Introduza o código recebido por SMS.', 'success');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const verifyPhoneOtp = async () => {
+    const token = otp.trim();
+    if (!/^\d{6}$/.test(token)) return notifySystem('Erro', 'Introduza o código de 6 dígitos', 'error');
+
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: otpPhone,
+        token,
+        type: 'sms',
+      });
+      if (error) return notifySystem('Erro', error.message, 'error');
+      resetLogin();
+      notifySystem('Concluído', 'Sessão iniciada.', 'success');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    const name = registerForm.name.trim();
+    const phone = registerForm.phone.trim();
+    const email = registerForm.email.trim().toLowerCase();
+
+    if (!name) return notifySystem('Erro', 'Indique o nome completo', 'error');
+    if (!address.trim()) return notifySystem('Erro', 'Indique a morada', 'error');
+    if (!phone) return notifySystem('Erro', 'Indique o telefone', 'error');
+    if (!registerForm.password) return notifySystem('Erro', 'Indique a palavra-passe', 'error');
+    if (registerForm.password.length < 6) return notifySystem('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres', 'error');
+    if (registerForm.password !== registerForm.confirmPassword) return notifySystem('Erro', 'As palavras-passe não coincidem', 'error');
+
+    setAuthLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        phone,
+        password: registerForm.password,
+        options: {
+          data: {
+            name,
+            phone,
+            email: email || null,
+            address: address.trim(),
+          },
+        },
+      });
+
+      if (error) return notifySystem('Erro', error.message, 'error');
+      if (!data.user) return notifySystem('Erro', 'Não foi possível criar a conta. Tente novamente.', 'error');
+
+      setRegisterForm({ phone: '', email: '', password: '', confirmPassword: '', name: '' });
+      setAddress('');
+
+      if (data.session) {
+        notifySystem('Concluído', 'Conta criada. Bem-vindo à Pedejá.', 'success');
+        return;
+      }
+
+      setLoginMethod('phone');
+      setIdentifier(phone);
+      setOtpPhone(phone);
+      setOtpStage(true);
+      setAuthMode('login');
+      notifySystem('Verifique o seu telefone', 'Introduza o código recebido por SMS para concluir o registo.', 'success');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12 pb-6">
-        <div className="mb-8 text-center animate-fade-in-down">
-          <div className="w-20 h-20 bg-violet-700 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-violet-200">
-            <span className="text-5xl font-bold text-white leading-none">P</span><span className="text-2xl font-bold text-violet-300 self-end mb-2">.</span>
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Pedejá</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{t('slogan')}</p>
-        </div>
+      <main className="flex-1 flex items-center justify-center px-5 py-8">
+        <div className="w-full max-w-md">
+          {authMode === 'login' ? (
+            <section className="text-center">
+              <ZungueiraIllustration />
 
-        <div className="flex gap-2 mb-8 flex-wrap justify-center animate-fade-in-up">
-          {['🍔 ' + t('service_food'), '📦 ' + t('service_parcel')].map((chip) => (
-            <span key={chip} className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full shadow-sm font-medium">
-              {chip}
-            </span>
-          ))}
-        </div>
-      </div>
+              <h1 className="text-2xl font-bold tracking-tight mb-7">Entre para continuar</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] px-6 pt-6 pb-10 animate-slide-in-from-bottom border-t border-transparent dark:border-gray-700">
-        <div className="flex mb-5 bg-gray-100 dark:bg-gray-700 rounded-2xl p-1">
-          <button onClick={() => setAuthMode('login')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${authMode === 'login' ? 'bg-white dark:bg-gray-800 text-violet-700 dark:text-violet-400 shadow-md' : 'text-gray-500 dark:text-gray-400'}`}>
-            {t('login')}
-          </button>
-          <button onClick={() => setAuthMode('register')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${authMode === 'register' ? 'bg-white dark:bg-gray-800 text-violet-700 dark:text-violet-400 shadow-md' : 'text-gray-500 dark:text-gray-400'}`}>
-            {t('register')}
-          </button>
-        </div>
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 text-left">
+                {!otpStage ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-5">
+                      <button
+                        type="button"
+                        onClick={() => { setLoginMethod('phone'); setIdentifier(''); setPassword(''); }}
+                        className={`py-2.5 rounded-xl text-sm font-bold transition ${loginMethod === 'phone' ? 'bg-white dark:bg-gray-700 text-violet-700 dark:text-violet-300 shadow-sm' : 'text-gray-500'}`}
+                      >
+                        Phone
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setLoginMethod('email'); setIdentifier(''); setPassword(''); }}
+                        className={`py-2.5 rounded-xl text-sm font-bold transition ${loginMethod === 'email' ? 'bg-white dark:bg-gray-700 text-violet-700 dark:text-violet-300 shadow-sm' : 'text-gray-500'}`}
+                      >
+                        Email
+                      </button>
+                    </div>
 
-        {authMode === 'login' ? (
-          <div className="space-y-3">
-            <div>
-              <label htmlFor="login-identifier" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">E-mail</label>
-              <input
-                id="login-identifier" name="identifier" type="email"
-                value={loginForm.phone || loginForm.email}
-                onChange={(e) => setLoginForm({ ...loginForm, phone: e.target.value, email: e.target.value })}
-                className="input-field dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                placeholder="email@exemplo.com" autoComplete="username"
-              />
-            </div>
-            <div>
-              <label htmlFor="login-password" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{t('password')}</label>
-              <input
-                id="login-password" name="password" type="password"
-                value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="input-field dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                placeholder="••••••••" autoComplete="current-password"
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <button onClick={handleLogin} disabled={authLoading} className="w-full bg-gradient-to-r from-violet-600 to-violet-700 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-violet-200 active:scale-95 transition-transform mt-2 disabled:opacity-60">
-              {authLoading ? t('loading') : t('submit_login')}
-            </button>
-            <button type="button" onClick={() => setShowForgot(true)} className="w-full text-center text-xs text-violet-600 dark:text-violet-400 font-medium mt-1 py-1">
-              {t('forgot_password')}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {[
-              { label: t('full_name') + ' *', type: 'text', field: 'name', id: 'register-name', placeholder: 'Nome completo', autoComplete: 'name' },
-              { label: 'E-mail *', type: 'email', field: 'email', id: 'register-email', placeholder: 'email@exemplo.com', autoComplete: 'email' },
-              { label: 'Telefone (opcional)', type: 'tel', field: 'phone', id: 'register-phone', placeholder: '+244 9xx xxx xxx', autoComplete: 'tel' },
-              { label: t('password') + ' *', type: 'password', field: 'password', id: 'register-password', placeholder: '••••••••', autoComplete: 'new-password' },
-              { label: t('confirm_password') + ' *', type: 'password', field: 'confirmPassword', id: 'register-confirm-password', placeholder: '••••••••', autoComplete: 'new-password' },
-            ].map(({ label, type, field, id, placeholder, autoComplete }) => (
-              <div key={field}>
-                <label htmlFor={id} className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">{label}</label>
-                <input
-                  id={id} name={field} type={type}
-                  value={registerForm[field]}
-                  onChange={(e) => setRegisterForm({ ...registerForm, [field]: e.target.value })}
-                  className="input-field dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                  placeholder={placeholder} autoComplete={autoComplete}
-                />
+                    <label htmlFor="login-identifier" className="sr-only">
+                      {loginMethod === 'phone' ? 'Telefone' : 'E-mail'}
+                    </label>
+                    <input
+                      id="login-identifier"
+                      type={loginMethod === 'phone' ? 'tel' : 'email'}
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                      placeholder={loginMethod === 'phone' ? '+244 9xx xxx xxx' : 'email@exemplo.com'}
+                      autoComplete={loginMethod === 'phone' ? 'tel' : 'username'}
+                    />
+
+                    {loginMethod === 'email' && (
+                      <input
+                        id="login-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700 mt-3"
+                        placeholder="Palavra-passe"
+                        autoComplete="current-password"
+                        onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
+                      />
+                    )}
+
+                    <p className="text-center text-[11px] text-gray-400 mt-4">
+                      Ao entrar, aceita os <span className="text-violet-600 font-medium">Termos e a Política de Privacidade</span>.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={loginMethod === 'phone' ? sendPhoneOtp : handleEmailLogin}
+                      disabled={authLoading}
+                      className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-4 disabled:opacity-60"
+                    >
+                      {authLoading ? 'A processar…' : loginMethod === 'phone' ? 'Enviar código' : 'Entrar'}
+                    </button>
+
+                    {loginMethod === 'email' && (
+                      <button type="button" className="w-full text-center text-xs text-violet-600 mt-3">
+                        Esqueceu a palavra-passe?
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Enviámos um código para <span className="font-semibold text-gray-800 dark:text-gray-200">{otpPhone}</span>.
+                    </p>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center text-2xl tracking-[0.45em] font-bold"
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      onKeyDown={(e) => e.key === 'Enter' && verifyPhoneOtp()}
+                    />
+                    <button
+                      type="button"
+                      onClick={verifyPhoneOtp}
+                      disabled={authLoading}
+                      className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-4 disabled:opacity-60"
+                    >
+                      {authLoading ? 'A verificar…' : 'Confirmar código'}
+                    </button>
+                    <button type="button" onClick={resetLogin} className="w-full text-xs text-gray-500 mt-3">
+                      Usar outro número
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
-            <button onClick={handleRegister} disabled={authLoading} className="w-full bg-gradient-to-r from-violet-600 to-violet-700 text-white py-3.5 rounded-2xl font-bold text-base shadow-lg shadow-violet-200 active:scale-95 transition-transform mt-2 disabled:opacity-60">
-              {authLoading ? t('loading') : t('submit_register')}
-            </button>
-          </div>
-        )}
 
-        <p className="text-center text-[11px] text-gray-400 mt-4">
-          Ao entrar, aceita a nossa <span className="text-violet-600 font-medium">Política de Privacidade</span>.
-        </p>
-      </div>
+              <div className="flex items-center gap-3 my-6 text-gray-300">
+                <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+                <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              </div>
 
-      {showForgot && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50" onClick={() => setShowForgot(false)}>
-          <div className="bg-white rounded-t-3xl w-full max-w-md px-6 pt-6 pb-10 animate-slide-in-from-bottom" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Esqueceu a palavra-passe?</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Para repor a palavra-passe, contacte o suporte da Pedejá.
-            </p>
-            <div className="bg-violet-50 rounded-2xl p-4 mb-5">
-              <p className="text-xs font-semibold text-violet-700 mb-1">Suporte</p>
-              <p className="text-sm text-violet-600 font-medium">Contacte o suporte através dos canais oficiais da Pedejá.</p>
-            </div>
-            <button onClick={() => setShowForgot(false)} className="w-full bg-gradient-to-r from-violet-600 to-violet-700 text-white py-3 rounded-2xl font-bold text-sm">
-              Entendido
-            </button>
-          </div>
+              <p className="text-sm text-gray-500">
+                Ainda não tem conta?{' '}
+                <button type="button" onClick={() => switchMode('register')} className="font-bold text-violet-600">
+                  Criar conta
+                </button>
+              </p>
+            </section>
+          ) : (
+            <section>
+              <h1 className="text-2xl font-bold tracking-tight text-center mb-7">Criar a sua conta</h1>
+
+              <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 space-y-3">
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="Address"
+                  autoComplete="street-address"
+                />
+                <input
+                  type="text"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="Nome completo"
+                  autoComplete="name"
+                />
+                <input
+                  type="email"
+                  value={registerForm.email}
+                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="E-mail (optional)"
+                  autoComplete="email"
+                />
+                <input
+                  type="tel"
+                  value={registerForm.phone}
+                  onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="Telefone"
+                  autoComplete="tel"
+                />
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="Palavra-passe"
+                  autoComplete="new-password"
+                />
+                <input
+                  type="password"
+                  value={registerForm.confirmPassword}
+                  onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
+                  className="input-field dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  placeholder="Confirmar palavra-passe"
+                  autoComplete="new-password"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleRegister}
+                  disabled={authLoading}
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3.5 rounded-2xl font-bold mt-2 disabled:opacity-60"
+                >
+                  {authLoading ? 'A criar conta…' : 'Criar conta'}
+                </button>
+              </div>
+
+              <p className="text-center text-sm text-gray-500 mt-5">
+                Já tem uma conta?{' '}
+                <button type="button" onClick={() => switchMode('login')} className="font-bold text-violet-600">
+                  Entrar
+                </button>
+              </p>
+            </section>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
