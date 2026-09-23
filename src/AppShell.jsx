@@ -58,6 +58,12 @@ function AppRouter() {
 }
 
 export default function AppShell() {
+  const riderPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'rider';
+
+  if (riderPreview) {
+    return <RiderPreviewView />;
+  }
+
   return (
     <AppProvider>
       <AppRouter />
