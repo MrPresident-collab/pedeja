@@ -486,7 +486,7 @@ export default function AdminView() {
           <button onClick={() => setActiveRole('customer')} className="p-2 bg-white rounded-full shadow hover:bg-gray-50 text-gray-600"><ArrowLeft size={20} /></button>
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><ShieldAlert className="text-red-500" size={24} /> Admin Panel</h1>
-            <p className="text-xs text-gray-400">BoomRider Control Center</p>
+            <p className="text-xs text-gray-400">Pedejá Control Center</p>
           </div>
         </div>
 
