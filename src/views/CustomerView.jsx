@@ -54,7 +54,7 @@ export default function CustomerView() {
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="ml-1 p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-gray-600 hover:text-violet-600 text-gray-400 dark:text-gray-300 active:scale-90 transition-all"
-                title="รีเฟรชข้อมูล"
+                title="Actualizar dados"
               >
                 <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
               </button>
