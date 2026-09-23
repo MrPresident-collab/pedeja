@@ -29,6 +29,15 @@ export const INITIAL_CONFIG = {
 
 export const USER_LOCATION = { lat: -8.8383, lng: 13.2344 };
 
+// Pedejá V1 product surface. Legacy BoomRider capabilities remain in the codebase
+// but are intentionally not exposed in the current customer experience.
+export const PEDEJA_ACTIVE_SERVICES = ['food', 'shopping', 'stores', 'parcel'];
+export const PEDEJA_BUSINESS_CATEGORIES = {
+  food: ['comida', 'food', 'restaurante', 'restaurantes', 'alimentacao', 'alimentação'],
+  shopping: ['compras', 'shopping', 'mercado', 'supermercado'],
+  stores: ['lojas', 'loja', 'store', 'stores'],
+};
+
 export const DEFAULT_CATEGORIES = [
   "Refeições", 
 
