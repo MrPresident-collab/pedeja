@@ -33,7 +33,7 @@ export function useApp() {
 export function AppProvider({ children }) {
   // --- Theme State ---
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('boomrider_theme');
+    const saved = localStorage.getItem('pedeja_theme');
     return saved === 'dark';
   });
 
@@ -48,7 +48,7 @@ export function AppProvider({ children }) {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
       const next = !prev;
-      localStorage.setItem('boomrider_theme', next ? 'dark' : 'light');
+      localStorage.setItem('pedeja_theme', next ? 'dark' : 'light');
       return next;
     });
   }, []);
@@ -86,7 +86,7 @@ export function AppProvider({ children }) {
   });
   const [userRoles, setUserRoles] = useState(['customer']);
   const [userAddresses, setUserAddresses] = useState([
-    { id: 1, label: 'บ้าน', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION },
+    { id: 1, label: 'Casa', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION },
   ]);
   const [userWallet, setUserWallet] = useState(0);
   const [walletAllEntries, setWalletAllEntries] = useState([]);
@@ -647,7 +647,7 @@ export function AppProvider({ children }) {
           image: profile.avatar || null,
         };
 
-        const addresses = profile.addresses || [{ id: 1, label: 'บ้าน', address: 'กรุณาเพิ่มที่อยู่', location: USER_LOCATION }];
+        const addresses = profile.addresses || [{ id: 1, label: 'Casa', address: 'กรุณาเพิ่มที่อยู่', location: USER_LOCATION }];
         persistedProfileRef.current = profileResult.error || !profileResult.data ? null : {
           userId: authUser.id,
           signature: JSON.stringify({
@@ -1002,7 +1002,7 @@ export function AppProvider({ children }) {
         setUserProfile(prev => ({ ...prev, location: loc }));
         setUserAddresses(prev => {
           if (!prev || prev.length === 0) {
-            return [{ id: 1, label: 'บ้าน', address: 'ที่อยู่ปัจจุบัน', location: loc }];
+            return [{ id: 1, label: 'Casa', address: 'ที่อยู่ปัจจุบัน', location: loc }];
           }
           return prev.map((a, idx) => idx === 0 ? { ...a, location: loc } : a);
         });
@@ -1070,7 +1070,7 @@ export function AppProvider({ children }) {
         const first = newJobs[0];
         const dest = first.type === 'parcel'
           ? `📦 ${first.pickup || ''} → ${first.dropoff || ''}`
-          : `🍔 ${first.restaurantName || 'ร้านค้า'} ฿${first.deliveryFee ?? 0}`;
+          : `🍔 ${first.restaurantName || 'Comerciante'} Kz ${first.deliveryFee ?? 0}`;
         notifySystem('🛵 มีงานใหม่!', newJobs.length === 1 ? dest : `${newJobs.length} งานใหม่ — ${dest}`, 'warning');
       }
     }
@@ -1088,9 +1088,9 @@ export function AppProvider({ children }) {
           case 'ready_to_pickup':
             notifySystem('✅ อาหารพร้อมแล้ว!', `กำลังหาไรเดอร์ ออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
           case 'rider_accepted':
-            notifySystem('🛵 ไรเดอร์รับงานแล้ว!', `${o.riderName || 'ไรเดอร์'} กำลังเดินทางไปรับสินค้า/อาหาร`, 'info'); break;
+            notifySystem('🛵 ไรเดอร์รับงานแล้ว!', `${o.riderName || 'Estafeta'} กำลังเดินทางไปรับสินค้า/อาหาร`, 'info'); break;
           case 'picking_up':
-            notifySystem('🏪 ไรเดอร์ถึงจุดรับแล้ว!', `${o.riderName || 'ไรเดอร์'} ถึงจุดรับ/กำลังรอรับสินค้า`, 'info'); break;
+            notifySystem('🏪 ไรเดอร์ถึงจุดรับแล้ว!', `${o.riderName || 'Estafeta'} ถึงจุดรับ/กำลังรอรับสินค้า`, 'info'); break;
           case 'delivering':
             notifySystem('🚀 ไรเดอร์รับสินค้าเรียบร้อย!', `ออเดอร์ #${o.id.slice(-6)} กำลังเดินทางไปส่งคุณ`, 'info'); break;
           case 'delivered':
@@ -1109,7 +1109,7 @@ export function AppProvider({ children }) {
       if (myShop && o.restaurantId === myShop.id) {
         switch (o.status) {
           case 'rider_accepted':
-            notifySystem('🛵 ไรเดอร์รับงานแล้ว', `${o.riderName || 'ไรเดอร์'} มารับออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
+            notifySystem('🛵 ไรเดอร์รับงานแล้ว', `${o.riderName || 'Estafeta'} มารับออเดอร์ #${o.id.slice(-6)}`, 'info'); break;
           case 'picking_up':
             notifySystem('✅ ไรเดอร์รับอาหารออกจากร้านแล้ว', `ออเดอร์ #${o.id.slice(-6)} ออกจากหน้าจอทำงานของคุณแล้ว`, 'success'); break;
           case 'completed':
@@ -1257,10 +1257,10 @@ export function AppProvider({ children }) {
     const newMessage = {
       text: text.trim(),
       sender: activeRole,
-      senderName: activeRole === 'admin' ? 'เจ้าหน้าที่'
-        : activeRole === 'rider' ? 'ไรเดอร์'
-        : activeRole === 'merchant' ? 'ร้านค้า'
-        : userProfile?.name || 'ลูกค้า',
+      senderName: activeRole === 'admin' ? 'Operações'
+        : activeRole === 'rider' ? 'Estafeta'
+        : activeRole === 'merchant' ? 'Comerciante'
+        : userProfile?.name || 'Cliente',
       time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
     };
     // Optimistic local update
@@ -1305,7 +1305,7 @@ export function AppProvider({ children }) {
   };
 
   const getCurrentLocationForForm = () => {
-    if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'Browser ไม่รองรับ GPS', 'error');
+    if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'O navegador não suporta GPS', 'error');
     notifySystem('กำลังดึงพิกัด', 'รอสักครู่...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -1317,7 +1317,7 @@ export function AppProvider({ children }) {
   };
 
   const getCurrentLocationForParcel = (target) => {
-    if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'Browser ไม่รองรับ GPS', 'error');
+    if (!navigator.geolocation) return notifySystem('ผิดพลาด', 'O navegador não suporta GPS', 'error');
     notifySystem('กำลังดึงพิกัด', 'กำลังหาตำแหน่งของคุณ...', 'info');
     navigator.geolocation.getCurrentPosition(async (position) => {
       const loc  = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -1380,7 +1380,7 @@ export function AppProvider({ children }) {
     if (!location) return;
     const uid = currentUser?.id || userProfile?.id;
     const nextAddresses = !userAddresses?.length
-      ? [{ id: 1, label: 'บ้าน', address: 'ที่อยู่ปัจจุบัน', location }]
+      ? [{ id: 1, label: 'Casa', address: 'ที่อยู่ปัจจุบัน', location }]
       : userAddresses.map((a, idx) => idx === 0 ? { ...a, location } : a);
     setUserProfile(prev => ({ ...prev, location }));
     setUserAddresses(nextAddresses);
@@ -1500,14 +1500,14 @@ export function AppProvider({ children }) {
       const error = signInRes.error;
       if (error) {
         if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_AUTH === 'true') {
-          const prof = { id: 'dev-user-id', name: 'ลูกค้าทดสอบ (Dev)', phone: '0812345678', email: email || 'customer@boomrider.com', location: USER_LOCATION };
+          const prof = { id: 'dev-user-id', name: 'ลูกค้าทดสอบ (Dev)', phone: '0812345678', email: email || 'customer@pedeja.local', location: USER_LOCATION };
           setIsLoggedIn(true);
           setCurrentUser({ id: 'dev-user-id', email: prof.email, ...prof, roles: ['customer'] });
           setUserProfile(prof);
           setTempProfile(prof);
           setUserRoles(['customer']);
           setUserWallet(1000);
-          setUserAddresses([{ id: 1, label: 'บ้าน', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION }]);
+          setUserAddresses([{ id: 1, label: 'Casa', address: '123 คอนโดใจกลางเมือง', location: USER_LOCATION }]);
           notifySystem('เข้าสู่ระบบ (Dev Mode)', 'ยินดีต้อนรับสู่ระบบ', 'success');
           return;
         }
