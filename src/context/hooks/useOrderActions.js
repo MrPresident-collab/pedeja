@@ -47,7 +47,6 @@ export function useOrderActions(deps) {
 
     const foodTotal   = r2(order.foodTotal   || 0);
     const deliveryFee = r2(order.deliveryFee || 0);
-    const grandTotal  = r2(order.grandTotal  || 0);
 
     if (order.type === 'parcel') {
       const adminGP     = r2(deliveryFee * gpDelivRate);
@@ -308,7 +307,7 @@ export function useOrderActions(deps) {
     }
 
     const authOrder = res.order || newOrder;
-    const finalGrandTotal = authOrder.grandTotal ?? grandTotal;
+    const finalGrandTotal = authOrder.grandTotal ?? serverGrandTotal;
 
     setOrders(prev => prev.map(o => o.id === orderId ? authOrder : o));
 
@@ -324,7 +323,6 @@ export function useOrderActions(deps) {
     notifySystem('สั่งส่งพัสดุสำเร็จ! 📦', `ออเดอร์ #${orderId.slice(-6)} กำลังหาไรเดอร์`, 'success');
 
     // Auto-dispatch parcel to nearest rider immediately
-    autoDispatch(supabase, newOrder, appConfig);
   };
 
 
@@ -447,8 +445,6 @@ export function useOrderActions(deps) {
 
       const gpFoodRate    = (appConfig.gpFood ?? 30) / 100;
       const gpDelivRate   = (appConfig.gpDelivery ?? 15) / 100;
-      const gpRideRate    = (appConfig.gpRide ?? 15) / 100;
-      const gpServiceRate = (appConfig.gpService ?? 15) / 100;
 
       // Execute financial settlement in backend transaction FIRST before marking completed
       const { data: rpcResult, error: rpcError } = await supabase
@@ -492,7 +488,6 @@ export function useOrderActions(deps) {
         const riderEarned    = r2(rpcResult.riderIncome    ?? calcRiderIncome);
         const merchantEarned = r2(rpcResult.merchantIncome ?? merchantIncome);
         const gpEarned       = r2(rpcResult.gpAmount       ?? gpAmount);
-        const adminKey = ADMIN_EMAIL || 'boomzalnw2@gmail.com';
         if (order.paymentMethod === 'cash') {
           if (order.type === 'parcel') {
             if (riderUid && gpEarned > 0) creditWalletLocal(riderUid, -gpEarned, `หัก GP ${getGpLabel(order.type)} #${orderId.slice(-6)}`);
@@ -500,11 +495,9 @@ export function useOrderActions(deps) {
           } else {
             if (riderUid && foodTotal > 0)          creditWalletLocal(riderUid,     -foodTotal,     `หักค่าอาหาร(สด) ออเดอร์ #${orderId.slice(-6)}`);
             if (shopOwnerUid && merchantEarned > 0) creditWalletLocal(shopOwnerUid, merchantEarned, `รายได้ร้าน(สด) ออเดอร์ #${orderId.slice(-6)}`);
-            if (gpEarned > 0)                       creditWalletLocal(adminKey,     gpEarned,       `GP(สด) ออเดอร์ #${orderId.slice(-6)}`);
           }
         } else {
           if (shopOwnerUid && merchantEarned > 0) creditWalletLocal(shopOwnerUid, merchantEarned, `รายได้ร้านค้า ออเดอร์ #${orderId.slice(-6)}`);
-          if (gpEarned > 0)                       creditWalletLocal(adminKey,     gpEarned,       `GP ออเดอร์ #${orderId.slice(-6)}`);
           if (riderUid && riderEarned > 0)        creditWalletLocal(riderUid,     riderEarned,    `${getFeeLabel(order.type)} ออเดอร์ #${orderId.slice(-6)}`);
         }
       }
@@ -528,10 +521,6 @@ export function useOrderActions(deps) {
     if (!transitionSucceeded) return false;
 
     // ── Grab Auto-Dispatch: trigger when merchant marks ready_to_pickup ──────
-    if (newStatus === 'ready_to_pickup') {
-      const updatedOrder = { ...order, ...patch };
-      autoDispatch(supabase, updatedOrder, appConfig);
-    }
 
     // ── Rider's job ends at 'delivered' — release availability immediately ────
     if (newStatus === 'delivered') {
