@@ -26,7 +26,7 @@ const resources = {
       "service_parcel": "ENVIAR",
       "service_ride": "Viagem",
       "service_service": "Serviço",
-      "search_placeholder": "Pesquisar comida, compras e lojas...",
+      "search_placeholder": "Pesquisar comida, compras, estabelecimentos ou produtos...",
       "activity_title": "Atividade dos pedidos",
       "active_orders": "Pedidos activos",
       "order_history": "Histórico de pedidos",
@@ -129,11 +129,11 @@ const resources = {
 
       // Customer Services
       "service_food": "Fome",
-      "service_shopping": "Shopping",
+      "service_shopping": "Compras",
       "service_parcel": "ENVIAR",
       "service_ride": "Ride",
       "service_service": "Service",
-      "search_placeholder": "Search restaurants, food...",
+      "search_placeholder": "Search food, shopping, businesses or products...",
 
       // Customer Activity & Profile
       "activity_title": "Order Activity",
