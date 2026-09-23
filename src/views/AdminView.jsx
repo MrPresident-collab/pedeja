@@ -19,7 +19,7 @@ function StatCard({ label, value, color = 'green', icon: Icon }) {
   const colors = {
     green:  'border-green-500 text-green-600',
     blue:   'border-blue-500 text-blue-600',
-    orange: 'border-orange-500 text-orange-600',
+    orange: 'border-orange-500 text-violet-600',
     purple: 'border-purple-500 text-purple-600',
     red:    'border-red-500 text-red-600',
   };
@@ -539,7 +539,7 @@ export default function AdminView() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                   <div className="bg-orange-50 rounded-lg p-3 text-center">
-                    <div className="text-xl font-black text-orange-600">{activeOrders.length}</div>
+                    <div className="text-xl font-black text-violet-600">{activeOrders.length}</div>
                     <div className="text-xs text-gray-500 mt-0.5">ออเดอร์ Active</div>
                   </div>
                   <div className={`rounded-lg p-3 text-center ${waitingDispatch.length > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
@@ -747,7 +747,7 @@ export default function AdminView() {
           {/* Revenue by type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-orange-600"><ChefHat size={20} /> Top ร้านค้า (ออเดอร์)</h2>
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> Top ร้านค้า (ออเดอร์)</h2>
               {topRestaurants.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
                 topRestaurants.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRestCnt} color="#f97316" />
@@ -796,7 +796,7 @@ export default function AdminView() {
                 const serviceGP = service.reduce((s, o) => s + getAdminGP(o), 0);
                 return (
                   <>
-                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-orange-600 font-medium">GP จากอาหาร</p><p className="text-xl font-bold text-orange-700">฿{foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
+                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP จากอาหาร</p><p className="text-xl font-bold text-orange-700">฿{foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
                     <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP จากพัสดุ</p><p className="text-xl font-bold text-blue-700">฿{parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} ออเดอร์</p></div>
                     <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากเรียกรถ</p><p className="text-xl font-bold text-purple-700">฿{rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
                     <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากบริการ</p><p className="text-xl font-bold text-emerald-700">฿{serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
@@ -831,7 +831,7 @@ export default function AdminView() {
                 {walletRows.map(row => {
                   const isExpanded = walletExpanded === row.uid;
                   const history = userWalletEntries[row.uid] || (row.uid === currentUser?.id ? walletHistory : []);
-                  const roleCls = r => r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-orange-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500';
+                  const roleCls = r => r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-violet-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500';
                   const gpEntries = history.filter(e => (e.desc||'').toLowerCase().includes('gp'));
                   const totalGP   = gpEntries.reduce((s,e)=>s+(e.amount||0), 0);
                   return (
@@ -1014,7 +1014,7 @@ export default function AdminView() {
                             </span>
                           </p>
                           {req.data.paymentMethod === 'wallet' && req.data.grandTotal > 0 && (
-                            <p className="text-xs text-orange-600 font-semibold bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                            <p className="text-xs text-violet-600 font-semibold bg-orange-50 px-2 py-1 rounded border border-violet-200">
                               ⚠️ อนุมัติ = คืนเงิน ฿{(req.data.grandTotal || 0).toLocaleString()} เข้า Wallet ลูกค้า
                             </p>
                           )}
@@ -1132,7 +1132,7 @@ export default function AdminView() {
                   <div key={user.id} className="p-4 hover:bg-gray-50">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-violet-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {(user.name || '?')[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1140,7 +1140,7 @@ export default function AdminView() {
                             <span className="font-bold text-gray-800">{user.name}</span>
                             {user.banned && <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-bold">Banned</span>}
                             {user.roles?.map(r => (
-                              <span key={r} className={`text-xs px-2 py-0.5 rounded-full font-bold ${r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-orange-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{r}</span>
+                              <span key={r} className={`text-xs px-2 py-0.5 rounded-full font-bold ${r === 'admin' ? 'bg-red-100 text-red-700' : r === 'merchant' ? 'bg-violet-100 text-orange-700' : r === 'rider' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{r}</span>
                             ))}
                           </div>
                           <div className="text-xs text-gray-400 mt-0.5">{user.email || user.phone || 'ไม่มีข้อมูล'}</div>
@@ -1188,7 +1188,7 @@ export default function AdminView() {
                                   setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, roles: [...(u.roles || []), role] } : u));
                                 }
                               }}
-                              className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all ${has ? 'bg-orange-200 text-orange-800 hover:bg-red-100 hover:text-red-700' : 'bg-gray-100 text-gray-500 hover:bg-orange-100 hover:text-orange-700'}`}
+                              className={`text-[11px] px-2.5 py-1 rounded-lg font-bold transition-all ${has ? 'bg-violet-200 text-orange-800 hover:bg-red-100 hover:text-red-700' : 'bg-gray-100 text-gray-500 hover:bg-violet-100 hover:text-orange-700'}`}
                             >
                               {has ? `✓ ${role}` : `+ ${role}`}
                             </button>
@@ -1302,7 +1302,7 @@ export default function AdminView() {
         <div className="space-y-6">
           {/* Restaurants */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-orange-600"><ChefHat size={20} /> จัดการร้านค้า ({restaurants.length})</h2>
+            <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> จัดการร้านค้า ({restaurants.length})</h2>
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {restaurants.map(rest => (
                 <div key={rest.id} className="border rounded-xl p-3">
@@ -1729,7 +1729,7 @@ export default function AdminView() {
             <h3 className="font-bold text-gray-500 border-b pb-2 flex items-center gap-2"><Percent size={16} /> ค่าคอมมิชชั่นตามหมวดหมู่หลัก (GP %)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-orange-600">GP ส่งอาหาร (Food)</label>
+                <label htmlFor="admin-gp-food" className="block text-sm font-medium mb-1 text-violet-600">GP ส่งอาหาร (Food)</label>
                 <div className="flex items-center">
                   <input id="admin-gp-food" name="gpFood" type="number" value={editConfig.gpFood ?? ''} onChange={e => { setIsConfigDirty(true); setEditConfig({ ...editConfig, gpFood: e.target.value }); }} className="w-full border p-2 rounded-l" autoComplete="off" />
                   <span className="bg-gray-100 border border-l-0 p-2 rounded-r text-gray-500">%</span>
@@ -1794,7 +1794,7 @@ export default function AdminView() {
               ].map(({ key, label, sub, color }) => {
                 const colorMap = {
                   red:    'border-red-200 bg-red-50',
-                  orange: 'border-orange-200 bg-orange-50',
+                  orange: 'border-violet-200 bg-orange-50',
                   yellow: 'border-yellow-200 bg-yellow-50',
                   rose:   'border-rose-200 bg-rose-50',
                   purple: 'border-purple-200 bg-purple-50',
@@ -1802,7 +1802,7 @@ export default function AdminView() {
                   gray:   'border-gray-200 bg-gray-50',
                 };
                 const textMap = {
-                  red: 'text-red-600', orange: 'text-orange-600', yellow: 'text-yellow-600',
+                  red: 'text-red-600', orange: 'text-violet-600', yellow: 'text-yellow-600',
                   rose: 'text-rose-600', purple: 'text-purple-600', blue: 'text-blue-600', gray: 'text-gray-600',
                 };
                 const checked = purgeOptions[key];
@@ -1962,7 +1962,7 @@ export default function AdminView() {
             order_completed:   { label: 'จบงาน',       cls: 'bg-green-100 text-green-700' },
             order_cancelled:   { label: 'ยกเลิก',      cls: 'bg-red-100 text-red-700' },
             rider_income:      { label: 'ค่าส่ง',      cls: 'bg-yellow-100 text-yellow-700' },
-            merchant_income:   { label: 'รายได้ร้าน',  cls: 'bg-orange-100 text-orange-700' },
+            merchant_income:   { label: 'รายได้ร้าน',  cls: 'bg-violet-100 text-orange-700' },
             admin_gp:          { label: 'GP',           cls: 'bg-purple-100 text-purple-700' },
             topup_approved:    { label: 'เติมเงิน',    cls: 'bg-emerald-100 text-emerald-700' },
             withdraw_approved: { label: 'ถอนเงิน',     cls: 'bg-rose-100 text-rose-700' },
