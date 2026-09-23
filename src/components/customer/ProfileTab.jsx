@@ -50,13 +50,13 @@ export default function ProfileTab() {
   // Auto-GPS: pull current location when entering pin_location subview
   useEffect(() => {
     if (profileSubView !== 'pin_location' || !navigator.geolocation) return;
-    notifySystem('กำลังดึง GPS', 'กำลังหาตำแหน่งของคุณ...', 'info');
+    notifySystem('A obter localização GPS', 'A procurar a sua localização...', 'info');
     navigator.geolocation.getCurrentPosition(
       pos => {
         setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        notifySystem('สำเร็จ', 'พบตำแหน่ง GPS ของคุณแล้ว', 'success');
+        notifySystem('สำเร็จ', 'Localização GPS encontrada', 'success');
       },
-      () => notifySystem('ไม่สามารถดึง GPS', 'กรุณาแตะแผนที่เพื่อเลือกตำแหน่ง', 'error'),
+      () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
       { enableHighAccuracy: true, timeout: 8000 },
     );
   }, [profileSubView]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,7 +70,7 @@ export default function ProfileTab() {
   const RIDER_FORM_INIT    = { realName: '', vehicle: 'Motorcycle', idCard: '', phone: '', bankName: '', bankAccount: '', idCardImage: null, profileImage: null };
 
   const handleClearCache = async () => {
-    if (!window.confirm('คุณต้องการล้างข้อมูลแคชและโหลดแอปใหม่หรือไม่?')) return;
+    if (!window.confirm('Pretende limpar a cache e recarregar a aplicação?')) return;
     const cacheKeys = [
       'boomrider_orders',
       'boomrider_pending_requests',
@@ -98,7 +98,7 @@ export default function ProfileTab() {
         await Promise.all(names.map(name => caches.delete(name)));
       } catch { void 0; }
     }
-    notifySystem('ล้างแคชสำเร็จ', 'กำลังรีโหลดแอปพลิเคชัน...', 'success');
+    notifySystem('Cache limpa', 'A recarregar a aplicação...', 'success');
     setTimeout(() => {
       window.location.reload();
     }, 500);
@@ -132,51 +132,51 @@ export default function ProfileTab() {
               onClick={() => setProfileSubView('wallet')}
               className="flex-1 bg-gradient-to-r from-green-600 to-green-500 p-4 rounded-2xl shadow-lg text-white flex justify-between items-center"
             >
-              <div className="flex items-center"><Wallet className="mr-2" /><span className="font-bold text-sm">฿{userWallet.toFixed(2)}</span></div>
+              <div className="flex items-center"><Wallet className="mr-2" /><span className="font-bold text-sm">Kz {userWallet.toFixed(2)}</span></div>
             </button>
             <button
-              onClick={() => openChatWindow('support-' + userProfile.id, 'เจ้าหน้าที่ (Admin)', 'customer')}
+              onClick={() => openChatWindow('support-' + userProfile.id, 'Suporte (Admin)', 'customer')}
               className="flex-1 bg-blue-600 p-4 rounded-2xl shadow-lg text-white flex justify-center items-center font-bold text-sm"
             >
-              <MessageSquare className="mr-2" /> ติดต่อเจ้าหน้าที่
+              <MessageSquare className="mr-2" /> Contactar suporte
             </button>
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-            <div className="p-4 border-b bg-gray-50 font-bold text-gray-700 text-sm">เมนูพาร์ทเนอร์</div>
+            <div className="p-4 border-b bg-gray-50 font-bold text-gray-700 text-sm">Área de parceiros</div>
             {userRoles.includes('merchant') ? (
               <button onClick={() => setActiveRole('merchant')} className="w-full p-4 flex items-center justify-between hover:bg-green-50 border-b">
-                <span className="text-green-700 font-bold">สลับไปร้านค้า</span><Repeat size={20} />
+                <span className="text-green-700 font-bold">Mudar para comerciante</span><Repeat size={20} />
               </button>
             ) : isPending('merchant_reg') ? (
               <div className="p-4 text-gray-400 border-b flex items-center justify-between bg-gray-50">
-                <span>สมัครร้านค้า (รออนุมัติ...)</span>
+                <span>Registo de comerciante (aguarda aprovação...)</span>
                 <button onClick={syncRoles} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 flex items-center gap-1 ml-2">
-                  <Repeat size={12} /> ตรวจสอบ
+                  <Repeat size={12} /> Verificar
                 </button>
               </div>
             ) : (
               <button onClick={() => setProfileSubView('reg_merchant')} className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b">
-                <span>สมัครเปิดร้านอาหาร</span><ChevronRight size={20} />
+                <span>Registar estabelecimento de comida</span><ChevronRight size={20} />
               </button>
             )}
             {userRoles.includes('rider') ? (
               <button onClick={() => setActiveRole('rider')} className="w-full p-4 flex items-center justify-between hover:bg-blue-50">
-                <span className="text-blue-700 font-bold">สลับไปไรเดอร์</span><Repeat size={20} />
+                <span className="text-blue-700 font-bold">Mudar para estafeta</span><Repeat size={20} />
               </button>
             ) : isPending('rider_reg') ? (
               <div className="p-4 text-gray-400 flex items-center justify-between bg-gray-50">
-                <span>สมัครไรเดอร์ (รออนุมัติ...)</span>
+                <span>Registo de estafeta (aguarda aprovação...)</span>
                 <button onClick={syncRoles} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 flex items-center gap-1 ml-2">
-                  <Repeat size={12} /> ตรวจสอบ
+                  <Repeat size={12} /> Verificar
                 </button>
               </div>
             ) : (
               <button onClick={() => setProfileSubView('reg_rider')} className="w-full p-4 flex items-center justify-between hover:bg-gray-50">
-                <span>สมัครขับ BoomRider</span><ChevronRight size={20} />
+                <span>Registar como estafeta</span><ChevronRight size={20} />
               </button>
             )}
             <button onClick={handleLogout} className="w-full p-4 flex items-center justify-between hover:bg-red-50 border-t">
-              <span className="text-red-600 font-bold">ออกจากระบบ</span><LogOut size={20} className="text-red-600" />
+              <span className="text-red-600 font-bold">Terminar sessão</span><LogOut size={20} className="text-red-600" />
             </button>
           </div>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -187,11 +187,11 @@ export default function ProfileTab() {
               <div className="flex items-center">
                 <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3"><MapPin size={20} /></div>
                 <div className="text-left">
-                  <div className="font-medium">ตำแหน่งของฉัน</div>
+                  <div className="font-medium">A minha localização</div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {userProfile.location
                       ? `${userProfile.location.lat.toFixed(4)}, ${userProfile.location.lng.toFixed(4)}`
-                      : 'ยังไม่ได้ตั้ง'}
+                      : 'Ainda não definida'}
                   </div>
                 </div>
               </div>
@@ -200,12 +200,12 @@ export default function ProfileTab() {
             <button onClick={handleClearCache} className="w-full p-4 flex items-center justify-between hover:bg-red-50 border-b">
               <div className="flex items-center">
                 <div className="bg-red-50 p-2 rounded-lg text-red-500 mr-3"><Trash2 size={20} /></div>
-                <span className="text-gray-800 font-medium">ล้างแคช</span>
+                <span className="text-gray-800 font-medium">Limpar cache</span>
               </div>
               <ChevronRight size={20} className="text-gray-400" />
             </button>
             <button onClick={() => { setTempProfile({ ...userProfile }); setProfileSubView('edit_profile'); }} className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b">
-              <div className="flex items-center"><div className="bg-gray-100 p-2 rounded-lg text-gray-600 mr-3"><Settings size={20} /></div><span>ตั้งค่า/แก้ไขโปรไฟล์</span></div>
+              <div className="flex items-center"><div className="bg-gray-100 p-2 rounded-lg text-gray-600 mr-3"><Settings size={20} /></div><span>Definições/editar perfil</span></div>
               <ChevronRight size={20} className="text-gray-400" />
             </button>
           </div>
@@ -214,8 +214,8 @@ export default function ProfileTab() {
       ) : profileSubView === 'wallet' ? (
         <div className="p-4 pt-0 bg-white min-h-[50vh]">
           <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl shadow-lg text-white mb-6 text-center">
-            <p className="text-green-100 mb-2">ยอดเงินคงเหลือ</p>
-            <h1 className="text-4xl font-bold mb-6">฿{userWallet.toFixed(2)}</h1>
+            <p className="text-green-100 mb-2">Saldo actual</p>
+            <h1 className="text-4xl font-bold mb-6">Kz {userWallet.toFixed(2)}</h1>
             {!withdrawMode ? (
               <div className="grid grid-cols-3 gap-4">
                 {[100, 500, 1000].map(amount => (
@@ -224,28 +224,28 @@ export default function ProfileTab() {
                     onClick={() => { setWithdrawAmount(amount.toString()); setShowTopUpModal(true); }}
                     className="bg-white/20 hover:bg-white/30 py-2 rounded-lg font-bold backdrop-blur-sm"
                   >
-                    +฿{amount}
+                    +Kz {amount}
                   </button>
                 ))}
               </div>
             ) : (
               <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm space-y-2">
-                <label htmlFor="withdraw-amount-input" className="sr-only">ระบุจำนวนเงิน</label>
-                <input id="withdraw-amount-input" name="withdrawAmount" type="number" placeholder="ระบุจำนวนเงิน" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="w-full text-black p-2 rounded text-center font-bold" autoComplete="off" />
-                <label htmlFor="withdraw-bank-input" className="sr-only">ชื่อธนาคาร</label>
-                <input id="withdraw-bank-input" name="withdrawBank" type="text" placeholder="ชื่อธนาคาร (เช่น กสิกร)" value={withdrawBank} onChange={e => setWithdrawBank(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
-                <label htmlFor="withdraw-account-input" className="sr-only">เลขบัญชี</label>
-                <input id="withdraw-account-input" name="withdrawAccount" type="text" placeholder="เลขบัญชี" value={withdrawAccount} onChange={e => setWithdrawAccount(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
-                <label htmlFor="withdraw-name-input" className="sr-only">ชื่อบัญชี</label>
-                <input id="withdraw-name-input" name="withdrawName" type="text" placeholder="ชื่อบัญชี" value={withdrawName} onChange={e => setWithdrawName(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
+                <label htmlFor="withdraw-amount-input" className="sr-only">Indique o valor</label>
+                <input id="withdraw-amount-input" name="withdrawAmount" type="number" placeholder="Indique o valor" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="w-full text-black p-2 rounded text-center font-bold" autoComplete="off" />
+                <label htmlFor="withdraw-bank-input" className="sr-only">Nome do banco</label>
+                <input id="withdraw-bank-input" name="withdrawBank" type="text" placeholder="Nome do banco (เช่น กสิกร)" value={withdrawBank} onChange={e => setWithdrawBank(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
+                <label htmlFor="withdraw-account-input" className="sr-only">Número da conta</label>
+                <input id="withdraw-account-input" name="withdrawAccount" type="text" placeholder="Número da conta" value={withdrawAccount} onChange={e => setWithdrawAccount(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
+                <label htmlFor="withdraw-name-input" className="sr-only">Titular da conta</label>
+                <input id="withdraw-name-input" name="withdrawName" type="text" placeholder="Titular da conta" value={withdrawName} onChange={e => setWithdrawName(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setWithdrawMode(false)} className="flex-1 bg-gray-500 py-2 rounded font-bold">ยกเลิก</button>
+                  <button onClick={() => setWithdrawMode(false)} className="flex-1 bg-gray-500 py-2 rounded font-bold">Cancelar</button>
                   <button
                     onClick={() => {
                       if (withdrawAmount > 0 && withdrawBank && withdrawAccount && withdrawName) {
                         requestWithdraw(parseFloat(withdrawAmount), { bank: withdrawBank, account: withdrawAccount, name: withdrawName });
                         setWithdrawMode(false); setWithdrawAmount(''); setWithdrawBank(''); setWithdrawAccount('');
-                      } else { alert('กรุณากรอกข้อมูลให้ครบถ้วน'); }
+                      } else { alert('Preencha todos os campos'); }
                     }}
                     className="flex-1 bg-white text-green-600 py-2 rounded font-bold"
                   >
@@ -256,13 +256,13 @@ export default function ProfileTab() {
             )}
             {!withdrawMode && (
               <button onClick={() => setWithdrawMode(true)} className="mt-4 text-sm text-green-100 underline flex items-center justify-center w-full">
-                <ArrowDownCircle size={16} className="mr-1" /> ต้องการถอนเงิน?
+                <ArrowDownCircle size={16} className="mr-1" /> Pretende levantar fundos?
               </button>
             )}
           </div>
-          <h3 className="font-bold text-base mb-3 text-gray-700">ประวัติธุรกรรม</h3>
+          <h3 className="font-bold text-base mb-3 text-gray-700">Histórico de transacções</h3>
           {walletHistory.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 text-sm">ยังไม่มีประวัติธุรกรรม</div>
+            <div className="text-center text-gray-400 py-8 text-sm">ยังไม่มีHistórico de transacções</div>
           ) : (
             <div className="space-y-2">
               {[...walletHistory].sort((a, b) => {
@@ -278,7 +278,7 @@ export default function ProfileTab() {
                       <div className="text-xs text-gray-400 mt-0.5">{tx.createdAtMs ? formatDateTimeFromMs(tx.createdAtMs) : (tx.date || '')}</div>
                     </div>
                     <span className={`font-bold text-sm flex-shrink-0 ${isIncome ? 'text-green-600' : 'text-red-500'}`}>
-                      {isIncome ? '+' : '-'}฿{Math.abs(amt).toLocaleString()}
+                      {isIncome ? '+' : '-'}Kz {Math.abs(amt).toLocaleString()}
                     </span>
                   </div>
                 );
@@ -291,17 +291,17 @@ export default function ProfileTab() {
         <div className="p-4 pt-0">
           <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-4 mb-6">
             <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
-              <MapPin size={18} className="text-blue-500" /> ตำแหน่งปัจจุบันของฉัน
+              <MapPin size={18} className="text-blue-500" /> A minha localização actual
             </h3>
             <p className="text-xs text-gray-500 mb-3">
               ตำแหน่งนี้ใช้คำนวณระยะทางร้านค้าใกล้บ้าน และเป็นที่อยู่เริ่มต้นสำหรับสั่งอาหาร
             </p>
             <div className="text-xs mb-3 space-y-0.5">
               <div className="text-gray-500">
-                📍 ตำแหน่งตอนนี้:{' '}
+                📍 Localização actual:{' '}
                 {userProfile.location
                   ? <span className="text-gray-700 font-medium">{userProfile.location.lat.toFixed(4)}, {userProfile.location.lng.toFixed(4)}</span>
-                  : <span className="text-red-400 font-bold">ยังไม่ได้ตั้ง</span>}
+                  : <span className="text-red-400 font-bold">Ainda não definida</span>}
               </div>
               {userPinLoc && (
                 <div className="text-blue-600 font-bold">
@@ -323,7 +323,7 @@ export default function ProfileTab() {
                 if (!navigator.geolocation) return notifySystem('ไม่รองรับ', 'Browser นี้ไม่รองรับ GPS', 'error');
                 navigator.geolocation.getCurrentPosition(
                   pos => setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                  () => notifySystem('ไม่สามารถดึง GPS', 'กรุณาแตะแผนที่เพื่อเลือกตำแหน่ง', 'error'),
+                  () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
                   { enableHighAccuracy: true, timeout: 8000 },
                 );
               }}
@@ -349,7 +349,7 @@ export default function ProfileTab() {
             >
               {userPinSaving
                 ? <><Save size={16} className="animate-spin" /> กำลังบันทึก...</>
-                : <><MapPin size={16} /> บันทึกตำแหน่งของฉัน</>}
+                : <><MapPin size={16} /> บันทึกA minha localização</>}
             </button>
           </div>
 
@@ -363,7 +363,7 @@ export default function ProfileTab() {
                 onClick={() => { setNewAddrMode(v => !v); setEditingAddrId(null); }}
                 className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 ${newAddrMode ? 'bg-gray-200 text-gray-600' : 'bg-green-500 text-white'}`}
               >
-                {newAddrMode ? '✕ ยกเลิก' : <><Plus size={14} /> เพิ่มที่อยู่</>}
+                {newAddrMode ? '✕ Cancelar' : <><Plus size={14} /> เพิ่มที่อยู่</>}
               </button>
             </div>
 
@@ -429,7 +429,7 @@ export default function ProfileTab() {
                             onClick={() => {
                               navigator.geolocation?.getCurrentPosition(
                                 pos => setEditAddrPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                                () => notifySystem('ไม่สามารถดึง GPS', 'กรุณาแตะแผนที่แทน', 'error'),
+                                () => notifySystem('GPS indisponível', 'กรุณาแตะแผนที่แทน', 'error'),
                                 { enableHighAccuracy: true, timeout: 8000 },
                               );
                             }}
@@ -533,7 +533,7 @@ export default function ProfileTab() {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-bold">📋 ตำแหน่งของฉันมีผลต่อ:</p>
+            <p className="font-bold">📋 A minha localizaçãoมีผลต่อ:</p>
             <p>• <strong>ร้านค้า</strong> — เรียงตามระยะทางจากตำแหน่งของคุณ</p>
             <p>• <strong>ค่าส่ง</strong> — คำนวณจากตำแหน่งร้านถึงตำแหน่งของคุณ</p>
             <p>• <strong>ส่งพัสดุ</strong> — ใช้เป็นตำแหน่งเริ่มต้นของจุดรับ</p>
@@ -632,7 +632,7 @@ export default function ProfileTab() {
         <div className="p-4 pt-0">
           <div className="bg-blue-50 p-4 rounded-xl mb-6 text-center">
             <Bike size={48} className="text-blue-500 mx-auto mb-2" />
-            <h2 className="text-xl font-bold text-blue-700">สมัครขับ BoomRider (KYC)</h2>
+            <h2 className="text-xl font-bold text-blue-700">Registar como estafeta (KYC)</h2>
           </div>
           <div className="space-y-4">
             <div><label htmlFor="rider-reg-realname" className="font-bold mb-1 block">ชื่อ-นามสกุล (ผู้ขับขี่)</label><input id="rider-reg-realname" name="realName" value={riderRegForm.realName} onChange={e => setRiderRegForm({ ...riderRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="name" /></div>
