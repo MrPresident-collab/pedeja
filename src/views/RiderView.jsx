@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Bike, User, MessageSquare, AlertCircle,
   ToggleLeft, ToggleRight, TrendingUp, Clock, DollarSign, Star, Loader, MapPin,
-  XCircle, X, carteira, CreditCard, ArrowUpCircle, ArrowDownCircle, Camera, Bell, Sun, Moon, Globe,
+  XCircle, X, Wallet, CreditCard, ArrowUpCircle, ArrowDownCircle, Camera, Bell, Sun, Moon, Globe,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../context/AppContext';
@@ -26,7 +26,7 @@ export default function RiderView() {
     openChatWindow,
     setProfileSubView, setActiveTab,
     updateRiderWorkingLocation,
-    usercarteira,
+    userWallet,
     walletHistory,
     pendingRequests,
     requestTopUp,
@@ -66,21 +66,21 @@ export default function RiderView() {
   const [proofUploading, setProofUploading] = useState({}); // { [orderId]: bool }
 
   // ── state สำหrecolha carteira tab ──────────────────────────────────────────────
-  const [walletAction, setcarteiraAction] = useState(null); // null | 'topup' | 'withdraw'
-  const [walletAmount, setcarteiraAmount] = useState('');
-  const [walletBank, setcarteiraBank] = useState('');
-  const [walletAccName, setcarteiraAccName] = useState('');
-  const [walletAccNo, setcarteiraAccNo] = useState('');
-  const [submittingcarteira, setSubmittingcarteira] = useState(false);
+  const [walletAction, setWalletAction] = useState(null); // null | 'topup' | 'withdraw'
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletBank, setWalletBank] = useState('');
+  const [walletAccName, setWalletAccName] = useState('');
+  const [walletAccNo, setWalletAccNo] = useState('');
+  const [submittingWallet, setSubmittingcarteira] = useState(false);
 
   // ── Reset wallet form เมื่อ user เปลี่ยน (ป้องกัน stale form ข้าม account) ──
   const _walletUid = userProfile.id || currentUser?.id || '';
   React.useEffect(() => {
-    setcarteiraAction(null);
-    setcarteiraAmount('');
-    setcarteiraBank('');
-    setcarteiraAccName('');
-    setcarteiraAccNo('');
+    setWalletAction(null);
+    setWalletAmount('');
+    setWalletBank('');
+    setWalletAccName('');
+    setWalletAccNo('');
   }, [_walletUid]);
 
   // ── Scroll to top เมื่อ switch tab (ป้องกัน scroll position anteriorทำให้เห็น map) ──
@@ -644,13 +644,13 @@ export default function RiderView() {
               const adminGP = typeof job.adminGP === 'number' ? job.adminGP : typeof job.settlement?.gpAmount === 'number' ? job.settlement.gpAmount : ((job.type === 'food' ? (job.foodTotal || 0) : (job.grandTotal || job.deliveryFee || 0)) * gpRate);
               const foodTotal = job.foodTotal || (job.type === 'food' ? ((job.merchantIncome || 0) + adminGP) : 0);
               const netChange = job.type === 'food' ? -foodTotal : -adminGP;
-              if (netChange < 0 && (usercarteira ?? 0) + netChange < 0) {
-                const shortfall = Math.ceil(Math.abs((usercarteira ?? 0) + netChange));
+              if (netChange < 0 && (userWallet ?? 0) + netChange < 0) {
+                const shortfall = Math.ceil(Math.abs((userWallet ?? 0) + netChange));
                 return (
                   <div className="bg-red-900/40 border border-red-700/50 rounded-xl px-3 py-2.5 mb-3">
                     <p className="text-red-300 text-xs font-bold">⚠️ A carteira ficará negativaApós a entrega</p>
                     <p className="text-red-400 text-xs mt-0.5">
-                      Carteira actual Kz {(usercarteira ?? 0).toLocaleString()} — Falta Kz {shortfall.toLocaleString()} para pagar a comida + GP da plataforma
+                      Carteira actual Kz {(userWallet ?? 0).toLocaleString()} — Falta Kz {shortfall.toLocaleString()} para pagar a comida + GP da plataforma
                     </p>
                     <p className="text-gray-500 text-[10px] mt-0.5">ยังAceitar entregaได้ แต่A carteira ficará negativa</p>
                   </div>
@@ -1118,7 +1118,7 @@ export default function RiderView() {
           const pendingWithdrawTotal = pendingWithdrawals.reduce(
             (sum, r) => sum + (Number(r.data?.amount) || 0), 0
           );
-          const effectiveBalance = Math.max(0, (usercarteira ?? 0) - pendingWithdrawTotal);
+          const effectiveBalance = Math.max(0, (userWallet ?? 0) - pendingWithdrawTotal);
           return (
           <div className="pb-6">
             {/* ── ยอดcarteiraหลัก ─────────────────────────────────────────────── */}
@@ -1128,7 +1128,7 @@ export default function RiderView() {
                 <span className="text-sm text-green-300 font-bold">carteiraเงินหลัก</span>
               </div>
               <div className="text-4xl font-black text-green-400 my-2">
-                Kz {Number(usercarteira ?? 0).toLocaleString()}
+                Kz {Number(userWallet ?? 0).toLocaleString()}
               </div>
               {pendingWithdrawTotal > 0 && (
                 <div className="flex flex-col items-center gap-0.5 mb-1">
@@ -1139,7 +1139,7 @@ export default function RiderView() {
               <p className="text-[11px] text-gray-500 text-center">รายได้จากentrega · ถอนเมื่อ Admin aprovação</p>
               <div className="flex gap-3 mt-4 w-full">
                 <button
-                  onClick={() => { setcarteiraAction(walletAction === 'topup' ? null : 'topup'); setcarteiraAmount(''); }}
+                  onClick={() => { setWalletAction(walletAction === 'topup' ? null : 'topup'); setWalletAmount(''); }}
                   className={`flex-1 text-xs py-2.5 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
                     walletAction === 'topup' ? 'bg-blue-500 text-white' : 'bg-blue-700/30 text-blue-300 hover:bg-blue-700/50'
                   }`}
@@ -1147,7 +1147,7 @@ export default function RiderView() {
                   <ArrowUpCircle size={13} /> carregamento
                 </button>
                 <button
-                  onClick={() => { setcarteiraAction(walletAction === 'withdraw' ? null : 'withdraw'); setcarteiraAmount(''); }}
+                  onClick={() => { setWalletAction(walletAction === 'withdraw' ? null : 'withdraw'); setWalletAmount(''); }}
                   className={`flex-1 text-xs py-2.5 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
                     walletAction === 'withdraw' ? 'bg-violet-500 text-white' : 'bg-orange-700/30 text-orange-300 hover:bg-orange-700/50'
                   }`}
@@ -1165,7 +1165,7 @@ export default function RiderView() {
                     {walletAction === 'topup' ? '💳 ขอcarregamento' : '💸 ขอlevantamento'}
                   </h3>
                   <button
-                    onClick={() => { setcarteiraAction(null); setcarteiraAmount(''); setcarteiraBank(''); setcarteiraAccName(''); setcarteiraAccNo(''); }}
+                    onClick={() => { setWalletAction(null); setWalletAmount(''); setWalletBank(''); setWalletAccName(''); setWalletAccNo(''); }}
                     className="text-gray-400 hover:text-white w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-700 transition-all"
                   >✕</button>
                 </div>
@@ -1189,22 +1189,22 @@ export default function RiderView() {
                     type="number"
                     placeholder={walletAction === 'withdraw' ? `Valor (สูงสุด Kz ${effectiveBalance.toLocaleString()})` : 'Valor (Kz ) *'}
                     value={walletAmount}
-                    onChange={e => setcarteiraAmount(e.target.value)}
+                    onChange={e => setWalletAmount(e.target.value)}
                     className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500"
                     autoComplete="off"
                     aria-label="Valor"
                   />
                   <label htmlFor="rider-wallet-bank-input" className="sr-only">nomebanco</label>
                   <input id="rider-wallet-bank-input" name="walletBank" type="text" placeholder="nomebanco (เช่น กสิกร, SCB) *" value={walletBank}
-                    onChange={e => setcarteiraBank(e.target.value)}
+                    onChange={e => setWalletBank(e.target.value)}
                     className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="nomebanco" />
                   <label htmlFor="rider-wallet-accname-input" className="sr-only">nomeบัญชี</label>
                   <input id="rider-wallet-accname-input" name="walletAccName" type="text" placeholder="nomeบัญชี *" value={walletAccName}
-                    onChange={e => setcarteiraAccName(e.target.value)}
+                    onChange={e => setWalletAccName(e.target.value)}
                     className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="nomeบัญชี" />
                   <label htmlFor="rider-wallet-accno-input" className="sr-only">número da conta</label>
                   <input id="rider-wallet-accno-input" name="walletAccNo" type="text" placeholder="número da conta *" value={walletAccNo}
-                    onChange={e => setcarteiraAccNo(e.target.value)}
+                    onChange={e => setWalletAccNo(e.target.value)}
                     className="w-full bg-gray-700 text-white rounded-xl px-3 py-2.5 text-sm border border-gray-600 focus:border-green-500 outline-none placeholder-gray-500" autoComplete="off" aria-label="número da conta" />
                 </div>
 
@@ -1217,17 +1217,17 @@ export default function RiderView() {
                     try {
                       if (walletAction === 'topup') requestTopUp(amt, null, null, bankInfo);
                       else requestWithdraw(amt, bankInfo);
-                      setcarteiraAction(null); setcarteiraAmount(''); setcarteiraBank(''); setcarteiraAccName(''); setcarteiraAccNo('');
+                      setWalletAction(null); setWalletAmount(''); setWalletBank(''); setWalletAccName(''); setWalletAccNo('');
                     } finally { setSubmittingcarteira(false); }
                   }}
                   disabled={
-                    submittingcarteira || !walletAmount || parseFloat(walletAmount) <= 0 ||
+                    submittingWallet || !walletAmount || parseFloat(walletAmount) <= 0 ||
                     !walletBank || !walletAccName || !walletAccNo ||
                     (walletAction === 'withdraw' && (parseFloat(walletAmount) > effectiveBalance || effectiveBalance <= 0))
                   }
                   className="w-full mt-3 bg-green-600 hover:bg-green-500 active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {submittingcarteira ? '⏳ A entregar...' : '📨 entregapedidoให้ Admin'}
+                  {submittingWallet ? '⏳ A entregar...' : '📨 entregapedidoให้ Admin'}
                 </button>
               </div>
             )}
