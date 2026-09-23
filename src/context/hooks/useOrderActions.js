@@ -1,6 +1,4 @@
 import { generateId, formatDateTime, r2, getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils.js';
-import { ADMIN_EMAIL, USER_LOCATION } from '../../constants.js';
-import { autoDispatch } from './useAutoDispatch.js';
 
 export function useOrderActions(deps) {
   const {
@@ -34,10 +32,10 @@ export function useOrderActions(deps) {
     const { data: quoteRes, error: quoteErr } = await supabase.rpc('create_service_quote', payload);
     if (quoteErr) {
       console.error('[quoteEngine] Error fetching server quote:', quoteErr);
-      return { ok: false, reason: quoteErr.message || 'ไม่สามารถขอใบเสนอราคาจากเซิร์ฟเวอร์ได้' };
+      return { ok: false, reason: quoteErr.message || 'Não foi possível obter o orçamento do servidor.' };
     }
     if (!quoteRes || !quoteRes.ok) {
-      return { ok: false, reason: quoteRes?.reason || 'ไม่สามารถสร้างใบเสนอราคาได้' };
+      return { ok: false, reason: quoteRes?.reason || 'Não foi possível criar o orçamento.' };
     }
     return { ok: true, quote: quoteRes };
   };
@@ -137,14 +135,6 @@ export function useOrderActions(deps) {
     return order ? { ok: true, order } : { ok: false, reason: 'O servidor não devolveu o pedido criado.' };
   };
 
-  // Parcel, ride, and service creation are outside this vertical slice. Keep
-  // their callers explicit and fail closed rather than recreating a legacy
-  // JSON-order insert against the live relational schema.
-  const _executeOrderPlacement = async () => ({
-    ok: false,
-    reason: 'Este tipo de pedido ainda não está ligado ao backend live.',
-  });
-
   const _createCustomerFoodOrder = async ({ businessId, addressId, items, notes, deliveryInstructions }) => {
     const idempotencyKey = typeof globalThis.crypto?.randomUUID === 'function'
       ? globalThis.crypto.randomUUID()
@@ -163,7 +153,7 @@ export function useOrderActions(deps) {
   };
 
   const addToCart = (item, restaurantId, restaurantName, distance, selectedOptions = [], optionsExtraPrice = 0) => {
-    if (!item.available) return notifySystem('ขออภัย', 'เมนูนี้หมดแล้ว', 'error');
+    if (!item.available) return notifySystem('Produto indisponível', 'Este produto não está disponível.', 'error');
 
     const itemPrice = item.price + optionsExtraPrice;
     const optionKeys = selectedOptions.map(o => `${o.name}:${o.price}`).join('|');
@@ -591,7 +581,7 @@ export function useOrderActions(deps) {
   const requestCancelByRole = (orderId, reason, role) => {
     const uid = currentUser?.id || userProfile?.id || '';
     const order = orders.find(o => o.id === orderId);
-    const roleName = role === 'rider' ? 'ไรเดอร์' : 'ร้านค้า';
+    const roleName = role === 'rider' ? 'Estafeta' : 'Comerciante';
     const newReq = {
       id: generateId(), type: 'cancel_order',
       data: {
@@ -606,12 +596,12 @@ export function useOrderActions(deps) {
     };
     setPendingRequests(prev => [newReq, ...prev]);
     supabase.from('pending_requests').insert({ id: newReq.id, data: newReq }).then(() => {});
-    notifySystem('ส่งคำขอยกเลิกแล้ว', 'Admin จะพิจารณาคำขอของคุณ', 'info');
-    notifyAdmin(`⚠️ ${roleName}ขอยกเลิก`, `${userProfile.name} ขอยกเลิก #${orderId.slice(-6)}: ${reason}`, 'warning');
+    notifySystem('Pedido de cancelamento enviado', 'O Admin irá analisar o pedido.', 'info');
+    notifyAdmin(`⚠️ ${roleName} pediu cancelamento`, `${userProfile.name} pediu o cancelamento de #${orderId.slice(-6)}: ${reason}`, 'warning');
   };
 
   // Direct cancel — for customer on still-pending orders (no admin needed)
-  const cancelOrderDirectly = async (orderId, reason = 'ลูกค้ายกเลิก') => {
+  const cancelOrderDirectly = async (orderId, reason = 'Cliente cancelou') => {
     void reason;
     const { data: cancelledOrderId, error } = await supabase.rpc('cancel_customer_order', { p_order_id: orderId });
     if (error || !cancelledOrderId) {
