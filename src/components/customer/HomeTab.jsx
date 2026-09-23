@@ -92,8 +92,8 @@ export default function HomeTab({ searchQuery, setSearchQuery }) {
       const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json&accept-language=th`,
-          { headers: { 'Accept-Language': 'th' } },
+          `https://nominatim.openstreetmap.org/reverse?lat=${loc.lat}&lon=${loc.lng}&format=json&accept-language=pt`,
+          { headers: { 'Accept-Language': 'pt } },
         );
         const data = await res.json();
         const addr = data.display_name || `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
