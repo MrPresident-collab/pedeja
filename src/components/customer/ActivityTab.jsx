@@ -150,7 +150,7 @@ export default function ActivityTab() {
                         <span className="text-xs text-gray-700"><span className="font-semibold text-red-600">Entrega: </span>{order.dropoff}</span>
                       </div>
                       {order.distance > 0 && (
-                        <p className="text-xs text-gray-400 pl-5">Distância {order.distance} กม. · {order.weight} kg</p>
+                        <p className="text-xs text-gray-400 pl-5">Distância {order.distance} km · {order.weight} kg</p>
                       )}
                     </div>
                   )}
@@ -180,7 +180,7 @@ export default function ActivityTab() {
                           onClick={() => { setCancelReqOrderId(order.id); setCancelReqReason(''); setShowCancelReqModal(true); }}
                           className="w-full text-center text-xs text-gray-400 hover:text-red-500 py-1.5 hover:bg-red-50 rounded-lg transition-all border border-dashed border-gray-200 hover:border-red-200"
                         >
-                          ✕ ขอยกเลิกออเดอร์นี้
+                          ✕ Pedir cancelamento do pedidoนี้
                         </button>
                       )}
                     </div>
@@ -207,7 +207,7 @@ export default function ActivityTab() {
                         <div className="flex items-center gap-3">
                           {eta && (
                             <div className={`text-right ${isDelivering ? 'text-white' : 'text-indigo-700'}`}>
-                              <p className="text-xs font-black">~{eta.mins} นาที</p>
+                              <p className="text-xs font-black">~{eta.mins} min</p>
                               <p className={`text-[10px] ${isDelivering ? 'text-blue-100' : 'text-indigo-400'}`}>{eta.km} กม.</p>
                             </div>
                           )}
@@ -237,7 +237,7 @@ export default function ActivityTab() {
                     <div className="px-4 py-3 bg-orange-100 border-t border-orange-200 flex items-center gap-3">
                       <Banknote size={22} className="text-orange-600 shrink-0" />
                       <div className="flex-1">
-                        <p className="text-orange-800 font-bold text-sm">เตรียมจ่ายเงินสดให้Estafeta</p>
+                        <p className="text-orange-800 font-bold text-sm">Prepare o numerário para o estafeta</p>
                         <p className="text-orange-600 text-xs mt-0.5">Valor a pagar <span className="font-black text-base text-orange-700">Kz {(order.grandTotal || 0).toLocaleString()}</span></p>
                       </div>
                     </div>
@@ -266,7 +266,7 @@ export default function ActivityTab() {
                         <img src={order.deliveryProofUrl} alt="Comprovativo de entrega" className="w-full object-cover max-h-48" />
                         <div className="bg-teal-50 px-3 py-1.5 flex items-center gap-1.5">
                           <CheckCircle size={13} className="text-teal-600" />
-                          <span className="text-xs text-teal-700 font-semibold">รูปComprovativo de entregaจากEstafeta</span>
+                          <span className="text-xs text-teal-700 font-semibold">Fotografia de comprovativo de entrega do estafeta</span>
                         </div>
                       </div>
                     )}
@@ -282,7 +282,7 @@ export default function ActivityTab() {
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-1.5">
                       {order.paymentMethod === 'cash'
-                        ? '✅ ตรวจสอบรูปหลักฐานด้านบน แล้วกดหลังรับของและจ่ายเงินให้Estafeta'
+                        ? '✅ Verifique o comprovativo acima e confirme depois de receber e pagar ao estafeta'
                         : '✅ Verifique o comprovativo acima e confirme a recepção'}
                     </p>
                   </div>
@@ -355,12 +355,12 @@ export default function ActivityTab() {
                     <Banknote size={18} className="text-orange-500 shrink-0" />
                     <div>
                       <p className="text-orange-700 font-bold text-sm">เตรียมจ่ายเงินสด Kz {(order.grandTotal || 0).toLocaleString()}</p>
-                      <p className="text-orange-500 text-xs">ชำระให้Estafetaโดยตรง</p>
+                      <p className="text-orange-500 text-xs">Pagar directamente ao estafeta</p>
                     </div>
                   </div>
                 ) : (
                   <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                    <span>👛</span><span>ตัดจาก Wallet เรียบร้อยแล้ว</span>
+                    <span>👛</span><span>Pago pela carteira</span>
                   </div>
                 )}
                 {!order.rated && (
@@ -368,11 +368,11 @@ export default function ActivityTab() {
                     onClick={() => openRatingModal(order)}
                     className="mt-3 w-full bg-yellow-400 text-yellow-900 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-yellow-300 active:scale-95 transition-all"
                   >
-                    <Star size={16} className="fill-current" /> ให้คะแนนรีวิว
+                    <Star size={16} className="fill-current" /> Avaliar
                   </button>
                 )}
                 {order.rated && (
-                  <p className="mt-3 text-center text-xs text-green-600 font-semibold">⭐ รีวิวแล้ว ขอบคุณ!</p>
+                  <p className="mt-3 text-center text-xs text-green-600 font-semibold">⭐ Avaliado. Obrigado!</p>
                 )}
               </div>
             </div>
@@ -383,7 +383,7 @@ export default function ActivityTab() {
       {history.length > 0 && (
         <>
           <h2 className="text-lg font-bold mb-3 text-gray-600 flex items-center gap-2 mt-4">
-            <Receipt size={18} /> ประวัติออเดอร์
+            <Receipt size={18} /> Histórico de pedidos
           </h2>
           {history.map(order => (
             <div key={order.id} className="bg-white mb-3 rounded-xl shadow-sm p-4 border border-gray-100">
@@ -397,12 +397,12 @@ export default function ActivityTab() {
                     <p className="text-xs text-gray-500 mt-0.5">→ {order.dropoff}</p>
                   )}
                   {order.status === 'cancelled' && order.cancelReason && (
-                    <p className="text-xs text-red-500 mt-0.5">ยกเลิก: {order.cancelReason}</p>
+                    <p className="text-xs text-red-500 mt-0.5">Cancelado: {order.cancelReason}</p>
                   )}
                 </div>
                 <div className="text-right">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${order.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                    {order.status === 'cancelled' ? 'ยกเลิกแล้ว' : 'จัดส่งสำเร็จ ✓'}
+                    {order.status === 'cancelled' ? 'Cancelado' : 'Entrega concluída ✓'}
                   </span>
                   <div className="font-bold text-gray-800 mt-1">Kz {(order.grandTotal || 0).toLocaleString()}</div>
                 </div>
@@ -426,14 +426,14 @@ export default function ActivityTab() {
       {myOrders.length === 0 && (
         <div className="text-center mt-20 text-gray-400">
           <ShoppingBag size={48} className="mx-auto mb-3 opacity-20" />
-          <p className="font-medium">ยังไม่มีออเดอร์</p>
+          <p className="font-medium">Ainda não existem pedidos</p>
           <button onClick={() => setActiveTab('home')} className="mt-3 text-orange-500 font-bold text-sm underline">
             สั่งอาหารเลย!
           </button>
         </div>
       )}
 
-      {/* ── ขอยกเลิกออเดอร์ Modal ── */}
+      {/* ── Pedir cancelamento do pedido Modal ── */}
       {showCancelReqModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center z-50 backdrop-blur-sm"
@@ -443,7 +443,7 @@ export default function ActivityTab() {
             <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
             <div className="flex items-center gap-2 mb-1">
               <div className="bg-red-100 rounded-full p-1.5"><X size={16} className="text-red-500" /></div>
-              <h3 className="font-bold text-gray-800 text-base">ขอยกเลิกออเดอร์</h3>
+              <h3 className="font-bold text-gray-800 text-base">Pedir cancelamento do pedido</h3>
             </div>
             <p className="text-xs text-gray-500 mb-4 pl-1">
               คำขอจะส่งไปยัง Admin เพื่อตรวจสอบ
@@ -454,7 +454,7 @@ export default function ActivityTab() {
                   : '';
               })()}
             </p>
-            {['เปลี่ยนใจไม่ต้องการแล้ว', 'สั่งผิด / ต้องการแก้ไข', 'ที่อยู่จัดส่งผิด', 'รอนานเกินไป'].map(r => (
+            {['Mudei de ideias', 'Pedido incorrecto / preciso de alterar', 'Morada de entrega incorrecta', 'Espera demasiado longa'].map(r => (
               <button
                 key={r}
                 onClick={() => setCancelReqReason(r)}
@@ -467,13 +467,13 @@ export default function ActivityTab() {
                 {cancelReqReason === r ? '✓ ' : ''}{r}
               </button>
             ))}
-            <label htmlFor="customer-cancel-req-reason" className="sr-only">เหตุผลการยกเลิก</label>
+            <label htmlFor="customer-cancel-req-reason" className="sr-only">Motivo do cancelamento</label>
             <textarea
               id="customer-cancel-req-reason"
               name="cancelReason"
               value={cancelReqReason}
               onChange={e => setCancelReqReason(e.target.value)}
-              placeholder="หรือพิมพ์เหตุผลอื่น..."
+              placeholder="Ou escreva outro motivo..."
               rows={2}
               className="w-full mt-1 border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-200"
               autoComplete="off"
@@ -487,7 +487,7 @@ export default function ActivityTab() {
               </button>
               <button
                 onClick={() => {
-                  if (!cancelReqReason.trim()) return alert('กรุณาระบุเหตุผล');
+                  if (!cancelReqReason.trim()) return alert('Indique o motivo');
                   requestCancelOrder(cancelReqOrderId, cancelReqReason);
                   setShowCancelReqModal(false);
                   setCancelReqOrderId(null);
@@ -521,13 +521,13 @@ export default function ActivityTab() {
               </button>
               <div className="text-center flex-1 mx-3">
                 <p className="text-white font-black text-sm">
-                  {isDelivering ? '🛵 กำลังส่งให้คุณ!' : o.status === 'picking_up' ? '🏪 Estafetaถึงร้านแล้ว' : '✅ Estafeta aceitou'}
+                  {isDelivering ? '🛵 A entregar!' : o.status === 'picking_up' ? '🏪 Estafeta chegou ao estabelecimento' : '✅ Estafeta aceitou'}
                 </p>
                 <p className="text-blue-100 text-xs mt-0.5">{o.riderName || 'Estafeta'}</p>
               </div>
               {eta ? (
                 <div className="text-right bg-white/20 rounded-xl px-3 py-1.5">
-                  <p className="text-white font-black text-sm leading-tight">~{eta.mins} นาที</p>
+                  <p className="text-white font-black text-sm leading-tight">~{eta.mins} min</p>
                   <p className="text-blue-100 text-[10px]">{eta.km} กม.</p>
                 </div>
               ) : <div className="w-16" />}
