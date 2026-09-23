@@ -1071,7 +1071,7 @@ export function AppProvider({ children }) {
         const dest = first.type === 'parcel'
           ? `📦 ${first.pickup || ''} → ${first.dropoff || ''}`
           : `🍔 ${first.restaurantName || 'Comerciante'} Kz ${first.deliveryFee ?? 0}`;
-        notifySystem('🛵 Nova entrega!', newJobs.length === 1 ? dest : `${newJobs.length} งานใหม่ — ${dest}`, 'warning');
+        notifySystem('🛵 Nova entrega!', newJobs.length === 1 ? dest : `${newJobs.length} nova(s) entrega(s) — ${dest}`, 'warning');
       }
     }
 
@@ -1084,7 +1084,7 @@ export function AppProvider({ children }) {
       if (o.customerId === uid) {
         switch (o.status) {
           case 'preparing':
-            notifySystem('👨‍🍳 ร้านA preparar o pedido', `Pedido #${o.id.slice(-6)} a ser preparado`, 'info'); break;
+            notifySystem('👨‍🍳 Comerciante a preparar o pedido', `Pedido #${o.id.slice(-6)} a ser preparado`, 'info'); break;
           case 'ready_to_pickup':
             notifySystem('✅ Pedido pronto!', `A procurar estafeta para o pedido #${o.id.slice(-6)}`, 'info'); break;
           case 'rider_accepted':
@@ -1350,7 +1350,7 @@ export function AppProvider({ children }) {
     setRestaurants(prev => prev.map(r => {
       if (r.id !== restaurantId) return r;
       const newStatus = r.status === 'open' ? 'closed' : 'open';
-      notifySystem('สถานะร้าน', `Estabelecimento ${newStatus === 'open' ? 'aberto' : 'fechado'}`, 'info');
+      notifySystem('Estado do estabelecimento', `Estabelecimento ${newStatus === 'open' ? 'aberto' : 'fechado'}`, 'info');
       return { ...r, status: newStatus };
     }));
   };
@@ -1539,7 +1539,7 @@ export function AppProvider({ children }) {
         options: { data: { name: registerForm.name, phone: registerForm.phone || null } },
       });
       if (error) return notifySystem('Erro', error.message, 'error');
-      if (!data.user) return notifySystem('Erro', 'สมัครNão foi possível ลองใหม่อีกครั้ง', 'error');
+      if (!data.user) return notifySystem('Erro', 'Não foi possível criar a conta. Tente novamente.', 'error');
       // Database trigger handle_new_auth_user initializes profile, wallet and
       // customer role atomically, including when email confirmation is enabled.
       setRegisterForm({ phone: '', email: '', password: '', confirmPassword: '', name: '' });
