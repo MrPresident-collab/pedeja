@@ -36,7 +36,7 @@ export default function CustomerAddressPicker({ value = {}, onChange }) {
     };
   }, []);
 
-  const update = (patch) => onChange({ ...value, ...patch });
+  const update = (patch) => onChange({ ...value, ...patch, latitude: patch.latitude ?? value.latitude ?? null, longitude: patch.longitude ?? value.longitude ?? null });
 
   const searchAddress = (text) => {
     const trimmed = text.trim();
