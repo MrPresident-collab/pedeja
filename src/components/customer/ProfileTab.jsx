@@ -289,254 +289,40 @@ export default function ProfileTab() {
 
       ) : profileSubView === 'pin_location' ? (
         <div className="p-4 pt-0">
-          <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-4 mb-6">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
-              <MapPin size={18} className="text-blue-500" /> A minha localização actual
-            </h3>
-            <p className="text-xs text-gray-500 mb-3">
-              localizaçãoนี้ใช้คำนวณระยะทางComercianteใกล้บ้าน และเป็นmoradaเริ่มต้นสำหrecolhaสั่งcomida
-            </p>
-            <div className="text-xs mb-3 space-y-0.5">
-              <div className="text-gray-500">
-                📍 Localização actual:{' '}
-                {userProfile.location
-                  ? <span className="text-gray-700 font-medium">{userProfile.location.lat.toFixed(4)}, {userProfile.location.lng.toFixed(4)}</span>
-                  : <span className="text-red-400 font-bold">Ainda não definida</span>}
-              </div>
-              {userPinLoc && (
-                <div className="text-blue-600 font-bold">
-                  🔵 seleccionarnovo: {userPinLoc.lat.toFixed(4)}, {userPinLoc.lng.toFixed(4)}
-                </div>
-              )}
-            </div>
-            <div className="rounded-xl overflow-hidden border-2 border-blue-200 mb-2">
-              <InteractiveMap
-                mode="select"
-                userLocation={userPinLoc || userProfile.location}
-                onLocationSelect={loc => setUserPinLoc(loc)}
-                className="h-64"
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 text-center mb-3">Toque no mapa para marcar a sua localização</p>
-            <button
-              onClick={() => {
-                if (!navigator.geolocation) return notifySystem('Não suportado', 'Browser นี้Não suportado GPS', 'error');
-                navigator.geolocation.getCurrentPosition(
-                  pos => setUserPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                  () => notifySystem('GPS indisponível', 'Toque no mapa para seleccionar a localização', 'error'),
-                  { enableHighAccuracy: true, timeout: 8000 },
-                );
-              }}
-              className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold mb-3 flex items-center justify-center gap-2 hover:bg-gray-200 active:scale-95 transition-all"
-            >
-              <Crosshair size={15} /> Usar localização GPS actual
-            </button>
-            <button
-              disabled={!userPinLoc || userPinSaving}
-              onClick={async () => {
-                if (!userPinLoc) return;
-                setUserPinSaving(true);
-                await handleUpdateUserLocation(userPinLoc);
-                setUserPinSaving(false);
-                setUserPinLoc(null);
-                setProfileSubView('main');
-              }}
-              className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                userPinLoc && !userPinSaving
-                  ? 'bg-blue-500 text-white hover:bg-blue-400 active:scale-95 shadow-lg shadow-blue-100'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {userPinSaving
-                ? <><Save size={16} className="animate-spin" /> A guardar...</>
-                : <><MapPin size={16} /> Guardar a minha localização</>}
-            </button>
-          </div>
-
-          {/* ควบtotalmoradaของฉันไว้ในหน้าเดียวกัน */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-gray-800 flex items-center gap-1.5">
-                <MapPin size={18} className="text-green-500" /> As minhas moradas guardadas
-              </h3>
-              <button
-                onClick={() => { setNewAddrMode(v => !v); setEditingAddrId(null); }}
-                className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 ${newAddrMode ? 'bg-gray-200 text-gray-600' : 'bg-green-500 text-white'}`}
-              >
-                {newAddrMode ? '✕ Cancelar' : <><Plus size={14} /> Adicionar morada</>}
-              </button>
-            </div>
-
-            <div className="space-y-3 mb-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><MapPin size={18} className="text-green-500" /> As minhas moradas</h3>
+            <p className="text-xs text-gray-500 mb-4">Guarde casa, trabalho, escola ou outro local onde costuma receber encomendas.</p>
+            <div className="space-y-3">
               {userAddresses.map(addr => (
-                <div key={addr.id}>
-                  <div className={`border-2 rounded-xl overflow-hidden transition-all ${editingAddrId === addr.id ? 'border-blue-400' : 'border-gray-200'}`}>
-                    <div className="p-3 flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold flex items-center gap-1">
-                          <MapPin size={15} className="text-green-500 flex-shrink-0" />
-                          {addr.label}
-                        </div>
-                        <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{addr.address}</p>
-                        {addr.location && (
-                          <p className="text-gray-400 text-[10px] mt-0.5">
-                            {addr.location.lat.toFixed(4)}, {addr.location.lng.toFixed(4)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-1 ml-2 flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            if (editingAddrId === addr.id) {
-                              setEditingAddrId(null); setEditAddrPinLoc(null);
-                            } else {
-                              setEditingAddrId(addr.id);
-                              setEditAddrPinLoc(null);
-                              setNewAddrMode(false);
-                            }
-                          }}
-                          className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-0.5 ${editingAddrId === addr.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500'}`}
-                        >
-                          <MapPin size={13} /> {editingAddrId === addr.id ? 'Fechar' : 'Editar localização'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAddress(addr.id)}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-400 hover:bg-red-100"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                <div key={addr.id} className="border border-gray-200 rounded-xl p-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm">{addr.label}</div>
+                    <div className="text-xs text-gray-600 mt-1">{addr.address || 'Morada sem detalhes'}</div>
+                    <div className="text-[10px] mt-1 ${addr.location ? 'text-green-600' : 'text-amber-600'}">
+                      {addr.location ? 'Localização resolvida' : 'Localização por resolver — a equipa Pedejá pode tratar disso'}
                     </div>
-
-                    {editingAddrId === addr.id && (
-                      <div className="border-t border-blue-100 bg-blue-50 p-3">
-                        <p className="text-xs text-blue-700 font-bold mb-2">📍 Toque no mapa para mover o marcador desta morada</p>
-                        <div className="rounded-xl overflow-hidden border-2 border-blue-300 mb-2">
-                          <InteractiveMap
-                            mode="select"
-                            userLocation={editAddrPinLoc || addr.location || userProfile.location}
-                            onLocationSelect={loc => setEditAddrPinLoc(loc)}
-                            className="h-56"
-                          />
-                        </div>
-                        {editAddrPinLoc && (
-                          <p className="text-xs text-blue-600 font-bold mb-2 text-center">
-                            🔵 seleccionarconcluído: {editAddrPinLoc.lat.toFixed(4)}, {editAddrPinLoc.lng.toFixed(4)}
-                          </p>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              navigator.geolocation?.getCurrentPosition(
-                                pos => setEditAddrPinLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                                () => notifySystem('GPS indisponível', 'Toque no mapa em alternativa', 'error'),
-                                { enableHighAccuracy: true, timeout: 8000 },
-                              );
-                            }}
-                            className="flex-1 py-2 rounded-lg bg-white border border-blue-200 text-blue-600 text-xs font-bold flex items-center justify-center gap-1 hover:bg-blue-50"
-                          >
-                            <Crosshair size={13} /> GPS actual
-                          </button>
-                          <button
-                            disabled={!editAddrPinLoc || editAddrSaving}
-                            onClick={async () => {
-                              if (!editAddrPinLoc) return;
-                              setEditAddrSaving(true);
-                              await handleUpdateAddress(addr.id, editAddrPinLoc);
-                              setEditAddrSaving(false);
-                              setEditingAddrId(null);
-                              setEditAddrPinLoc(null);
-                            }}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
-                              editAddrPinLoc && !editAddrSaving
-                                ? 'bg-blue-500 text-white hover:bg-blue-400 active:scale-95'
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            }`}
-                          >
-                            {editAddrSaving
-                              ? <><Save size={13} className="animate-spin" /> A guardar...</>
-                              : <><Save size={13} /> Guardar marcador</>}
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
+                  <button onClick={() => handleDeleteAddress(addr.id)} className="p-1.5 rounded-lg bg-red-50 text-red-500" aria-label="Remover morada"><Trash2 size={14} /></button>
                 </div>
               ))}
-              {userAddresses.length === 0 && !newAddrMode && (
-                <div className="text-center py-6 text-gray-400">
-                  <MapPin size={32} className="mx-auto mb-1 opacity-30" />
-                  <p className="text-xs">Ainda não existem moradas guardadas. Use o botão "Adicionar morada" acima.</p>
-                </div>
-              )}
+              {userAddresses.length === 0 && <div className="text-center py-5 text-gray-400 text-xs">Ainda não existem moradas guardadas.</div>}
             </div>
-
+            <button onClick={() => setNewAddrMode(v => !v)} className="w-full mt-4 bg-green-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><Plus size={16} /> {newAddrMode ? 'Cancelar' : 'Adicionar morada'}</button>
             {newAddrMode && (
-              <div className="bg-gray-50 border-2 border-green-200 p-3 rounded-2xl mt-2">
-                <h4 className="font-bold text-green-700 mb-2 flex items-center gap-1 text-sm"><MapPin size={14} /> Adicionar nova morada</h4>
-                <div className="rounded-xl overflow-hidden border-2 border-green-300 mb-2">
-                  <InteractiveMap
-                    mode="select"
-                    userLocation={newAddr.location || userProfile.location}
-                    onLocationSelect={handleMapLocationSelect}
-                    className="h-56"
-                  />
+              <div className="mt-4 border border-green-200 rounded-xl p-3 bg-green-50">
+                <select value={newAddr.label} onChange={e => setNewAddr({...newAddr,label:e.target.value})} className="w-full p-2 border rounded-lg text-xs bg-white mb-2">
+                  <option>Casa</option><option>Trabalho</option><option>Escola</option><option>Amigo</option><option>Oficina</option><option>Escritório</option><option>Outro</option>
+                </select>
+                <input value={newAddr.addressLine1} onChange={e => setNewAddr({...newAddr,addressLine1:e.target.value})} placeholder="Rua / Avenida e nº" className="w-full p-2 border rounded-lg text-xs mb-2" />
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input value={newAddr.neighborhood} onChange={e => setNewAddr({...newAddr,neighborhood:e.target.value})} placeholder="Bairro" className="w-full p-2 border rounded-lg text-xs" />
+                  <input value={newAddr.municipality} onChange={e => setNewAddr({...newAddr,municipality:e.target.value})} placeholder="Município" className="w-full p-2 border rounded-lg text-xs" />
                 </div>
-                <p className="text-[10px] text-gray-400 text-center mb-2">Toque no mapa para marcar a localização</p>
-                <button
-                  onClick={getCurrentLocationForForm}
-                  className="w-full py-2 rounded-lg bg-white border border-green-200 text-green-600 text-xs font-bold mb-2 flex items-center justify-center gap-1 hover:bg-green-50 active:scale-95 transition-all"
-                >
-                  <Crosshair size={13} /> Usar localização GPS actual
-                </button>
-                {newAddr.location && (
-                  <p className="text-xs text-green-600 font-bold text-center mb-2">
-                    ✅ ปักหมุดconcluído: {newAddr.location.lat.toFixed(4)}, {newAddr.location.lng.toFixed(4)}
-                  </p>
-                )}
-                <label htmlFor="new-addr-label-input" className="sr-only">Nome do local</label>
-                <input
-                  id="new-addr-label-input"
-                  name="label"
-                  value={newAddr.label}
-                  onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
-                  placeholder="Nome do local (ex.: casa, trabalho)"
-                  className="w-full p-2 border rounded-lg mb-2 text-xs"
-                  autoComplete="off"
-                />
-                <label htmlFor="new-addr-full-input" className="sr-only">Detalhes adicionais</label>
-                <textarea
-                  id="new-addr-full-input"
-                  name="fullAddr"
-                  value={newAddr.fullAddr}
-                  onChange={e => setNewAddr({ ...newAddr, fullAddr: e.target.value })}
-                  placeholder="Detalhes adicionais / ponto de referência (opcional)"
-                  rows={2}
-                  className="w-full p-2 border rounded-lg mb-2 text-xs resize-none"
-                  autoComplete="off"
-                />
-                <button
-                  onClick={() => {
-                    if (!newAddr.label) return notifySystem('erro', 'Indique o nome do local', 'error');
-                    if (!newAddr.location) return notifySystem('erro', 'Marque primeiro a localização no mapa', 'error');
-                    const addrText = newAddr.fullAddr || `${newAddr.location.lat.toFixed(5)}, ${newAddr.location.lng.toFixed(5)}`;
-                    handleAddAddress({ ...newAddr, fullAddr: addrText });
-                    setNewAddr({ label: '', fullAddr: '', location: null });
-                    setNewAddrMode(false);
-                  }}
-                  className="w-full bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-green-500 active:scale-95 transition-all"
-                >
-                  <Save size={15} /> Guardar morada
-                </button>
+                <input value={newAddr.reference} onChange={e => setNewAddr({...newAddr,reference:e.target.value})} placeholder="Referência / ponto próximo" className="w-full p-2 border rounded-lg text-xs mb-2" />
+                <button type="button" onClick={getCurrentLocationForForm} className="w-full py-2 rounded-lg bg-white border border-green-200 text-green-700 text-xs font-bold flex items-center justify-center gap-1"><Crosshair size={13} /> Usar localização actual (opcional)</button>
+                <button onClick={async () => { const ok = await handleAddAddress(newAddr); if (ok) { setNewAddr({label:'Casa',addressLine1:'',addressLine2:'',neighborhood:'',municipality:'',city:'',province:'',reference:'',latitude:null,longitude:null,location:null}); setNewAddrMode(false); } }} className="w-full mt-3 bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold">Guardar morada</button>
               </div>
             )}
-          </div>
-
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 space-y-1">
-            <p className="font-bold">📋 A minha localização afecta:</p>
-            <p>• <strong>Comerciante</strong> — ordenados pela distância da sua localização</p>
-            <p>• <strong>Taxa de entrega</strong> — calculada entre o estabelecimento e a sua localização</p>
-            <p>• <strong>Entrega de encomenda</strong> — usada como localização inicial do ponto de recolha</p>
           </div>
         </div>
 
