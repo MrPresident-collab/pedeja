@@ -35,7 +35,7 @@ test('distance calculation returns stable kilometer estimates', () => {
   assert.equal(getDistanceFromLatLonInKm(13.7563, 100.5018, 13.7367, 100.5231), 3.17);
 });
 
-test('isValidCoordinate validates bounds, lat/lng = 0, and default Bangkok fallback', () => {
+test('isValidCoordinate validates bounds, lat/lng = 0, and default Luanda fallback', () => {
   assert.equal(isValidCoordinate({ lat: 13.7367, lng: 100.5231 }), true);
   assert.equal(isValidCoordinate({ lat: 0, lng: 0 }), true); // 0 is a valid coordinate!
   assert.equal(isValidCoordinate({ lat: -90, lng: 180 }), true);
@@ -44,8 +44,8 @@ test('isValidCoordinate validates bounds, lat/lng = 0, and default Bangkok fallb
   assert.equal(isValidCoordinate(null), false);
   assert.equal(isValidCoordinate({ lat: 'abc', lng: 'def' }), false);
 
-  // Default Bangkok fallback location:
-  assert.equal(isDefaultFallbackLocation({ lat: 13.7563, lng: 100.5018 }), true);
-  assert.equal(isValidCoordinate({ lat: 13.7563, lng: 100.5018 }), false); // Rejected for order creation!
-  assert.equal(isValidCoordinate({ lat: 13.7563, lng: 100.5018 }, { allowDefaultFallback: true }), true);
+  // Default Luanda fallback location:
+  assert.equal(isDefaultFallbackLocation({ lat: -8.8383, lng: 13.2344 }), true);
+  assert.equal(isValidCoordinate({ lat: -8.8383, lng: 13.2344 }), false); // Rejected for order creation!
+  assert.equal(isValidCoordinate({ lat: -8.8383, lng: 13.2344 }, { allowDefaultFallback: true }), true);
 });
