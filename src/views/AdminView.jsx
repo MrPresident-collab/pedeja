@@ -227,14 +227,14 @@ export default function AdminView() {
   }, [adminTab, txRefreshKey]);  
 
   const handleClearTransactions = async () => {
-    if (!window.confirm('ล้างHistóricoTransacçõesทั้งระบบConfirma?')) return;
+    if (!window.confirm('Limpar todo o histórico de transacções?')) return;
     const { data: wallets } = await supabase.from('wallets').select('user_id');
     if (wallets?.length) {
       await Promise.all(wallets.map(w => supabase.rpc('clear_wallet_history', { p_user_id: w.user_id })));
     }
     setTxList([]);
     setTxRefreshKey(k => k + 1);
-    notifySystem('Limpar dados', 'ล้างGuardarTransacçõesเรียบร้อยแล้ว', 'success');
+    notifySystem('Limpar dados', 'Histórico de transacções limpo', 'success');
   };
 
   // ── Purge state ───────────────────────────────────────────────────────────
@@ -277,11 +277,11 @@ export default function AdminView() {
         tasks.push(purge('wallet_history'));
       }
       if (opts.users) {
-        throw new Error('การลบบัญชีต้องทำผ่าน Supabase Auth Admin เพื่อป้องกันบัญชีค้าง');
+        throw new Error('A eliminação de contas deve ser feita pelo Supabase Auth Admin para evitar contas órfãs');
       }
       await Promise.all(tasks);
       setPurgeResult({ ok: true, summary: 'Concluído' });
-      notifySystem('Limpar dados ✅', 'ลบข้อมูลที่เลือกSairจากระบบเรียบร้อยแล้ว', 'success');
+      notifySystem('Limpar dados ✅', 'Os dados seleccionados foram removidos', 'success');
     } catch (err) {
       setPurgeResult({ ok: false, summary: `Erro: ${err?.message || 'unknown'}` });
     } finally {
@@ -313,7 +313,7 @@ export default function AdminView() {
 
     // Validation
     if ([appRadius, restaurantRadius, riderRadius, baseFee, perKmFee, rideBaseFee, ridePerKmFee].some(v => isNaN(v) || v < 0)) {
-      return notifySystem('Erro', 'รัศมีให้Serviçoและค่าธรรมเนียมต้องเป็นตัวเลขที่ไม่ติดลบ', 'error');
+      return notifySystem('Erro', 'A área de serviço e as taxas devem ser números não negativos', 'error');
     }
     if ([gpFood, gpDelivery, gpRide, gpService].some(v => isNaN(v) || v < 0 || v > 100)) {
       return notifySystem('Erro', 'A taxa GP deve estar entre 0% e 100%', 'error');
@@ -341,14 +341,14 @@ export default function AdminView() {
       .single();
     if (error) {
       console.error('Failed to save app_config to Supabase:', error);
-      return notifySystem('Erro', `Guardarข้อมูลไม่Concluído: ${error.message}`, 'error');
+      return notifySystem('Erro', `Não foi possível guardar os dados: ${error.message}`, 'error');
     }
 
     const persistedConfig = savedRow?.data || cleanedConfig;
     setAppConfig(persistedConfig);
     setEditConfig(persistedConfig);
     setIsConfigDirty(false);
-    notifySystem('Concluído', 'GuardarการDefiniçõesระบบเรียบร้อยแล้ว', 'success');
+    notifySystem('Concluído', 'Definições do sistema guardadas', 'success');
   };
 
   // ── Derived metrics ──────────────────────────────────────────────────────
@@ -415,11 +415,11 @@ export default function AdminView() {
 
   // ── Tab config ───────────────────────────────────────────────────────────
   const TABS = [
-    { id: 'dashboard',   label: 'ภาพรวม',     icon: BarChart2 },
-    { id: 'analytics',   label: 'วิเคราะห์',  icon: TrendingUp },
+    { id: 'dashboard',   label: 'Visão geral',     icon: BarChart2 },
+    { id: 'analytics',   label: 'Análises',  icon: TrendingUp },
     { id: 'approvals',   label: 'Aprovações',    icon: Bell,    badge: pendingRequests.length },
     { id: 'users',       label: 'Utilizadores',     icon: Users },
-    { id: 'management',  label: 'Acçõesระบบ', icon: Sliders },
+    { id: 'management',  label: 'Acções do sistema', icon: Sliders },
     { id: 'promotions',  label: 'Promoções',  icon: Tag,     badge: promoCodes.filter(p => p.active).length },
     { id: 'ledger',      label: 'Transacções',    icon: List },
     { id: 'messages',    label: 'Mensagens',    icon: MessageSquare, badge: (unreadSupportCount || totalChatCount) || null },
@@ -438,22 +438,22 @@ export default function AdminView() {
   };
 
   const handleClearUserWalletHistory = async (userId, userName) => {
-    if (!window.confirm(`ล้างHistóricoCarteiraของ ${userName} Confirma?\n(Os registos serão ocultados — o saldo permanece igual)`)) return;
+    if (!window.confirm(`Limpar histórico da carteira de ${userName} Confirma?\n(Os registos serão ocultados — o saldo permanece igual)`)) return;
     await supabase.rpc('clear_wallet_history', { p_user_id: userId });
     setUserWalletEntries(prev => ({ ...prev, [userId]: [] }));
-    notifySystem('Admin', `ล้างHistóricoCarteiraของ ${userName} แล้ว`, 'success');
+    notifySystem('Admin', `Limpar histórico da carteira de ${userName} concluído`, 'success');
   };
 
   const handleResetPassword = async () => {
     if (!resetPwdUserId) return;
     const user = allUsers.find(u => u.id === resetPwdUserId);
-    if (!user?.email) return notifySystem('Erro', 'ไม่พบอีเมลของUtilizadores', 'error');
+    if (!user?.email) return notifySystem('Erro', 'E-mail do utilizador não encontrado', 'error');
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${import.meta.env.VITE_APP_URL || window.location.origin}/reset-password`,
     });
     if (error) return notifySystem('Erro', error.message, 'error');
     setResetPwdUserId(null);
-    notifySystem('Concluído', `ส่งอีเมลรีเซ็ตรหัสผ่านไปยัง ${user.email} แล้ว`, 'success');
+    notifySystem('Concluído', `Enviar e-mail de reposição de palavra-passe para ${user.email} concluído`, 'success');
   };
 
   const handleAdjust = async () => {
@@ -528,9 +528,9 @@ export default function AdminView() {
             const ridersActive   = riders.filter(r => r.status === 'active');
             const pendingCount   = pendingRequests.length;
             const alerts         = [];
-            if (pendingMerchant.length > 0) alerts.push(`⚠️ ${pendingMerchant.length} ออเดอร์รอComercianteค้าตอบรับ`);
-            if (waitingDispatch.length > 0) alerts.push(`⚠️ ${waitingDispatch.length} ออเดอร์รอEstafeta (ยังไม่มีการจ่ายงาน)`);
-            if (pendingCount > 0) alerts.push(`🔔 ${pendingCount} คำขอรอAprovações`);
+            if (pendingMerchant.length > 0) alerts.push(`⚠️ ${pendingMerchant.length} pedidos a aguardar confirmação do comerciante`);
+            if (waitingDispatch.length > 0) alerts.push(`⚠️ ${waitingDispatch.length} pedidos a aguardar distribuição ao estafeta`);
+            if (pendingCount > 0) alerts.push(`🔔 ${pendingCount} pedidos a aguardar aprovação`);
             return (
               <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border-l-4 border-green-500">
                 <div className="flex items-center gap-2 mb-3">
@@ -552,7 +552,7 @@ export default function AdminView() {
                   </div>
                   <div className={`rounded-lg p-3 text-center ${pendingCount > 0 ? 'bg-yellow-50' : 'bg-gray-50'}`}>
                     <div className={`text-xl font-black ${pendingCount > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>{pendingCount}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">รอAprovações</div>
+                    <div className="text-xs text-gray-500 mt-0.5">A aguardar aprovação</div>
                   </div>
                 </div>
                 {alerts.length > 0 && (
@@ -572,16 +572,16 @@ export default function AdminView() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard label="GP líquido (concluído)" value={`Kz ${totalGP.toLocaleString()}`}       color="green"  icon={DollarSign} />
             <StatCard label="GMV (pedidos concluídos)"  value={`Kz ${gmv.toLocaleString()}`}           color="blue"   icon={TrendingUp} />
-            <StatCard label="ออเดอร์ทั้งEsgotado"       value={totalOrdersCount}                     color="orange" icon={ShoppingBag} />
+            <StatCard label="Total de pedidos"       value={totalOrdersCount}                     color="orange" icon={ShoppingBag} />
             <StatCard label="Estafetas activos"        value={riders.filter(r => r.status === 'active').length} color="purple" icon={Bike} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="ออเดอร์วันนี้ (ทั้งEsgotado)" value={todayOrders.length}               color="orange" icon={ShoppingBag} />
+            <StatCard label="Pedidos de hoje (total)" value={todayOrders.length}               color="orange" icon={ShoppingBag} />
             <StatCard label="GMV hoje (concluído)"    value={`Kz ${todayGMV.toLocaleString()}`}  color="blue"   icon={DollarSign} />
             <StatCard label="GP hoje (concluído)"     value={`Kz ${todayGP.toLocaleString()}`}   color="green"  icon={TrendingUp} />
-            <StatCard label="Comercianteค้าทั้งEsgotado"         value={restaurants.length}               color="purple" icon={ChefHat} />
+            <StatCard label="Total de comerciantes"         value={restaurants.length}               color="purple" icon={ChefHat} />
           </div>
-          {/* ── Carteiraเงิน Admin (GP สะสม) ───────────────────────────────── */}
+          {/* ── Carteira Admin (GP สะสม) ───────────────────────────────── */}
           {(() => {
             const adminBal = userWallet ?? 0;
             const rawHistory = walletHistory?.length ? walletHistory : [];
@@ -594,18 +594,18 @@ export default function AdminView() {
                 <div className="p-4 border-b bg-green-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wallet size={18} className="text-green-600" />
-                    <h2 className="font-bold text-gray-700">Carteiraเงิน Admin — Platform GP</h2>
+                    <h2 className="font-bold text-gray-700">Carteira Admin — Platform GP</h2>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-green-600">Kz {adminBal.toLocaleString()}</div>
-                    <div className="text-xs text-gray-400">{displayHistory.length} รายการ</div>
+                    <div className="text-xs text-gray-400">{displayHistory.length} registos</div>
                   </div>
                 </div>
                 {displayHistory.length === 0 ? (
                   <div className="p-8 text-center text-gray-400">
                     <Wallet size={36} className="mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">ยังไม่มีHistóricoTransacções</p>
-                    <p className="text-xs mt-1">GP จะถูก Credit อัตโนมัติเมื่อออเดอร์ส่งConcluído</p>
+                    <p className="text-sm">Ainda não existem transacções</p>
+                    <p className="text-xs mt-1">O GP será creditado automaticamente quando o pedido for concluído</p>
                   </div>
                 ) : (
                   <div className="overflow-y-auto max-h-60">
@@ -614,7 +614,7 @@ export default function AdminView() {
                         <tr>
                           <th className="p-3 text-left">Data / item</th>
                           <th className="p-3 text-right">จำนวน</th>
-                          <th className="p-3 text-right">คงเหลือ (ประมาณ)</th>
+                          <th className="p-3 text-right">Saldo (aprox.)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -652,7 +652,7 @@ export default function AdminView() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
                   <tr>
-                    <th className="p-4">ID / เวลา</th>
+                    <th className="p-4">ID / hora</th>
                     <th className="p-4">Cliente</th>
                     <th className="p-4">Comerciante/serviço</th>
                     <th className="p-4">Estafeta</th>
@@ -732,7 +732,7 @@ export default function AdminView() {
         <div className="space-y-6">
           {/* Status breakdown */}
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><BarChart2 size={20} className="text-green-600" /> Estadoออเดอร์ทั้งEsgotado</h2>
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><BarChart2 size={20} className="text-green-600" /> EstadoTotal de pedidos</h2>
             {Object.entries(STATUS_LABELS).map(([status, meta]) => (
               <SimpleBar
                 key={status}
@@ -748,15 +748,15 @@ export default function AdminView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-violet-600"><ChefHat size={20} /> Principais comerciantes (pedidos)</h2>
-              {topRestaurants.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
+              {topRestaurants.length === 0 ? <p className="text-gray-400 text-sm">Ainda não existem dados</p> : (
                 topRestaurants.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRestCnt} color="#f97316" />
                 ))
               )}
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Top Estafeta (งานส่งConcluído)</h2>
-              {topRiders.length === 0 ? <p className="text-gray-400 text-sm">ยังไม่มีข้อมูล</p> : (
+              <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-blue-600"><Bike size={20} /> Principais estafetas (entregas concluídas)</h2>
+              {topRiders.length === 0 ? <p className="text-gray-400 text-sm">Ainda não existem dados</p> : (
                 topRiders.map(r => (
                   <SimpleBar key={r.id} label={r.name} value={r.cnt} max={maxRiderCnt} color="#3b82f6" />
                 ))
@@ -769,7 +769,7 @@ export default function AdminView() {
             <h2 className="font-bold text-lg mb-4 flex items-center gap-2 text-gray-700"><DollarSign size={20} className="text-green-600" /> Receita por tipo</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(() => {
-                // นับเฉพาะ orders ที่จบแล้ว (ไม่นับCancelar/กำลังดำเนินการ)
+                // นับเฉพาะ orders ที่จบconcluído (ไม่นับCancelar/กำลังดำเนินการ)
                 const doneStatus = ['completed', 'delivered'];
                 const food    = orders.filter(o => o.type === 'food'    && doneStatus.includes(o.status));
                 const parcel  = orders.filter(o => o.type === 'parcel'  && doneStatus.includes(o.status));
@@ -796,21 +796,21 @@ export default function AdminView() {
                 const serviceGP = service.reduce((s, o) => s + getAdminGP(o), 0);
                 return (
                   <>
-                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP จากcomida</p><p className="text-xl font-bold text-orange-700">Kz {foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} ออเดอร์</p></div>
-                    <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP de encomendas</p><p className="text-xl font-bold text-blue-700">Kz {parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} ออเดอร์</p></div>
-                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP จากViagem</p><p className="text-xl font-bold text-purple-700">Kz {rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} ออเดอร์</p></div>
-                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP จากServiço</p><p className="text-xl font-bold text-emerald-700">Kz {serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} ออเดอร์</p></div>
+                    <div className="bg-orange-50 p-4 rounded-xl text-center"><p className="text-xs text-violet-600 font-medium">GP de comida</p><p className="text-xl font-bold text-orange-700">Kz {foodGP.toLocaleString()}</p><p className="text-xs text-gray-400">{food.length} pedidos</p></div>
+                    <div className="bg-blue-50 p-4 rounded-xl text-center"><p className="text-xs text-blue-600 font-medium">GP de encomendas</p><p className="text-xl font-bold text-blue-700">Kz {parcelGP.toLocaleString()}</p><p className="text-xs text-gray-400">{parcel.length} pedidos</p></div>
+                    <div className="bg-purple-50 p-4 rounded-xl text-center"><p className="text-xs text-purple-600 font-medium">GP de viagens</p><p className="text-xl font-bold text-purple-700">Kz {rideGP.toLocaleString()}</p><p className="text-xs text-gray-400">{ride.length} pedidos</p></div>
+                    <div className="bg-emerald-50 p-4 rounded-xl text-center"><p className="text-xs text-emerald-600 font-medium">GP de serviços</p><p className="text-xl font-bold text-emerald-700">Kz {serviceGP.toLocaleString()}</p><p className="text-xs text-gray-400">{service.length} pedidos</p></div>
                   </>
                 );
               })()}
             </div>
           </div>
 
-          {/* ── Wallet ทั้งระบบ ──────────────────────────────────────────── */}
+          {/* ── Carteiras do sistema ──────────────────────────────────────────── */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b bg-purple-50 flex items-center justify-between">
               <h2 className="font-bold text-gray-700 flex items-center gap-2">
-                <Wallet size={18} className="text-purple-600" /> Wallet ทั้งระบบ
+                <Wallet size={18} className="text-purple-600" /> Carteiras do sistema
               </h2>
               <div className="flex items-center gap-3">
                 {walletRows.length > 0 && (
@@ -823,9 +823,9 @@ export default function AdminView() {
             </div>
 
             {walletOverviewLoading ? (
-              <div className="p-8 text-center text-gray-400 text-sm animate-pulse">กำลังโหลด wallet...</div>
+              <div className="p-8 text-center text-gray-400 text-sm animate-pulse">A carregar carteiras...</div>
             ) : walletRows.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-sm">ยังไม่มีข้อมูล wallet</div>
+              <div className="p-8 text-center text-gray-400 text-sm">Ainda não existem dados wallet</div>
             ) : (
               <div className="divide-y max-h-[480px] overflow-y-auto">
                 {walletRows.map(row => {
@@ -877,9 +877,9 @@ export default function AdminView() {
                       {isExpanded && (
                         <div className="bg-gray-50 border-t px-4 py-3 space-y-1.5 max-h-60 overflow-y-auto">
                           {userWalletLoading[row.uid] ? (
-                            <p className="text-xs text-gray-400 text-center py-2">กำลังโหลดHistórico…</p>
+                            <p className="text-xs text-gray-400 text-center py-2">A carregar histórico…</p>
                           ) : history.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-2">ไม่มีHistóricoTransacções</p>
+                            <p className="text-xs text-gray-400 text-center py-2">Sem histórico de transacções</p>
                           ) : (
                             history.slice(0, 50).map((e, i) => (
                               <div key={e.id || i} className="flex items-center justify-between text-xs">
@@ -908,7 +908,7 @@ export default function AdminView() {
             )}
           </div>
 
-          {/* ── GP เข้า Admin ────────────────────────────────────────────── */}
+          {/* ── GP para Admin ────────────────────────────────────────────── */}
           {(() => {
             const gpHistory = walletHistory.filter(e => (e.desc||'').toLowerCase().includes('gp'));
             const totalGP   = gpHistory.reduce((s,e) => s + (e.amount||0), 0);
@@ -917,7 +917,7 @@ export default function AdminView() {
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className="p-4 border-b bg-green-50 flex items-center justify-between">
                   <h2 className="font-bold text-gray-700 flex items-center gap-2">
-                    <TrendingUp size={18} className="text-green-600" /> GP เข้า Admin
+                    <TrendingUp size={18} className="text-green-600" /> GP para Admin
                   </h2>
                   <span className="text-lg font-bold text-green-600">+Kz {totalGP.toLocaleString('pt-AO',{minimumFractionDigits:2})}</span>
                 </div>
@@ -944,7 +944,7 @@ export default function AdminView() {
       {/* ── APPROVALS ─────────────────────────────────────────────────── */}
       {adminTab === 'approvals' && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b"><h2 className="font-bold text-xl flex items-center gap-2"><Bell className="text-green-600" /> รายการรอAprovações ({pendingRequests.length})</h2></div>
+          <div className="p-6 border-b"><h2 className="font-bold text-xl flex items-center gap-2"><Bell className="text-green-600" /> registosA aguardar aprovação ({pendingRequests.length})</h2></div>
           {pendingRequests.length === 0 ? (
             isDataLoading ? (
               <div className="divide-y">
@@ -965,7 +965,7 @@ export default function AdminView() {
                 ))}
               </div>
             ) : (
-              <div className="p-10 text-center text-gray-400"><Check size={40} className="mx-auto mb-2 text-green-400 opacity-40" />ไม่มีรายการรอAprovações</div>
+              <div className="p-10 text-center text-gray-400"><Check size={40} className="mx-auto mb-2 text-green-400 opacity-40" />ไม่มีregistosA aguardar aprovação</div>
             )
           ) : (
             <div className="divide-y">
@@ -979,11 +979,11 @@ export default function AdminView() {
                             ? 'bg-red-100 text-red-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>{
-                          req.type === 'cancel_order'   ? '🚫 ขอCancelarออเดอร์'  :
-                          req.type === 'topup'          ? '💰 เติมเงิน'          :
-                          req.type === 'withdraw'       ? '💸 ถอนเงิน'           :
-                          req.type === 'merchant_reg'   ? '🏪 สมัครComercianteค้า'      :
-                          req.type === 'rider_reg'      ? '🛵 สมัครEstafeta'      :
+                          req.type === 'cancel_order'   ? '🚫 ขอCancelarpedidos'  :
+                          req.type === 'topup'          ? '💰 Carregamento'          :
+                          req.type === 'withdraw'       ? '💸 Levantamento'           :
+                          req.type === 'merchant_reg'   ? '🏪 Registo de comerciante'      :
+                          req.type === 'rider_reg'      ? '🛵 Registo de estafeta'      :
                           req.type
                         }</span>
                         <span className="text-xs text-gray-400">{req.timestamp}</span>
@@ -992,22 +992,22 @@ export default function AdminView() {
                         {req.type === 'cancel_order'
                           ? `ขอCancelar #${req.data.orderId?.slice(-8)} — ${req.data.orderType === 'parcel' ? '📦 Entrega de encomenda' : `🍜 ${req.data.restaurantName}`}`
                           : req.type === 'withdraw'
-                            ? `แจ้งถอนเงิน: Kz ${Number(req.data.amount).toLocaleString()}`
+                            ? `แจ้งLevantamento: Kz ${Number(req.data.amount).toLocaleString()}`
                             : (req.data.shopName ? `Comerciante: ${req.data.shopName}` : req.data.realName ? `Candidato: ${req.data.realName}` : `Kz ${req.data.amount}`)}
                       </div>
                       {/* cancel_order details */}
                       {req.type === 'cancel_order' && (
                         <div className="mt-2 bg-red-50 border border-red-100 rounded-lg p-3 space-y-1.5">
                           <p className="text-sm text-gray-700">
-                            <span className="text-gray-400 text-xs">เหตุผล: </span>
+                            <span className="text-gray-400 text-xs">Motivo: </span>
                             <strong className="text-red-700">{req.data.reason}</strong>
                           </p>
                           <p className="text-sm text-gray-700">
-                            <span className="text-gray-400 text-xs">Estadoออเดอร์ตอนขอ: </span>
+                            <span className="text-gray-400 text-xs">Estadopedidosตอนขอ: </span>
                             <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{req.data.prevStatus}</span>
                           </p>
                           <p className="text-sm text-gray-700">
-                            <span className="text-gray-400 text-xs">ยอดเงิน: </span>
+                            <span className="text-gray-400 text-xs">Valor: </span>
                             <strong>Kz {(req.data.grandTotal || 0).toLocaleString()}</strong>
                             <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-semibold bg-gray-100 text-gray-600">
                               {req.data.paymentMethod === 'wallet' ? '👛 Wallet' : '💵 Numerário'}
@@ -1027,16 +1027,16 @@ export default function AdminView() {
                       )}
                       {req.type === 'withdraw' && (
                         <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 mt-1">
-                          <p>ธนาคาร: <strong>{req.data.bank || '—'}</strong></p>
-                          <p>เลขบัญชี: <strong>{req.data.accountNumber || req.data.account || '—'}</strong></p>
-                          <p>ชื่อบัญชี: <strong>{req.data.accountName || req.data.name || '—'}</strong></p>
+                          <p>Banco: <strong>{req.data.bank || '—'}</strong></p>
+                          <p>Número da conta: <strong>{req.data.accountNumber || req.data.account || '—'}</strong></p>
+                          <p>Titular da conta: <strong>{req.data.accountName || req.data.name || '—'}</strong></p>
                         </div>
                       )}
                       {req.type === 'topup' && (req.data.bank || req.data.accountName || req.data.accountNumber) && (
                         <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded border border-blue-100 mt-1">
-                          {req.data.bank && <p>โอนจากธนาคาร: <strong>{req.data.bank}</strong></p>}
-                          {(req.data.accountName || req.data.name) && <p>ชื่อบัญชี: <strong>{req.data.accountName || req.data.name}</strong></p>}
-                          {(req.data.accountNumber || req.data.account) && <p>เลขบัญชี: <strong>{req.data.accountNumber || req.data.account}</strong></p>}
+                          {req.data.bank && <p>โอนจากBanco: <strong>{req.data.bank}</strong></p>}
+                          {(req.data.accountName || req.data.name) && <p>Titular da conta: <strong>{req.data.accountName || req.data.name}</strong></p>}
+                          {(req.data.accountNumber || req.data.account) && <p>Número da conta: <strong>{req.data.accountNumber || req.data.account}</strong></p>}
                         </div>
                       )}
                       {req.type === 'topup' && req.data.slipImage && (
@@ -1059,14 +1059,14 @@ export default function AdminView() {
                             req.data.idCardImage.startsWith('data:') || req.data.idCardImage.startsWith('http') ? (
                               <button onClick={() => openImagePreview(req.data.idCardImage)} className="text-blue-500 text-xs underline flex items-center gap-1 mt-1"><FileBadge size={12} /> ดูบัตรประชาชน</button>
                             ) : (
-                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบบัตรประชาชนแล้ว (ไฟล์ขนาดใหญ่)</span>
+                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบบัตรประชาชนconcluído (ไฟล์ขนาดใหญ่)</span>
                             )
                           )}
                           {req.data.shopImage && (
                             req.data.shopImage.startsWith('data:') || req.data.shopImage.startsWith('http') ? (
                               <button onClick={() => openImagePreview(req.data.shopImage)} className="text-blue-500 text-xs underline flex items-center gap-1 mt-1"><ImageIcon size={12} /> ดูรูปหน้าComerciante</button>
                             ) : (
-                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบรูปหน้าComercianteแล้ว (ไฟล์ขนาดใหญ่)</span>
+                              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded block mt-1">✓ แนบรูปหน้าComercianteconcluído (ไฟล์ขนาดใหญ่)</span>
                             )
                           )}
                         </div>
@@ -1264,7 +1264,7 @@ export default function AdminView() {
                           {userWalletLoading[user.id] ? (
                             <p className="text-xs text-gray-400 text-center py-3">กำลังโหลด...</p>
                           ) : (userWalletEntries[user.id] || []).length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-2">ยังไม่มีHistóricoTransacções</p>
+                            <p className="text-xs text-gray-400 text-center py-2">Ainda não existem transacções</p>
                           ) : (
                             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                               {[...(userWalletEntries[user.id] || [])].sort((a, b) => {
@@ -1331,7 +1331,7 @@ export default function AdminView() {
                           <div className="font-bold text-sm truncate">{rest.name}</div>
                           <div className="text-xs text-gray-500">{rest.category} · {rest.phone}</div>
                           <div className={`text-xs font-bold mt-0.5 ${rest.status === 'open' ? 'text-green-600' : rest.status === 'banned' ? 'text-red-600' : 'text-gray-500'}`}>
-                            {rest.status === 'open' ? '● Aberto' : rest.status === 'banned' ? '● แบนแล้ว' : '● Fechado'}
+                            {rest.status === 'open' ? '● Aberto' : rest.status === 'banned' ? '● แบนconcluído' : '● Fechado'}
                           </div>
                         </div>
                       </div>
@@ -1381,7 +1381,7 @@ export default function AdminView() {
             <h2 className="font-bold text-xl mb-4 flex items-center gap-2 text-purple-600"><PlusCircle size={20} /> สร้างโค้ดส่วนลดใหม่</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><label htmlFor="admin-promo-code" className="block text-sm font-medium mb-1">โค้ดส่วนลด <span className="text-red-500">*</span></label><input id="admin-promo-code" name="code" value={promoForm.code} onChange={e => setPromoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="เช่น BOOM50" className="w-full border p-2 rounded-lg font-mono uppercase" maxLength={20} autoComplete="off" /></div>
-              <div><label htmlFor="admin-promo-desc" className="block text-sm font-medium mb-1">คำอธิบาย</label><input id="admin-promo-desc" name="description" value={promoForm.description} onChange={e => setPromoForm(f => ({ ...f, description: e.target.value }))} placeholder="เช่น ส่วนลด 10% สำหรับออเดอร์แรก" className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
+              <div><label htmlFor="admin-promo-desc" className="block text-sm font-medium mb-1">คำอธิบาย</label><input id="admin-promo-desc" name="description" value={promoForm.description} onChange={e => setPromoForm(f => ({ ...f, description: e.target.value }))} placeholder="เช่น ส่วนลด 10% สำหรับpedidosแรก" className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
               <div>
                 <label htmlFor="admin-promo-type" className="block text-sm font-medium mb-1">ประเภทส่วนลด</label>
                 <select id="admin-promo-type" name="type" value={promoForm.type} onChange={e => setPromoForm(f => ({ ...f, type: e.target.value }))} className="w-full border p-2 rounded-lg">
@@ -1421,7 +1421,7 @@ export default function AdminView() {
                         <span>ส่วนลด: <strong>{promo.type === 'percent' ? `${promo.value}%` : `Kz ${promo.value}`}</strong></span>
                         {promo.minOrder > 0 && <span>ขั้นต่ำ: <strong>Kz {promo.minOrder}</strong></span>}
                         {promo.type === 'percent' && promo.maxDiscount < 9999 && <span>สูงสุด: <strong>Kz {promo.maxDiscount}</strong></span>}
-                        <span>ใช้แล้ว: <strong>{promo.usedCount || 0}/{promo.maxUses}</strong></span>
+                        <span>ใช้concluído: <strong>{promo.usedCount || 0}/{promo.maxUses}</strong></span>
                         {promo.expiry && <span>Esgotadoอายุ: <strong>{promo.expiry}</strong></span>}
                       </div>
                     </div>
@@ -1474,10 +1474,10 @@ export default function AdminView() {
                     ? orders.find(o => o.id === identifier)
                     : null;
                   const displayName  = relatedOrder
-                    ? `ออเดอร์ #${identifier.slice(-6)} (${relatedOrder.customerName || 'Cliente'})`
+                    ? `pedidos #${identifier.slice(-6)} (${relatedOrder.customerName || 'Cliente'})`
                     : `Cliente: ${identifier.slice(0, 8)}...`;
                   const chatTitle    = relatedOrder
-                    ? `Support — ออเดอร์ #${identifier.slice(-6)}`
+                    ? `Support — pedidos #${identifier.slice(-6)}`
                     : `Cliente ${identifier.slice(0, 8)}...`;
 
                   const msgs    = chats[chatId] || [];
@@ -1780,15 +1780,15 @@ export default function AdminView() {
             <h3 className="font-bold text-red-600 border-b border-red-100 pb-2 mb-4 flex items-center gap-2">
               <DatabaseZap size={16} /> Limpar dadosระบบ (ถาวร)
             </h3>
-            <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบSairจากระบบอย่างถาวร ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้</p>
+            <p className="text-xs text-gray-500 mb-4">เลือกประเภทข้อมูลที่ต้องการลบSairจากระบบอย่างถาวร ข้อมูลที่ลบconcluídoไม่สามารถกู้คืนได้</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               {[
-                { key: 'orders',          label: 'ออเดอร์ทั้งEsgotado',                sub: 'Históricoออเดอร์ทุกรายการ',                      color: 'red' },
+                { key: 'orders',          label: 'Total de pedidos',                sub: 'Históricopedidosทุกregistos',                      color: 'red' },
                 { key: 'walletEntries',   label: 'HistóricoTransacções Wallet',          sub: 'ลบHistóricoเงินเข้า-Sair (ไม่กระทบยอดคงเหลือ)',  color: 'yellow' },
                 { key: 'wallets',         label: 'ยอดเงิน + Históricoทุก Wallet',   sub: 'ล้างCarteiraทั้งระบบ รวม UID เก่าทั้งEsgotado',     color: 'rose' },
-                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'เติมเงิน / ถอน / สมัครComercianteค้า / Estafeta',     color: 'purple' },
-                { key: 'restaurants',     label: 'Comercianteค้าทั้งEsgotado',                sub: 'ลบComercianteค้าและMenucomidaทั้งEsgotado',                color: 'orange' },
+                { key: 'pendingRequests', label: 'คำขอรอดำเนินการ',                sub: 'Carregamento / ถอน / Registo de comerciante / Estafeta',     color: 'purple' },
+                { key: 'restaurants',     label: 'Total de comerciantes',                sub: 'ลบComercianteค้าและMenucomidaทั้งEsgotado',                color: 'orange' },
                 { key: 'riders',          label: 'Estafetaทั้งEsgotado',                sub: 'ลบข้อมูลEstafetaทุกคน',                        color: 'blue' },
                 { key: 'users',           label: 'บัญชีUtilizadoresทั้งEsgotado',            sub: 'ลบ users + roles (แอดมินยังอยู่ในระบบ)',       color: 'gray' },
               ].map(({ key, label, sub, color }) => {
@@ -1829,7 +1829,7 @@ export default function AdminView() {
               <button
                 onClick={() => {
                   const anySelected = Object.values(purgeOptions).some(Boolean);
-                  if (!anySelected) return notifySystem('Erro', 'กรุณาเลือกประเภทข้อมูลอย่างน้อย 1 รายการ', 'error');
+                  if (!anySelected) return notifySystem('Erro', 'กรุณาเลือกประเภทข้อมูลอย่างน้อย 1 registos', 'error');
                   setShowPurgeModal(true);
                 }}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm shadow hover:bg-red-700 transition-colors"
@@ -1866,11 +1866,11 @@ export default function AdminView() {
             </div>
 
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 space-y-1.5">
-              {purgeOptions.orders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ออเดอร์ทั้งEsgotado</p>}
+              {purgeOptions.orders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Total de pedidos</p>}
               {purgeOptions.walletEntries   && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> HistóricoTransacções Wallet</p>}
               {purgeOptions.wallets         && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> ยอดเงิน + Históricoทุก Wallet</p>}
               {purgeOptions.pendingRequests && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> คำขอรอดำเนินการทั้งEsgotado</p>}
-              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Comercianteค้าทั้งEsgotado</p>}
+              {purgeOptions.restaurants     && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Total de comerciantes</p>}
               {purgeOptions.riders          && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> Estafetaทั้งEsgotado</p>}
               {purgeOptions.users           && <p className="text-sm text-red-700 flex items-center gap-2"><Trash2 size={13} /> บัญชีUtilizadoresทั้งEsgotado</p>}
             </div>
@@ -1910,7 +1910,7 @@ export default function AdminView() {
               </div>
             </div>
             <div className="bg-gray-900 rounded-xl p-3 mb-5 space-y-1.5">
-              {['ออเดอร์ทั้งEsgotado','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','Comercianteค้าทั้งEsgotado','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
+              {['Total de pedidos','ยอดเงิน + Históricoทุก Wallet','คำขอรอดำเนินการ','Total de comerciantes','Estafetaทั้งEsgotado','บัญชีUtilizadoresทั้งEsgotado'].map(t => (
                 <p key={t} className="text-sm text-red-300 flex items-center gap-2"><Trash2 size={13} /> {t}</p>
               ))}
             </div>
@@ -1928,8 +1928,8 @@ export default function AdminView() {
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการCancelarออเดอร์</h3>
-            <p className="text-gray-600 mb-2 text-sm">กรุณาระบุเหตุผล:</p>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-600"><Ban size={20} /> ยืนยันการCancelarpedidos</h3>
+            <p className="text-gray-600 mb-2 text-sm">กรุณาระบุMotivo:</p>
             <label htmlFor="admin-cancel-reason-textarea" className="sr-only">เหตุผลการCancelar</label>
             <textarea id="admin-cancel-reason-textarea" name="cancelReason" value={cancelReasonInput} onChange={e => setCancelReasonInput(e.target.value)} placeholder="เช่น ติดต่อClienteไม่ได้, Comercianteปิด..." className="w-full border p-2 rounded-lg mb-4 h-24 resize-none" autoComplete="off" />
             <div className="flex gap-2">
@@ -1964,8 +1964,8 @@ export default function AdminView() {
             rider_income:      { label: 'Taxa de entrega',      cls: 'bg-yellow-100 text-yellow-700' },
             merchant_income:   { label: 'รายได้Comerciante',  cls: 'bg-violet-100 text-orange-700' },
             admin_gp:          { label: 'GP',           cls: 'bg-purple-100 text-purple-700' },
-            topup_approved:    { label: 'เติมเงิน',    cls: 'bg-emerald-100 text-emerald-700' },
-            withdraw_approved: { label: 'ถอนเงิน',     cls: 'bg-rose-100 text-rose-700' },
+            topup_approved:    { label: 'Carregamento',    cls: 'bg-emerald-100 text-emerald-700' },
+            withdraw_approved: { label: 'Levantamento',     cls: 'bg-rose-100 text-rose-700' },
             wallet_refund:     { label: 'คืนเงิน',     cls: 'bg-teal-100 text-teal-700' },
           };
           return map[type] || { label: type || '?', cls: 'bg-gray-100 text-gray-600' };
@@ -2003,20 +2003,20 @@ export default function AdminView() {
                   <List size={18} className="text-green-600" /> Transacçõesทั้งระบบ
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {txLoading ? 'กำลังโหลด...' : `${filtered.length} รายการ`}
+                  {txLoading ? 'กำลังโหลด...' : `${filtered.length} registos`}
                 </p>
               </div>
-              <label htmlFor="admin-search-ledger-input" className="sr-only">ค้นหาชื่อ / รายการ / ออเดอร์</label>
+              <label htmlFor="admin-search-ledger-input" className="sr-only">ค้นหาชื่อ / registos / pedidos</label>
               <input
                 id="admin-search-ledger-input"
                 name="searchLedger"
                 type="search"
-                placeholder="ค้นหาชื่อ / รายการ / ออเดอร์..."
+                placeholder="ค้นหาชื่อ / registos / pedidos..."
                 value={searchLedger}
                 onChange={e => setSearchLedger(e.target.value)}
                 className="border rounded-xl px-3 py-2 text-sm w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-green-400"
                 autoComplete="off"
-                aria-label="ค้นหาชื่อ / รายการ / ออเดอร์"
+                aria-label="ค้นหาชื่อ / registos / pedidos"
               />
               <button
                 onClick={handleClearTransactions}
@@ -2050,8 +2050,8 @@ export default function AdminView() {
             ) : filtered.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center text-gray-400 shadow-sm">
                 <Wallet size={40} className="mx-auto mb-3 opacity-20" />
-                <p className="font-semibold">ยังไม่มีข้อมูลTransacções</p>
-                <p className="text-xs mt-1">ข้อมูลจะแสดงเมื่อมีการสั่งซื้อ / เติมเงิน / ถอนเงิน</p>
+                <p className="font-semibold">Ainda não existem dadosTransacções</p>
+                <p className="text-xs mt-1">ข้อมูลจะแสดงเมื่อมีการสั่งซื้อ / Carregamento / Levantamento</p>
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -2062,7 +2062,7 @@ export default function AdminView() {
                         <th className="p-3 text-left">เวลา</th>
                         <th className="p-3 text-left">ประเภท</th>
                         <th className="p-3 text-left">Utilizadores</th>
-                        <th className="p-3 text-left">รายการ</th>
+                        <th className="p-3 text-left">registos</th>
                         <th className="p-3 text-right">จำนวน</th>
                       </tr>
                     </thead>
@@ -2095,7 +2095,7 @@ export default function AdminView() {
                     </tbody>
                   </table>
                   {filtered.length > 300 && (
-                    <p className="text-center text-xs text-gray-400 py-3">แสดง 300 รายการแรก — ใช้ช่องค้นหาเพื่อกรอง</p>
+                    <p className="text-center text-xs text-gray-400 py-3">แสดง 300 registosแรก — ใช้ช่องค้นหาเพื่อกรอง</p>
                   )}
                 </div>
               </div>
