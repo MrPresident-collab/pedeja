@@ -445,12 +445,25 @@ export default function AuthView() {
     avatarFile: null,
   });
 
+  const [vehicle, setVehicle] = useState({
+    vehicleType: 'MOTORBIKE',
+    registrationNumber: '',
+    make: '',
+    model: '',
+    color: '',
+    documentFile: null,
+  });
+
   const updateIdentityProof = (field, value) => {
     setIdentityProof((current) => ({ ...current, [field]: value }));
   };
 
   const updateProfile = (field, value) => {
     setProfile((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateVehicle = (field, value) => {
+    setVehicle((current) => ({ ...current, [field]: value }));
   };
 
   useEffect(() => {
@@ -821,6 +834,197 @@ export default function AuthView() {
     </section>
   );
 
+  const saveVehicle = async () => {
+    if (!vehicle.vehicleType || !vehicle.registrationNumber.trim() || !vehicle.color.trim() || !vehicle.documentFile) {
+      notifySystem('Dados em falta', 'Preenche o tipo, matrícula, cor e documento do veículo.', 'error');
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowed.includes(vehicle.documentFile.type) || vehicle.documentFile.size > 10 * 1024 * 1024) {
+      notifySystem('Documento inválido', 'Usa PDF, JPG, PNG ou WEBP até 10 MB.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error('Sessão não encontrada.');
+
+      const safeName = vehicle.documentFile.name.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
+      const path = `${userId}/vehicle-${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('rider-vehicle-documents')
+        .upload(path, vehicle.documentFile, {
+          upsert: true,
+          contentType: vehicle.documentFile.type,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error } = await supabase.rpc('rider_onboarding_save_vehicle', {
+        p_vehicle_type: vehicle.vehicleType,
+        p_registration_number: vehicle.registrationNumber.trim(),
+        p_make: vehicle.make.trim() || null,
+        p_model: vehicle.model.trim() || null,
+        p_color: vehicle.color.trim(),
+        p_document_storage_path: path,
+        p_document_mime_type: vehicle.documentFile.type,
+        p_document_file_size_bytes: vehicle.documentFile.size,
+      });
+
+      if (error) throw error;
+
+      notifySystem('Veículo registado', 'Os dados do veículo foram recebidos para análise.', 'success');
+      setStage('onboarding-vehicle-saved');
+    } catch (error) {
+      notifySystem('Não foi possível guardar', error.message || 'Tenta novamente.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderVehicle = () => (
+    <section className="flex flex-1 flex-col py-8">
+      <button
+        type="button"
+        onClick={() => setStage('onboarding-profile-saved')}
+        className="mb-8 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+      >
+        <ArrowLeft size={17} />
+        Voltar
+      </button>
+
+      <div className="mb-7">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 04</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">O teu veículo</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Indica o veículo que vais usar para realizar entregas. Estes dados serão analisados antes da aprovação.
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        <div>
+          <label htmlFor="vehicle-type" className="mb-2 block text-sm font-bold">Tipo de veículo</label>
+          <select
+            id="vehicle-type"
+            value={vehicle.vehicleType}
+            onChange={(event) => updateVehicle('vehicleType', event.target.value)}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-violet-950"
+          >
+            <option value="MOTORBIKE">Mota</option>
+            <option value="BICYCLE">Bicicleta</option>
+            <option value="CAR">Carro</option>
+            <option value="VAN">Carrinha</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="vehicle-registration" className="mb-2 block text-sm font-bold">Matrícula</label>
+          <input
+            id="vehicle-registration"
+            type="text"
+            value={vehicle.registrationNumber}
+            onChange={(event) => updateVehicle('registrationNumber', event.target.value.toUpperCase())}
+            placeholder="Ex.: LD-12-34-AB"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold uppercase outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-violet-950"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="vehicle-make" className="mb-2 block text-sm font-bold">Marca <span className="font-normal text-slate-400">(opcional)</span></label>
+            <input
+              id="vehicle-make"
+              type="text"
+              value={vehicle.make}
+              onChange={(event) => updateVehicle('make', event.target.value)}
+              placeholder="Ex.: Honda"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-900"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="vehicle-model" className="mb-2 block text-sm font-bold">Modelo <span className="font-normal text-slate-400">(opcional)</span></label>
+            <input
+              id="vehicle-model"
+              type="text"
+              value={vehicle.model}
+              onChange={(event) => updateVehicle('model', event.target.value)}
+              placeholder="Ex.: CB 125"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-900"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="vehicle-color" className="mb-2 block text-sm font-bold">Cor</label>
+          <input
+            id="vehicle-color"
+            type="text"
+            value={vehicle.color}
+            onChange={(event) => updateVehicle('color', event.target.value)}
+            placeholder="Ex.: Preto"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900"
+          />
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-bold">Documento do veículo</p>
+          <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 px-4 py-4 text-sm font-bold dark:border-slate-700">
+            <span className="max-w-[75%] truncate">
+              {vehicle.documentFile ? vehicle.documentFile.name : 'Adicionar documento'}
+            </span>
+            <span className="text-violet-600">Escolher</span>
+            <input
+              type="file"
+              accept=".pdf,image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(event) => updateVehicle('documentFile', event.target.files?.[0] || null)}
+            />
+          </label>
+          <p className="mt-2 text-xs leading-5 text-slate-400">PDF, JPG, PNG ou WEBP · máximo 10 MB.</p>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+          O veículo fica associado à candidatura e permanece inactivo até a Pedejá concluir a análise. Não podes activar um veículo durante a candidatura.
+        </div>
+
+        <button
+          type="button"
+          onClick={saveVehicle}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'A guardar…' : 'Continuar'}
+          {!loading && <ArrowRight size={18} />}
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderVehicleSaved = () => (
+    <section className="flex flex-1 flex-col justify-center py-10">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 04</p>
+      <h1 className="mt-3 text-3xl font-black tracking-tight">Veículo registado.</h1>
+      <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+        Os dados do veículo foram associados à tua candidatura. A próxima etapa será a tua informação de operação.
+      </p>
+      <button
+        type="button"
+        onClick={() => setStage('onboarding-operating')}
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white"
+      >
+        Continuar <ArrowRight size={18} />
+      </button>
+    </section>
+  );
+
   const renderProfileSaved = () => (
     <section className="flex flex-1 flex-col justify-center py-10">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 03</p>
@@ -990,6 +1194,8 @@ export default function AuthView() {
         {authMode === 'register' && stage === 'onboarding-identity-saved' && renderIdentitySaved()}
         {authMode === 'register' && stage === 'onboarding-profile' && renderProfile()}
         {authMode === 'register' && stage === 'onboarding-profile-saved' && renderProfileSaved()}
+        {authMode === 'register' && stage === 'onboarding-vehicle' && renderVehicle()}
+        {authMode === 'register' && stage === 'onboarding-vehicle-saved' && renderVehicleSaved()}
 
         <footer className="pb-1 pt-5 text-center text-[11px] leading-5 text-slate-400">
           <div className="mb-2 flex items-center justify-center gap-2">
