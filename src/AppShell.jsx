@@ -5,7 +5,6 @@ import ChatModal from './components/ChatModal';
 import AIChatModal from './components/AIChatModal';
 import InstallBanner from './components/InstallBanner';
 import AuthView from './views/AuthView';
-import RiderPreviewView from './views/RiderPreviewView';
 
 const CustomerView = lazy(() => import('./views/CustomerView'));
 const MerchantView = lazy(() => import('./views/MerchantView'));
@@ -58,11 +57,6 @@ function AppRouter() {
 }
 
 export default function AppShell() {
-  const riderPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'rider';
-
-  if (riderPreview) {
-    return <RiderPreviewView />;
-  }
 
   return (
     <AppProvider>
