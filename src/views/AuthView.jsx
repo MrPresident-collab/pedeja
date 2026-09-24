@@ -437,9 +437,62 @@ export default function AuthView() {
     iban: '',
   });
 
+  const [profile, setProfile] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    avatarUrl: '',
+    avatarFile: null,
+  });
+
   const updateIdentityProof = (field, value) => {
     setIdentityProof((current) => ({ ...current, [field]: value }));
   };
+
+  const updateProfile = (field, value) => {
+    setProfile((current) => ({ ...current, [field]: value }));
+  };
+
+  useEffect(() => {
+    if (!isOnboarding || stage !== 'onboarding-profile') return undefined;
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const [{ data: userData, error: userError }, { data: profileData, error: profileError }] =
+          await Promise.all([
+            supabase.auth.getUser(),
+            supabase.from('profiles').select('full_name,phone,avatar_url').single(),
+          ]);
+
+        if (userError) throw userError;
+        if (profileError) throw profileError;
+        if (cancelled) return;
+
+        setProfile((current) => ({
+          ...current,
+          fullName: profileData?.full_name || current.fullName || '',
+          phone: profileData?.phone || userData?.user?.phone || fullPhone,
+          email: userData?.user?.email || '',
+          avatarUrl: profileData?.avatar_url || '',
+        }));
+      } catch (error) {
+        if (!cancelled) {
+          notifySystem('Não foi possível carregar o perfil', error.message || 'Tenta novamente.', 'error');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnboarding, stage, fullPhone, notifySystem]);
 
   const saveIdentityProof = async () => {
     const { biNumber, biFile, licenceNumber, licenceFile, iban } = identityProof;
@@ -570,6 +623,218 @@ export default function AuthView() {
           {!loading && <ArrowRight size={18} />}
         </button>
       </div>
+    </section>
+  );
+
+  const saveProfile = async () => {
+    if (!profile.fullName.trim()) {
+      notifySystem('Nome necessário', 'Introduza o nome completo.', 'error');
+      return;
+    }
+
+    if (profile.avatarFile) {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowed.includes(profile.avatarFile.type) || profile.avatarFile.size > 5 * 1024 * 1024) {
+        notifySystem('Fotografia inválida', 'Usa JPG, PNG ou WEBP até 5 MB.', 'error');
+        return;
+      }
+    }
+
+    if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
+      notifySystem('Email inválido', 'Verifica o endereço de email.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error('Sessão não encontrada.');
+
+      let avatarUrl = profile.avatarUrl || null;
+
+      if (profile.avatarFile) {
+        const { error: uploadError } = await supabase.storage
+          .from('profile-avatars')
+          .upload(`${userId}/avatar`, profile.avatarFile, {
+            upsert: true,
+            contentType: profile.avatarFile.type,
+            cacheControl: '3600',
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = supabase.storage
+          .from('profile-avatars')
+          .getPublicUrl(`${userId}/avatar`);
+
+        avatarUrl = publicData?.publicUrl
+          ? `${publicData.publicUrl}?v=${Date.now()}`
+          : avatarUrl;
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.fullName.trim(),
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        })
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      if (profile.email.trim() && profile.email.trim() !== (userData.user.email || '')) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: profile.email.trim(),
+        });
+        if (emailError) throw emailError;
+
+        notifySystem(
+          'Perfil guardado',
+          'O email foi registado e fica pendente de verificação. Podes continuar a candidatura.',
+          'success',
+        );
+      } else {
+        notifySystem('Perfil guardado', 'O teu perfil foi actualizado.', 'success');
+      }
+
+      setProfile((current) => ({
+        ...current,
+        avatarUrl,
+        avatarFile: null,
+      }));
+      setStage('onboarding-profile-saved');
+    } catch (error) {
+      notifySystem('Não foi possível guardar', error.message || 'Tenta novamente.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderProfile = () => (
+    <section className="flex flex-1 flex-col py-8">
+      <button
+        type="button"
+        onClick={() => setStage('onboarding-identity-saved')}
+        className="mb-8 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+      >
+        <ArrowLeft size={17} />
+        Voltar
+      </button>
+
+      <div className="mb-7">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 03</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">O teu perfil</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Confirma os teus dados de perfil. O telefone já foi verificado através do código SMS.
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        <div className="flex items-center gap-4 rounded-3xl border border-slate-200 p-4 dark:border-slate-800">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            {profile.avatarFile ? (
+              <img
+                src={URL.createObjectURL(profile.avatarFile)}
+                alt="Pré-visualização do perfil"
+                className="h-full w-full object-cover"
+              />
+            ) : profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="Fotografia do perfil" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-2xl font-black text-slate-400">
+                {profile.fullName.trim().slice(0, 1).toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+
+          <label className="flex cursor-pointer flex-1 items-center justify-between rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm font-bold dark:border-slate-700">
+            <span>{profile.avatarFile ? profile.avatarFile.name : 'Adicionar fotografia'}</span>
+            <span className="text-violet-600">Escolher</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(event) => updateProfile('avatarFile', event.target.files?.[0] || null)}
+            />
+          </label>
+        </div>
+
+        <div>
+          <label htmlFor="profile-full-name" className="mb-2 block text-sm font-bold">Nome completo</label>
+          <input
+            id="profile-full-name"
+            type="text"
+            value={profile.fullName}
+            onChange={(event) => updateProfile('fullName', event.target.value)}
+            autoComplete="name"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-violet-950"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="profile-phone" className="mb-2 block text-sm font-bold">Telefone</label>
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
+            <span className="text-base font-semibold">{profile.phone || fullPhone}</span>
+            <span className="text-xs font-black uppercase tracking-wide text-emerald-600">Verificado</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label htmlFor="profile-email" className="block text-sm font-bold">
+              Email <span className="font-normal text-slate-400">(opcional)</span>
+            </label>
+            <span className="text-xs font-bold text-slate-400">Não verificado</span>
+          </div>
+          <input
+            id="profile-email"
+            type="email"
+            value={profile.email}
+            onChange={(event) => updateProfile('email', event.target.value)}
+            autoComplete="email"
+            placeholder="email@exemplo.com"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-violet-950"
+          />
+          <p className="mt-2 text-xs leading-5 text-slate-400">
+            O email é opcional. Se adicionares um, será enviado um pedido de verificação, mas isso não bloqueia a candidatura.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+          A fotografia e os dados de perfil são associados à tua identidade Pedejá. Guardar este passo não aprova nem activa a candidatura.
+        </div>
+
+        <button
+          type="button"
+          onClick={saveProfile}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? 'A guardar…' : 'Continuar'}
+          {!loading && <ArrowRight size={18} />}
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderProfileSaved = () => (
+    <section className="flex flex-1 flex-col justify-center py-10">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 03</p>
+      <h1 className="mt-3 text-3xl font-black tracking-tight">Perfil guardado.</h1>
+      <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+        O teu perfil foi registado. A próxima etapa será a informação do veículo.
+      </p>
+      <button
+        type="button"
+        onClick={() => setStage('onboarding-vehicle')}
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white"
+      >
+        Continuar <ArrowRight size={18} />
+      </button>
     </section>
   );
 
@@ -723,7 +988,8 @@ export default function AuthView() {
         {authMode === 'register' && stage === 'onboarding' && renderOnboardingStart()}
         {authMode === 'register' && stage === 'onboarding-next' && renderIdentityProof()}
         {authMode === 'register' && stage === 'onboarding-identity-saved' && renderIdentitySaved()}
-        {authMode === 'register' && stage === 'onboarding-profile' && renderIdentitySaved()}
+        {authMode === 'register' && stage === 'onboarding-profile' && renderProfile()}
+        {authMode === 'register' && stage === 'onboarding-profile-saved' && renderProfileSaved()}
 
         <footer className="pb-1 pt-5 text-center text-[11px] leading-5 text-slate-400">
           <div className="mb-2 flex items-center justify-center gap-2">
