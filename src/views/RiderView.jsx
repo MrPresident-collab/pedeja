@@ -143,6 +143,7 @@ export default function RiderView() {
   const [emailEditing, setEmailEditing] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
+  const [profileDetail, setProfileDetail] = useState(null);
   const [language, setLanguage] = useState(() => {
     const stored = localStorage.getItem('pedeja_language');
     return ['pt', 'en', 'fr'].includes(stored) ? stored : 'pt';
@@ -1231,8 +1232,67 @@ export default function RiderView() {
       );
     }
 
+    if (profileDetail) {
+      const detailTitles = {
+        personal: 'Dados pessoais',
+        identity: 'Documento de identificação',
+        licence: 'Carta de condução',
+        vehicles: 'Os meus veículos',
+        security: 'Segurança da conta',
+        sessions: 'Sessões e dispositivos',
+        terms: 'Termos e privacidade',
+      };
+      const detailTitle = detailTitles[profileDetail] || 'Perfil';
+      const mask = (value) => {
+        const text = String(value || '');
+        if (text.length < 5) return text || '—';
+        return `${text.slice(0, 3)}••••${text.slice(-2)}`;
+      };
+      return (
+        <div className="space-y-4 px-3 pb-28 h-[calc(100dvh-1px)] overflow-y-auto touch-pan-y overscroll-contain">
+          <button type="button" onClick={() => setProfileDetail(null)} className="flex items-center gap-2 py-2 text-sm font-bold text-violet-700">
+            <ArrowLeft size={18} /> Perfil
+          </button>
+          <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+            <div className="px-4 py-5 border-b border-slate-100">
+              <p className="font-black text-xl">{detailTitle}</p>
+            </div>
+            {profileDetail === 'personal' && <>
+              <Row trailing={false}><p className="font-semibold">Nome completo</p><p className={`text-sm mt-1 ${muted}`}>{profile.full_name || '—'}</p></Row>
+              <Row trailing={false}><p className="font-semibold">Telefone</p><p className={`text-sm mt-1 ${muted}`}>{profile.phone || '—'}</p></Row>
+              <Row trailing={false}><p className="font-semibold">Estado de verificação</p><p className="text-sm mt-1 text-violet-700 font-bold">{riderVerification}</p></Row>
+            </>}
+            {profileDetail === 'identity' && <>
+              <Row trailing={false}><p className="font-semibold">Estado</p><p className="text-sm mt-1 text-violet-700 font-bold">{verificationLabels[documents.identity?.status] || 'Não disponível'}</p></Row>
+              <Row trailing={false}><p className="font-semibold">Número</p><p className={`text-sm mt-1 ${muted}`}>{mask(documents.identity?.document_number)}</p></Row>
+            </>}
+            {profileDetail === 'licence' && <>
+              <Row trailing={false}><p className="font-semibold">Estado</p><p className="text-sm mt-1 text-violet-700 font-bold">{verificationLabels[documents.driving_license?.status] || 'Não disponível'}</p></Row>
+              <Row trailing={false}><p className="font-semibold">Número</p><p className={`text-sm mt-1 ${muted}`}>{mask(documents.driving_license?.document_number)}</p></Row>
+            </>}
+            {profileDetail === 'vehicles' && (vehicles.length ? vehicles.map((vehicle) => (
+              <Row key={vehicle.id} trailing={false}>
+                <p className="font-semibold">{vehicleTypes[vehicle.vehicle_type] || vehicle.vehicle_type}</p>
+                <p className={`text-sm mt-1 ${muted}`}>{[vehicle.registration_number, vehicle.make, vehicle.model].filter(Boolean).join(' · ') || 'Sem detalhes'}</p>
+                <p className="text-xs mt-1 text-violet-700 font-bold">{vehicle.status === 'ACTIVE' ? 'Actual' : verificationLabels[vehicle.verification_status] || 'Pendente'}</p>
+              </Row>
+            )) : <div className="px-4 py-6 text-sm text-slate-500">Ainda não existem veículos registados.</div>)}
+            {profileDetail === 'security' && <>
+              <Row trailing={false}><p className="font-semibold">Telefone</p><p className={`text-sm mt-1 ${muted}`}>Verificado através da autenticação Pedejá</p></Row>
+              <Row trailing={false}><p className="font-semibold">Email</p><p className={`text-sm mt-1 ${muted}`}>{snapshot.email ? (snapshot.emailVerified ? 'Verificado' : 'Não verificado') : 'Não configurado'}</p></Row>
+            </>}
+            {profileDetail === 'sessions' && <div className="px-4 py-6 text-sm text-slate-500">A gestão de sessões e dispositivos será ligada ao controlo de sessões do Supabase Auth.</div>}
+            {profileDetail === 'terms' && <>
+              <Row trailing={false}><p className="font-semibold">Termos de serviço</p><p className={`text-sm mt-1 ${muted}`}>Versão apresentada no processo de adesão</p></Row>
+              <Row trailing={false}><p className="font-semibold">Privacidade</p><p className={`text-sm mt-1 ${muted}`}>Política de privacidade Pedejá</p></Row>
+            </>}
+          </section>
+        </div>
+      );
+    }
+
     return (
-      <div className="space-y-5 px-3 pb-8">
+      <div className="space-y-5 px-3 pb-28 h-[calc(100dvh-1px)] overflow-y-auto touch-pan-y overscroll-contain">
         {profileError && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
             {profileError}
@@ -1258,9 +1318,9 @@ export default function RiderView() {
 
         <section className={`rounded-3xl border overflow-hidden ${panel}`}>
           <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">A MINHA CONTA</p>
-          <Row><p className="font-semibold">Dados pessoais</p></Row>
-          <Row><p className="font-semibold">Documento de identificação</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.identity?.status] || 'Não disponível'}</p></Row>
-          <Row><p className="font-semibold">Carta de condução</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.driving_license?.status] || 'Não disponível'}</p></Row>
+          <Row onClick={() => setProfileDetail('personal')}><p className="font-semibold">Dados pessoais</p></Row>
+          <Row onClick={() => setProfileDetail('identity')}><p className="font-semibold">Documento de identificação</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.identity?.status] || 'Não disponível'}</p></Row>
+          <Row onClick={() => setProfileDetail('licence')}><p className="font-semibold">Carta de condução</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.driving_license?.status] || 'Não disponível'}</p></Row>
           {emailEditing ? (
             <div className="px-4 py-4 border-b border-slate-100">
               <p className="font-semibold mb-2">Email</p>
@@ -1320,10 +1380,10 @@ export default function RiderView() {
           ) : (
             <div className="px-4 py-5 text-sm text-slate-500 border-b border-slate-100">Ainda não existe um veículo activo.</div>
           )}
-          <Row>
+          <Row onClick={() => setProfileDetail('vehicles')}>
             <p className="font-semibold">Os meus veículos</p><p className={`text-xs mt-1 ${muted}`}>{vehicles.length} registado(s)</p>
           </Row>
-          <Row>
+          <Row onClick={() => setProfileError('Adicionar veículos será ligado ao fluxo de aprovação de veículos.') }>
             <p className="font-semibold">Adicionar veículo</p>
           </Row>
         </section>
@@ -1370,9 +1430,9 @@ export default function RiderView() {
 
         <section className={`rounded-3xl border overflow-hidden ${panel}`}>
           <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">SEGURANÇA</p>
-          <Row><p className="font-semibold">Segurança da conta</p></Row>
-          <Row><p className="font-semibold">Sessões e dispositivos</p></Row>
-          <Row><p className="font-semibold">Termos e privacidade</p></Row>
+          <Row onClick={() => setProfileDetail('security')}><p className="font-semibold">Segurança da conta</p></Row>
+          <Row onClick={() => setProfileDetail('sessions')}><p className="font-semibold">Sessões e dispositivos</p></Row>
+          <Row onClick={() => setProfileDetail('terms')}><p className="font-semibold">Termos e privacidade</p></Row>
         </section>
 
         <div className="space-y-2 pt-1">
