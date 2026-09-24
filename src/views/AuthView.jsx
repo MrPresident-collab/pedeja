@@ -429,13 +429,161 @@ export default function AuthView() {
     </section>
   );
 
-  const renderOnboardingNext = () => (
+  const [identityProof, setIdentityProof] = useState({
+    biNumber: '',
+    biFile: null,
+    licenceNumber: '',
+    licenceFile: null,
+    iban: '',
+  });
+
+  const updateIdentityProof = (field, value) => {
+    setIdentityProof((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveIdentityProof = async () => {
+    const { biNumber, biFile, licenceNumber, licenceFile, iban } = identityProof;
+    if (!biNumber.trim() || !biFile || !licenceNumber.trim() || !licenceFile || !iban.trim()) {
+      notifySystem('Dados em falta', 'Preenche o BI, carta de condução e IBAN, incluindo os dois documentos.', 'error');
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    for (const file of [biFile, licenceFile]) {
+      if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) {
+        notifySystem('Documento inválido', 'Usa PDF, JPG, PNG ou WEBP até 10 MB.', 'error');
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) throw new Error('Sessão não encontrada.');
+
+      const upload = async (file, kind) => {
+        const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
+        const path = `${userId}/${kind}-${Date.now()}-${safeName}`;
+        const { error } = await supabase.storage.from('rider-documents').upload(path, file, {
+          upsert: true,
+          contentType: file.type,
+        });
+        if (error) throw error;
+        return { path, type: file.type, size: file.size };
+      };
+
+      const bi = await upload(biFile, 'bi');
+      const licence = await upload(licenceFile, 'licence');
+
+      const { error } = await supabase.rpc('rider_onboarding_save_identity_proof', {
+        p_bi_number: biNumber.trim(),
+        p_bi_storage_path: bi.path,
+        p_bi_mime_type: bi.type,
+        p_bi_file_size_bytes: bi.size,
+        p_licence_number: licenceNumber.trim(),
+        p_licence_storage_path: licence.path,
+        p_licence_mime_type: licence.type,
+        p_licence_file_size_bytes: licence.size,
+        p_iban: iban.trim().replace(/\s+/g, ''),
+      });
+
+      if (error) {
+        notifySystem('Não foi possível guardar', error.message, 'error');
+        return;
+      }
+
+      notifySystem('Identidade registada', 'Os documentos foram recebidos para análise.', 'success');
+      setStage('onboarding-identity-saved');
+    } catch (error) {
+      notifySystem('Não foi possível guardar', error.message || 'Tenta novamente.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderIdentityProof = () => (
+    <section className="flex flex-1 flex-col py-8">
+      <button
+        type="button"
+        onClick={() => setStage('onboarding')}
+        className="mb-8 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+      >
+        <ArrowLeft size={17} />
+        Voltar
+      </button>
+
+      <div className="mb-7">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 02</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">Identidade e prova</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Precisamos de três coisas: o teu BI, a carta de condução e o IBAN para pagamentos.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <div className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800">
+          <p className="text-sm font-black">BI / Documento de identidade</p>
+          <input type="text" value={identityProof.biNumber}
+            onChange={(event) => updateIdentityProof('biNumber', event.target.value)}
+            placeholder="Número do BI"
+            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-900" />
+          <label className="mt-3 flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 px-4 py-4 text-sm font-bold dark:border-slate-700">
+            <span>{identityProof.biFile ? identityProof.biFile.name : 'Adicionar documento'}</span>
+            <span className="text-violet-600">Escolher</span>
+            <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="sr-only"
+              onChange={(event) => updateIdentityProof('biFile', event.target.files?.[0] || null)} />
+          </label>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800">
+          <p className="text-sm font-black">Carta de condução</p>
+          <input type="text" value={identityProof.licenceNumber}
+            onChange={(event) => updateIdentityProof('licenceNumber', event.target.value)}
+            placeholder="Número da carta"
+            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-900" />
+          <label className="mt-3 flex cursor-pointer items-center justify-between rounded-2xl border border-dashed border-slate-300 px-4 py-4 text-sm font-bold dark:border-slate-700">
+            <span>{identityProof.licenceFile ? identityProof.licenceFile.name : 'Adicionar documento'}</span>
+            <span className="text-violet-600">Escolher</span>
+            <input type="file" accept=".pdf,image/jpeg,image/png,image/webp" className="sr-only"
+              onChange={(event) => updateIdentityProof('licenceFile', event.target.files?.[0] || null)} />
+          </label>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 p-5 dark:border-slate-800">
+          <p className="text-sm font-black">IBAN</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">Usado para o pagamento dos teus ganhos. Não é um documento de identidade.</p>
+          <input type="text" inputMode="text" autoComplete="off" value={identityProof.iban}
+            onChange={(event) => updateIdentityProof('iban', event.target.value)}
+            placeholder="AO06 0000 0000 0000 0000 0000 0"
+            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base font-semibold uppercase tracking-wide outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-900" />
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+          Os documentos ficam privados e são enviados para análise da Pedejá. A verificação acontece antes de qualquer acesso operacional.
+        </div>
+
+        <button type="button" onClick={saveIdentityProof} disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60">
+          {loading ? 'A enviar…' : 'Continuar'}
+          {!loading && <ArrowRight size={18} />}
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderIdentitySaved = () => (
     <section className="flex flex-1 flex-col justify-center py-10">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta · 02</p>
-      <h1 className="mt-3 text-3xl font-black tracking-tight">Identidade e documentos.</h1>
+      <h1 className="mt-3 text-3xl font-black tracking-tight">Documentos recebidos.</h1>
       <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-        A próxima etapa será a verificação do BI, carta de condução e dados de pagamento.
+        A identidade, a carta de condução e o IBAN foram registados para análise. A próxima etapa será o teu perfil.
       </p>
+      <button type="button" onClick={() => setStage('onboarding-profile')}
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white">
+        Continuar <ArrowRight size={18} />
+      </button>
     </section>
   );
 
@@ -573,7 +721,9 @@ export default function AuthView() {
 
         {authMode === 'register' && stage === 'otp' && renderOtp()}
         {authMode === 'register' && stage === 'onboarding' && renderOnboardingStart()}
-        {authMode === 'register' && stage === 'onboarding-next' && renderOnboardingNext()}
+        {authMode === 'register' && stage === 'onboarding-next' && renderIdentityProof()}
+        {authMode === 'register' && stage === 'onboarding-identity-saved' && renderIdentitySaved()}
+        {authMode === 'register' && stage === 'onboarding-profile' && renderIdentitySaved()}
 
         <footer className="pb-1 pt-5 text-center text-[11px] leading-5 text-slate-400">
           <div className="mb-2 flex items-center justify-center gap-2">
