@@ -113,6 +113,9 @@ export default function RiderView() {
     openChatWindow,
     isDarkMode,
     toggleDarkMode,
+    themeMode,
+    setThemeMode,
+    handleLogout,
     supabase,
   } = useApp();
 
@@ -133,6 +136,10 @@ export default function RiderView() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [todayPay, setTodayPay] = useState(0);
+  const [profileSnapshot, setProfileSnapshot] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [notificationSaving, setNotificationSaving] = useState(false);
   const [history, setHistory] = useState([]);
   const offerTimerRef = useRef(null);
   const offerDeadlineRef = useRef(null);
@@ -454,6 +461,89 @@ export default function RiderView() {
       window.removeEventListener('offline', onNetworkOffline);
     };
   }, [rider?.id, supabase]);
+
+  const loadProfileSnapshot = useCallback(async () => {
+    if (!uid) return;
+    setProfileLoading(true);
+    setProfileError('');
+    try {
+      const [{ data, error: snapshotError }, { data: authData, error: authError }] = await Promise.all([
+        supabase.rpc('rider_get_profile_snapshot'),
+        supabase.auth.getUser(),
+      ]);
+      if (snapshotError) throw snapshotError;
+      if (authError) throw authError;
+      setProfileSnapshot({
+        ...(data || {}),
+        email: authData?.user?.email || userProfile?.email || '',
+        emailVerified: Boolean(authData?.user?.email_confirmed_at),
+      });
+    } catch (err) {
+      console.error('[RiderView] profile snapshot', err);
+      setProfileError('Não foi possível carregar os dados do perfil.');
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [supabase, uid, userProfile?.email]);
+
+  useEffect(() => {
+    if (riderTab === 'profile') loadProfileSnapshot();
+  }, [loadProfileSnapshot, riderTab]);
+
+  const updateNotificationPreferences = useCallback(async (key, value) => {
+    const current = profileSnapshot?.profile;
+    if (!current || notificationSaving) return;
+    const next = {
+      newOffers: Boolean(current.is_offer_notification),
+      deliveryStatus: Boolean(current.is_delivery_status_notification),
+      earnings: Boolean(current.is_payment_notification),
+    };
+    next[key] = value;
+    setNotificationSaving(true);
+    try {
+      const { error: rpcError } = await supabase.rpc('rider_update_notification_preferences', {
+        p_new_delivery_offers: next.newOffers,
+        p_delivery_status: next.deliveryStatus,
+        p_earnings_payments: next.earnings,
+      });
+      if (rpcError) throw rpcError;
+      setProfileSnapshot(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          is_offer_notification: next.newOffers,
+          is_delivery_status_notification: next.deliveryStatus,
+          is_payment_notification: next.earnings,
+        },
+      }));
+    } catch (err) {
+      console.error('[RiderView] notification preferences', err);
+      setProfileError('Não foi possível guardar as preferências.');
+    } finally {
+      setNotificationSaving(false);
+    }
+  }, [notificationSaving, profileSnapshot, supabase]);
+
+  const setProfileTheme = useCallback((mode) => {
+    setThemeMode(mode);
+  }, [setThemeMode]);
+
+  const handleRiderLogout = useCallback(async () => {
+    setActionLoading(true);
+    try {
+      if (handleLogout) {
+        await handleLogout();
+      } else {
+        await supabase.auth.signOut();
+      }
+      setActiveRole('customer');
+    } catch (err) {
+      console.error('[RiderView] logout', err);
+      setError('Não foi possível terminar a sessão.');
+    } finally {
+      setActionLoading(false);
+    }
+  }, [handleLogout, setActiveRole, supabase]);
 
   const setOnline = async (nextOnline) => {
     if (accountRestricted) {
@@ -1011,28 +1101,206 @@ export default function RiderView() {
     </section>
   );
 
-  const renderProfile = () => (
-    <div className="space-y-3">
-      <section className={`rounded-3xl border p-5 ${panel}`}>
-        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <User size={26} />
+  const renderProfile = () => {
+    const snapshot = profileSnapshot || {};
+    const profile = snapshot.profile || {};
+    const riderProfile = snapshot.rider || {};
+    const activeVehicle = snapshot.vehicle || null;
+    const vehicles = Array.isArray(snapshot.vehicles) ? snapshot.vehicles : [];
+    const documents = snapshot.documents || {};
+    const zone = snapshot.zone || null;
+
+    const verificationLabels = {
+      PENDING: 'Em análise',
+      UNDER_REVIEW: 'Em verificação',
+      VERIFIED: 'Verificado',
+      REJECTED: 'Rejeitado',
+      SUSPENDED: 'Suspenso',
+    };
+    const vehicleTypes = {
+      MOTORBIKE: 'Mota',
+      BICYCLE: 'Bicicleta',
+      CAR: 'Carro',
+      VAN: 'Carrinha',
+      TRUCK: 'Camião',
+    };
+    const vehicleVerification = verificationLabels[activeVehicle?.verification_status] || 'Pendente';
+    const riderVerification = verificationLabels[riderProfile.verification_status] || 'Pendente';
+
+    const Row = ({ children, trailing = true, onClick, disabled = false }) => (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled || !onClick}
+        className={`w-full min-h-14 px-4 py-3 flex items-center justify-between text-left border-b border-slate-100 last:border-b-0 ${disabled ? 'opacity-60' : onClick ? 'active:bg-slate-50' : ''}`}
+      >
+        <span className="min-w-0">{children}</span>
+        {trailing && <ChevronRight size={18} className="shrink-0 text-slate-400" />}
+      </button>
+    );
+
+    const Toggle = ({ value, onChange, locked = false }) => (
+      <button
+        type="button"
+        onClick={locked ? undefined : onChange}
+        disabled={locked || notificationSaving}
+        aria-pressed={value}
+        className={`relative w-11 h-6 rounded-full transition-colors ${value ? 'bg-violet-700' : 'bg-slate-300'} ${locked ? 'opacity-70' : ''}`}
+      >
+        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+    );
+
+    const ThemeChoice = ({ value, label }) => (
+      <button
+        type="button"
+        onClick={() => setProfileTheme(value)}
+        className="w-full min-h-12 px-4 flex items-center justify-between border-b border-slate-100 last:border-b-0 text-left"
+      >
+        <span className="text-sm font-semibold">{label}</span>
+        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${themeMode === value ? 'border-violet-700' : 'border-slate-300'}`}>
+          {themeMode === value && <span className="w-2.5 h-2.5 rounded-full rounded-full bg-violet-700" />}
+        </span>
+      </button>
+    );
+
+    if (profileLoading && !profileSnapshot) {
+      return (
+        <div className="space-y-3 px-3">
+          <div className={`h-36 rounded-3xl animate-pulse ${panel}`} />
+          <div className={`h-48 rounded-3xl animate-pulse ${panel}`} />
+          <div className={`h-48 rounded-3xl animate-pulse ${panel}`} />
         </div>
-        <p className="font-black text-xl">{userProfile?.name || 'Estafeta'}</p>
-        <p className={`text-sm mt-1 ${muted}`}>{userProfile?.phone || userProfile?.email || ''}</p>
-      </section>
-      <button onClick={() => toggleDarkMode()} className={`w-full rounded-2xl border p-4 ${panel} flex items-center justify-between font-bold`}>
-        <span>Modo {isDarkMode ? 'escuro' : 'claro'}</span>
-        <ChevronRight size={18} />
-      </button>
-      <button onClick={help} className={`w-full rounded-2xl border p-4 ${panel} flex items-center justify-between font-bold`}>
-        <span>Suporte Pedejá</span>
-        <MessageCircle size={18} />
-      </button>
-      <button onClick={() => setActiveRole('customer')} className="w-full rounded-2xl bg-slate-800 text-white p-4 font-bold flex items-center justify-center gap-2">
-        <ArrowLeft size={18} /> Voltar
-      </button>
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div className="space-y-5 px-3 pb-8">
+        {profileError && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+            {profileError}
+          </div>
+        )}
+
+        <section className={`rounded-3xl border p-5 ${panel}`}>
+          <div className="flex items-center gap-4">
+            {profile.avatar_url || userProfile?.avatarUrl ? (
+              <img src={profile.avatar_url || userProfile.avatarUrl} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-white shadow" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center">
+                <User size={30} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-black text-xl truncate">{profile.full_name || userProfile?.name || 'Estafeta'}</p>
+              <p className={`text-sm mt-1 ${muted}`}>{profile.phone || userProfile?.phone || '—'}</p>
+              <p className="text-xs font-bold text-violet-700 mt-2">{riderVerification}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+          <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">A MINHA CONTA</p>
+          <Row><p className="font-semibold">Dados pessoais</p></Row>
+          <Row><p className="font-semibold">Documento de identificação</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.identity?.status] || 'Não disponível'}</p></Row>
+          <Row><p className="font-semibold">Carta de condução</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.driving_license?.status] || 'Não disponível'}</p></Row>
+          <Row>
+            <p className="font-semibold">Email</p>
+            <p className={`text-xs mt-1 ${profileSnapshot?.emailVerified ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {snapshot.email || userProfile?.email || 'Adicionar email'} · {profileSnapshot?.emailVerified ? 'Verificado' : 'Não verificado'}
+            </p>
+          </Row>
+        </section>
+
+        <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+          <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">VEÍCULO</p>
+          {activeVehicle ? (
+            <>
+              <div className="px-4 py-4 border-b border-slate-100">
+                <p className="text-xs text-slate-400">Veículo actual</p>
+                <p className="font-black text-lg mt-1">{vehicleTypes[activeVehicle.vehicle_type] || activeVehicle.vehicle_type}</p>
+                <p className={`text-sm mt-1 ${muted}`}>{activeVehicle.registration_number || 'Sem matrícula'}</p>
+              </div>
+              <Row trailing={false}>
+                <p className="font-semibold">Matrícula</p><p className={`text-sm mt-1 ${muted}`}>{activeVehicle.registration_number || '—'}</p>
+              </Row>
+              <Row trailing={false}>
+                <p className="font-semibold">Marca / modelo</p><p className={`text-sm mt-1 ${muted}`}>{[activeVehicle.make, activeVehicle.model].filter(Boolean).join(' / ') || '—'}</p>
+              </Row>
+              <Row trailing={false}>
+                <p className="font-semibold">Cor</p><p className={`text-sm mt-1 ${muted}`}>{activeVehicle.color || '—'}</p>
+              </Row>
+              <Row trailing={false}>
+                <p className="font-semibold">Documento do veículo</p><p className={`text-sm mt-1 ${muted}`}>{activeVehicle.document_storage_path ? 'Recebido' : 'Não disponível'}</p>
+              </Row>
+              <Row trailing={false}>
+                <p className="font-semibold">Estado de verificação</p><p className="text-sm mt-1 text-violet-700 font-bold">{vehicleVerification}</p>
+              </Row>
+            </>
+          ) : (
+            <div className="px-4 py-5 text-sm text-slate-500 border-b border-slate-100">Ainda não existe um veículo activo.</div>
+          )}
+          <Row>
+            <p className="font-semibold">Os meus veículos</p><p className={`text-xs mt-1 ${muted}`}>{vehicles.length} registado(s)</p>
+          </Row>
+          <Row>
+            <p className="font-semibold">Adicionar veículo</p>
+          </Row>
+        </section>
+
+        <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+          <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">OPERAÇÃO</p>
+          <Row trailing={false}>
+            <p className="font-semibold">Zona de operação</p>
+            <p className={`text-sm mt-1 ${muted}`}>{zone ? [zone.name, zone.province].filter(Boolean).join(' · ') : 'Não atribuída'}</p>
+          </Row>
+        </section>
+
+        <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+          <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">NOTIFICAÇÕES & PREFERÊNCIAS</p>
+          <div className="min-h-14 px-4 py-3 flex items-center justify-between border-b border-slate-100">
+            <span className="font-semibold">Novas entregas</span>
+            <Toggle value={Boolean(profile.is_offer_notification)} onChange={() => updateNotificationPreferences('newOffers', !profile.is_offer_notification)} />
+          </div>
+          <div className="min-h-14 px-4 py-3 flex items-center justify-between border-b border-slate-100">
+            <span className="font-semibold">Estado das entregas</span>
+            <Toggle value={Boolean(profile.is_delivery_status_notification)} onChange={() => updateNotificationPreferences('deliveryStatus', !profile.is_delivery_status_notification)} />
+          </div>
+          <div className="min-h-14 px-4 py-3 flex items-center justify-between border-b border-slate-100">
+            <span className="font-semibold">Ganhos e pagamentos</span>
+            <Toggle value={Boolean(profile.is_payment_notification)} onChange={() => updateNotificationPreferences('earnings', !profile.is_payment_notification)} />
+          </div>
+          <div className="min-h-14 px-4 py-3 flex items-center justify-between border-b border-slate-100">
+            <span className="font-semibold">Avisos importantes</span>
+            <Toggle value locked />
+          </div>
+          <div className="pt-2">
+            <ThemeChoice value="system" label="Sistema" />
+            <ThemeChoice value="dark" label="Modo escuro" />
+            <ThemeChoice value="light" label="Modo claro" />
+          </div>
+        </section>
+
+        <section className={`rounded-3xl border overflow-hidden ${panel}`}>
+          <p className="px-4 pt-5 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">SEGURANÇA</p>
+          <Row><p className="font-semibold">Segurança da conta</p></Row>
+          <Row><p className="font-semibold">Sessões e dispositivos</p></Row>
+          <Row><p className="font-semibold">Termos e privacidade</p></Row>
+        </section>
+
+        <div className="space-y-2 pt-1">
+          <button type="button" onClick={handleRiderLogout} disabled={actionLoading} className="w-full rounded-2xl border border-slate-200 bg-white p-4 font-black text-slate-700">
+            SAIR
+          </button>
+          <button type="button" disabled className="w-full p-3 text-sm font-bold text-red-600 opacity-60">
+            APAGAR A MINHA CONTA
+          </button>
+          <p className="text-center text-xs text-slate-400">Pedejá v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.0'}</p>
+        </div>
+      </div>
+    );
+  };
+
 
   let content = null;
   if (accountRestricted) {
