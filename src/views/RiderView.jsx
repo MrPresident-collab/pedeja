@@ -125,6 +125,7 @@ export default function RiderView() {
   const [gpsStatus, setGpsStatus] = useState('idle');
   const [gps, setGps] = useState(null);
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [networkOnline, setNetworkOnline] = useState(() => navigator.onLine !== false);
   const [offer, setOffer] = useState(null);
   const [offerSeconds, setOfferSeconds] = useState(0);
   const [activeJob, setActiveJob] = useState(null);
@@ -381,6 +382,11 @@ export default function RiderView() {
     let heartbeatTimer = null;
     let watchId = null;
 
+    const onNetworkOnline = () => setNetworkOnline(true);
+    const onNetworkOffline = () => setNetworkOnline(false);
+    window.addEventListener('online', onNetworkOnline);
+    window.addEventListener('offline', onNetworkOffline);
+
     const options = {
       enableHighAccuracy: true,
       maximumAge: 5000,
@@ -429,9 +435,9 @@ export default function RiderView() {
     acquire();
     watchId = navigator.geolocation.watchPosition(reportLocation, onError, options);
 
-    // watchPosition is event-driven and may not emit while a rider is stationary.
-    // Refresh the server-side heartbeat periodically so location freshness is explicit.
-    heartbeatTimer = window.setInterval(acquire, 10000);
+    // watchPosition remains event-driven while the rider is moving.
+    // A 15-minute heartbeat is only a fallback for an otherwise stationary rider.
+    heartbeatTimer = window.setInterval(acquire, 15 * 60 * 1000);
 
     const onVisibility = () => {
       if (document.visibilityState === 'visible') acquire();
@@ -444,6 +450,8 @@ export default function RiderView() {
       if (retryTimer) window.clearTimeout(retryTimer);
       if (heartbeatTimer) window.clearInterval(heartbeatTimer);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('online', onNetworkOnline);
+      window.removeEventListener('offline', onNetworkOffline);
     };
   }, [rider?.id, supabase]);
 
@@ -775,8 +783,8 @@ export default function RiderView() {
 
         <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4">
           <button
-            onClick={() => setActiveRole('customer')}
-            aria-label="Perfil do estafeta"
+            onClick={() => setRiderTab('profile')}
+            aria-label="Definições do estafeta"
             className="h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-[0_4px_18px_rgba(38,20,72,0.18)]"
           >
             {userProfile?.avatarUrl ? (
@@ -788,7 +796,7 @@ export default function RiderView() {
 
           <button
             onClick={help}
-            aria-label="Ajuda"
+            aria-label="Suporte, SOS e emergência"
             className="flex h-11 w-11 items-center justify-center rounded-full border border-white bg-white text-violet-800 shadow-[0_4px_18px_rgba(38,20,72,0.16)]"
           >
             <CircleHelp size={20} />
@@ -798,6 +806,24 @@ export default function RiderView() {
         {isBusy && (
           <div className="absolute left-1/2 top-24 z-20 -translate-x-1/2 rounded-full border border-white bg-white/95 px-4 py-2 text-xs font-black tracking-[0.12em] text-violet-800 shadow-[0_4px_18px_rgba(38,20,72,0.14)] backdrop-blur">
             EM ENTREGA
+          </div>
+        )}
+
+        {!isBusy && gpsStatus !== 'tracking' && (
+          <div className="absolute left-16 right-16 top-20 z-20 flex justify-center">
+            <div className="flex max-w-sm items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/95 px-3 py-2 text-left shadow-[0_4px_14px_rgba(120,80,0,0.10)] backdrop-blur">
+              <AlertCircle size={15} className="shrink-0 text-amber-700" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.08em] text-amber-800">
+                  {gpsStatus === 'denied' ? 'LOCALIZAÇÃO DESACTIVADA' : 'SEM COBERTURA DE REDE'}
+                </p>
+                <p className="text-[10px] leading-tight text-amber-900/75">
+                  {gpsStatus === 'denied'
+                    ? 'Ativa a localização para receber novas entregas.'
+                    : 'Não foi possível actualizar a tua localização.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -815,16 +841,7 @@ export default function RiderView() {
               </button>
             )}
 
-            {!isBusy && gpsStatus !== 'tracking' && (
-              <div className="mb-3 rounded-2xl border border-violet-200 bg-white/95 px-4 py-3 text-center shadow-[0_8px_30px_rgba(38,20,72,0.12)] backdrop-blur">
-                <p className="text-xs font-black text-violet-800">
-                  LOCALIZAÇÃO DESACTIVADA
-                </p>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Ative a localização para receber novas entregas.
-                </p>
-              </div>
-            )}
+            
 
             <div className="grid grid-cols-4 overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_8px_30px_rgba(38,20,72,0.16)] backdrop-blur">
               <div className="px-3 py-3 text-center">
