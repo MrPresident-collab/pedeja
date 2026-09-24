@@ -62,6 +62,7 @@ export default function HomeTab() {
   const [discoverMode, setDiscoverMode] = useState('nearby');
   const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
   const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [homeMode, setHomeMode] = useState('home');
 
   const businessesWithDistance = useMemo(() => restaurants.map(business => ({
     ...business,
@@ -296,13 +297,56 @@ export default function HomeTab() {
     );
   }
 
+  if (homeMode === 'marketplace') {
+    const marketplaceBusinesses = restaurants
+      .map(business => ({
+        ...business,
+        distance: isValidCoordinate(userProfile?.location) && isValidCoordinate(business.location)
+          ? Number(getDistanceFromLatLonInKm(userProfile.location.lat, userProfile.location.lng, business.location.lat, business.location.lng).toFixed(1))
+          : null,
+      }))
+      .filter(business => business.status === 'open')
+      .filter(business => business.serviceType === serviceType);
+
+    return (
+      <div className="min-h-screen bg-[#fafafa] pb-28">
+        <div className="px-4 pt-5">
+          <button type="button" onClick={() => setHomeMode('home')} className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-5">
+            <ArrowLeft size={18} /> Voltar
+          </button>
+          <div className="mb-5">
+            <p className="text-xs uppercase tracking-wider font-bold text-gray-400">Pedir Algo</p>
+            <h1 className="text-2xl font-black mt-1">O que queres pedir?</h1>
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-1.5 bg-white border border-gray-200 rounded-2xl mb-5">
+            <button type="button" onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.FOME)} className={`py-2.5 rounded-xl text-sm font-black ${serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500'}`}>Comida</button>
+            <button type="button" onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS)} className={`py-2.5 rounded-xl text-sm font-black ${serviceType === PEDEJA_SERVICE_TYPES.COMPRAS ? 'bg-violet-600 text-white shadow-sm' : 'text-gray-500'}`}>Compras</button>
+          </div>
+          {marketplaceBusinesses.length ? (
+            <div className="space-y-4">
+              {marketplaceBusinesses.map(business => (
+                <RestaurantCard key={business.id} rest={business} appConfig={appConfig} userProfile={userProfile} onSelect={businessItem => setSelectedRestaurant(businessItem)} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-14 px-5 text-center">
+              <ShoppingBag size={34} className="mx-auto text-gray-300 mb-3" />
+              <p className="font-bold text-gray-600">Ainda não há estabelecimentos disponíveis.</p>
+              <p className="text-xs text-gray-400 mt-1">Tenta novamente mais tarde.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (serviceType === PEDEJA_SERVICE_TYPES.ENVIAR) {
     const hasPickup = isValidCoordinate(parcelDetails?.pickupLocation);
     const hasDropoff = isValidCoordinate(parcelDetails?.dropoffLocation);
 
     return (
       <div className="p-4 pb-28">
-        <ServiceSwitcher serviceType={serviceType} setServiceType={setServiceType} />
+        <button type="button" onClick={() => setHomeMode('home')} className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-4"><ArrowLeft size={18} /> Voltar</button>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center"><Package size={22} /></div>
@@ -470,7 +514,7 @@ export default function HomeTab() {
           </button>
         </div>
 
-        <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="w-full mt-5 h-12 rounded-2xl bg-white border border-gray-200 px-4 flex items-center gap-3 text-left shadow-sm">
+        <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setHomeMode('marketplace'); }} className="w-full mt-5 h-12 rounded-2xl bg-white border border-gray-200 px-4 flex items-center gap-3 text-left shadow-sm">
           <Search size={19} className="text-gray-400" />
           <span className="text-sm text-gray-500">Comida e Compras</span>
         </button>
@@ -499,7 +543,7 @@ export default function HomeTab() {
 
         <section className="mt-7">
           <div className="grid grid-cols-2 gap-4">
-            <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setActiveTab('home'); }} className="text-left active:scale-[0.985] transition-transform">
+            <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setHomeMode('home'); }} className="text-left active:scale-[0.985] transition-transform">
               <div className="relative h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-800 shadow-sm">
                 <div className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10" />
                 <div className="absolute -left-5 -bottom-8 w-24 h-24 rounded-full bg-white/10" />
