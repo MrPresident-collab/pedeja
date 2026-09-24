@@ -452,12 +452,18 @@ export default function HomeTab() {
           <div className="grid grid-cols-4 gap-3">
             {discoverTabs.map(tab => {
               const Icon = tab.icon;
+              const tileClass = {
+                nearby: 'bg-violet-100 border-violet-200 text-violet-700',
+                shopping: 'bg-blue-100 border-blue-200 text-blue-700',
+                drinks: 'bg-rose-100 border-rose-200 text-rose-700',
+                promo: 'bg-amber-100 border-amber-200 text-amber-700',
+              }[tab.id];
               return (
                 <button key={tab.id} type="button" onClick={() => setDiscoverMode(tab.id)} className="text-center group">
-                  <span className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${discoverMode === tab.id ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-sm' : 'bg-white border-gray-200 text-gray-600'}`}>
-                    <Icon size={22} strokeWidth={1.9} />
+                  <span className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all ${tileClass} ${discoverMode === tab.id ? 'ring-2 ring-violet-300 ring-offset-2' : ''}`}>
+                    <Icon size={23} strokeWidth={1.9} />
                   </span>
-                  <span className="block mt-2 text-[11px] font-bold text-gray-700">{tab.label}</span>
+                  <span className="block mt-2 text-[11px] font-bold text-gray-800">{tab.label}</span>
                 </button>
               );
             })}
@@ -467,16 +473,20 @@ export default function HomeTab() {
         <section className="mt-7">
           <div className="grid grid-cols-2 gap-4">
             <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setActiveTab('home'); }} className="text-left active:scale-[0.985] transition-transform">
-              <div className="h-36 rounded-3xl bg-violet-50 border border-violet-100 flex items-center justify-center shadow-sm">
-                <Package size={58} strokeWidth={1.35} className="text-violet-700" />
+              <div className="relative h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-violet-500 via-violet-600 to-indigo-800 shadow-sm">
+                <div className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10" />
+                <div className="absolute -left-5 -bottom-8 w-24 h-24 rounded-full bg-white/10" />
+                <Package size={62} strokeWidth={1.25} className="absolute right-4 top-4 text-white/80" />
               </div>
               <p className="mt-2.5 text-base font-black text-gray-900">Enviar Pacote</p>
               <p className="mt-0.5 text-xs text-gray-500">De um ponto para outro</p>
             </button>
 
             <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="text-left active:scale-[0.985] transition-transform">
-              <div className="h-36 rounded-3xl bg-orange-50 border border-orange-100 flex items-center justify-center shadow-sm">
-                <Utensils size={58} strokeWidth={1.35} className="text-orange-600" />
+              <div className="relative h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-amber-300 via-orange-400 to-orange-600 shadow-sm">
+                <div className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/15" />
+                <div className="absolute -left-5 -bottom-8 w-24 h-24 rounded-full bg-white/10" />
+                <Utensils size={62} strokeWidth={1.25} className="absolute right-4 top-4 text-white/80" />
               </div>
               <p className="mt-2.5 text-base font-black text-gray-900">Pedir Algo</p>
               <p className="mt-0.5 text-xs text-gray-500">Comida e compras</p>
@@ -486,41 +496,27 @@ export default function HomeTab() {
 
         <section className="mt-8">
           <h2 className="text-base font-black mb-3">DESCOBRE</h2>
-          {discoveryLoading && <div className="h-28 rounded-2xl bg-gray-100 animate-pulse" />}
+          {discoveryLoading && <div className="h-32 rounded-3xl bg-gray-100 animate-pulse" />}
           {!discoveryLoading && discoverList.length > 0 && (
             <div className="grid grid-cols-2 gap-4">
               {discoverList.map(item => {
                 const isProduct = Boolean(item.product_name);
-                const Icon = discoverMode === 'drinks'
-                  ? Wine
-                  : discoverMode === 'promo'
-                    ? Tag
-                    : item.marketplace_category === 'compras'
-                      ? ShoppingBag
-                      : Utensils;
+                const Icon = discoverMode === 'drinks' ? Wine : discoverMode === 'promo' ? Tag : item.marketplace_category === 'compras' ? ShoppingBag : Utensils;
                 const itemName = isProduct ? item.product_name : item.name;
-                const businessName = isProduct ? item.name : item.name;
-                const categoryName = discoverMode === 'drinks'
-                  ? 'Bebidas'
-                  : discoverMode === 'promo'
-                    ? 'Promo'
-                    : item.marketplace_category === 'compras'
-                      ? 'Compras'
-                      : 'Comida';
-
+                const categoryName = discoverMode === 'drinks' ? 'Bebidas' : discoverMode === 'promo' ? 'Promo' : item.marketplace_category === 'compras' ? 'Compras' : 'Comida';
                 return (
                   <button key={item.business_id || item.id} type="button" onClick={() => {
                     if (!isProduct && item.id) openBusiness(item);
                   }} className="text-left">
-                    <div className="h-32 rounded-3xl bg-white border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
+                    <div className="h-32 rounded-3xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-sm flex items-center justify-center">
                       {item.image_url ? (
                         <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                       ) : (
-                        <Icon size={46} strokeWidth={1.25} className="text-gray-300" />
+                        <Icon size={48} strokeWidth={1.2} className="text-gray-300" />
                       )}
                     </div>
                     <p className="mt-2.5 text-sm font-black text-gray-900">{categoryName}</p>
-                    <p className="mt-0.5 text-xs text-gray-500 truncate">{businessName}</p>
+                    <p className="mt-0.5 text-xs text-gray-500 truncate">{itemName}</p>
                   </button>
                 );
               })}
