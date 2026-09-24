@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, LockKeyhole, MessageSquare } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, LockKeyhole } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
 
@@ -21,12 +21,12 @@ function normalizePhone(raw, dial) {
 }
 
 export default function AuthView() {
-  const { authMode, setAuthMode, toasts, removeToast, notifySystem } = useApp();
+  const { authMode, setAuthMode, setActiveRole, toasts, removeToast, notifySystem } = useApp();
   const [country, setCountry] = useState('AO');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [stage, setStage] = useState('phone');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);\n  const otpInputRef = useRef(null);\n  const verifyingOtpRef = useRef(false);
 
   const selectedCountry = useMemo(
     () => COUNTRIES.find((item) => item.code === country) || COUNTRIES[0],
@@ -204,59 +204,79 @@ export default function AuthView() {
             <button
               type="button"
               onClick={reset}
-              className="mb-8 flex w-fit items-center gap-2 text-sm font-bold text-slate-500"
+              className="mb-10 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             >
               <ArrowLeft size={17} />
-              Alterar número
+              Voltar
             </button>
 
-            <div className="mb-8">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
-                <MessageSquare size={22} />
-              </div>
+            <div className="mb-10">
               <h1 className="text-3xl font-black tracking-tight">Confirma o teu número</h1>
-              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Enviámos um código para <strong className="text-slate-800 dark:text-slate-200">{fullPhone}</strong>.
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Enviámos um código de 6 dígitos por SMS para{' '}
+                <strong className="text-slate-800 dark:text-slate-200">{fullPhone}</strong>.
               </p>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <label htmlFor="otp" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
-                Código de 6 dígitos
-              </label>
+            <div className="relative">
+              <label htmlFor="otp" className="sr-only">Código de 6 dígitos</label>
+              <div
+                aria-hidden="true"
+                className="grid grid-cols-6 gap-2 sm:gap-3"
+              >
+                {Array.from({ length: 6 }).map((_, index) => {
+                  const digit = otp[index] || '';
+                  return (
+                    <div
+                      key={index}
+                      className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-2xl font-black text-slate-950 shadow-sm transition focus-within:border-violet-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    >
+                      {digit || <span className="h-2 w-2 rounded-full bg-slate-200 dark:bg-slate-700" />}
+                    </div>
+                  );
+                })}
+              </div>
+
               <input
+                ref={otpInputRef}
                 id="otp"
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
                 value={otp}
-                onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={handleOtpChange}
+                onPaste={handleOtpPaste}
                 onKeyDown={(event) => event.key === 'Enter' && verifyCode()}
+                onClick={() => otpInputRef.current?.focus()}
                 autoComplete="one-time-code"
                 autoFocus
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-center text-3xl font-black tracking-[0.45em] outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800"
-                placeholder="000000"
+                aria-label="Código de 6 dígitos"
+                className="absolute inset-0 h-full w-full cursor-text opacity-0"
               />
-
-              <button
-                type="button"
-                onClick={verifyCode}
-                disabled={loading}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black text-white disabled:opacity-60"
-              >
-                {loading ? 'A verificar…' : 'Confirmar'}
-                {!loading && <Check size={18} />}
-              </button>
-
-              <button
-                type="button"
-                onClick={resendCode}
-                disabled={loading}
-                className="mt-4 w-full text-center text-xs font-bold text-violet-600 disabled:opacity-50"
-              >
-                Reenviar código
-              </button>
             </div>
+
+            <button
+              type="button"
+              onClick={verifyCode}
+              disabled={loading || otp.length !== 6}
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? 'A verificar…' : 'Confirmar'}
+              {!loading && <Check size={18} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={resendCode}
+              disabled={loading}
+              className="mt-5 w-full text-center text-sm font-bold text-violet-600 disabled:opacity-50"
+            >
+              Reenviar código
+            </button>
+
+            <p className="mt-8 text-center text-xs text-slate-400">
+              Se este número estiver associado a uma conta Pedejá, entrarás directamente na aplicação.
+            </p>
           </section>
         )}
 
