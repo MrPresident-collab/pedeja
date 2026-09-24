@@ -52,6 +52,14 @@ function formatAddress(parts) {
   return parts.filter(Boolean).join(', ');
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function getOrderKind(job) {
   if (job?.source_type === 'ENVIAR' || job?.enviar_shipment_id) return 'ENVIAR';
   if (job?.source_type === 'ORDER') {
@@ -317,7 +325,10 @@ export default function RiderView() {
           clearInterval(offerTimerRef.current);
           setOffer(null);
           const job = await loadJob(row.delivery_job_id);
-          if (job) setActiveJob(job);
+          if (job) {
+            setActiveJob(job);
+            setRiderTab('active');
+          }
           setAvailability('BUSY');
         } else if (['REJECTED', 'EXPIRED', 'REVOKED'].includes(row?.status)) {
           setOffer(null);
@@ -588,30 +599,30 @@ export default function RiderView() {
     );
   };
 
-  const escapeHtml = (value) => String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
   const createRiderMarkerIcon = useCallback(() => {
     const avatarUrl = userProfile?.avatarUrl ? escapeHtml(userProfile.avatarUrl) : '';
     const avatarMarkup = avatarUrl
-      ? '<image href="' + avatarUrl + '" x="22" y="22" width="46" height="46" preserveAspectRatio="xMidYMid slice" clip-path="url(#rider-avatar-clip)" />'
-      : '<circle cx="45" cy="45" r="23" fill="#F7F5FF"/><path d="M45 31.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm-14 28.2c2.9-7.2 8-10.8 14-10.8s11.1 3.6 14 10.8" fill="none" stroke="#6D28D9" stroke-width="3.5" stroke-linecap="round"/>';
+      ? '<img src="' + avatarUrl + '" alt="" draggable="false" style="display:block;width:54px;height:54px;object-fit:cover;border-radius:50%;" />'
+      : '<div style="width:54px;height:54px;border-radius:50%;background:#F7F5FF;display:flex;align-items:center;justify-content:center;color:#6D28D9;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg></div>';
 
     const radarMarkup = isOnline && !isBusy
-      ? '<circle cx="45" cy="45" r="25" fill="none" stroke="#6D28D9" stroke-width="2.5"><animate attributeName="r" values="25;58" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.34;0" dur="2.4s" repeatCount="indefinite"/></circle>' +
-        '<circle cx="45" cy="45" r="25" fill="none" stroke="#6D28D9" stroke-width="2.5"><animate attributeName="r" values="25;58" dur="2.4s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.34;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></circle>'
+      ? '<span class="pedeja-rider-radar"></span><span class="pedeja-rider-radar pedeja-rider-radar-delay"></span>'
       : '';
 
     return L.divIcon({
       className: 'pedeja-rider-map-icon',
-      html: '<div style="width:90px;height:90px;position:relative;"><svg width="90" height="90" viewBox="0 0 90 90" aria-hidden="true" style="overflow:visible"><defs><clipPath id="rider-avatar-clip"><circle cx="45" cy="45" r="23"/></clipPath></defs>' +
+      html: '<style>' +
+        '@keyframes pedeja-rider-radar { 0% { transform:scale(.48); opacity:.34; } 70% { opacity:.10; } 100% { transform:scale(1.42); opacity:0; } }' +
+        '.pedeja-rider-map-icon{background:transparent!important;border:0!important;}' +
+        '.pedeja-rider-map-icon .pedeja-rider-radar{position:absolute;left:9px;top:9px;width:72px;height:72px;border:2px solid #6D28D9;border-radius:50%;box-sizing:border-box;animation:pedeja-rider-radar 2.6s ease-out infinite;pointer-events:none;}' +
+        '.pedeja-rider-map-icon .pedeja-rider-radar-delay{animation-delay:1.3s;}' +
+        '</style>' +
+        '<div style="width:90px;height:90px;position:relative;background:transparent;">' +
         radarMarkup +
-        '<circle cx="45" cy="45" r="27" fill="#FFFFFF" stroke="#6D28D9" stroke-width="3"/>' +
+        '<div style="position:absolute;left:18px;top:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:3px solid #6D28D9;box-shadow:0 2px 8px rgba(38,20,72,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
         avatarMarkup +
-        '<circle cx="45" cy="45" r="23" fill="none" stroke="#FFFFFF" stroke-width="2"/></svg></div>',
+        '</div>' +
+        '</div>',
       iconSize: [90, 90],
       iconAnchor: [45, 45],
     });
