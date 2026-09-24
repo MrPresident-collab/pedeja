@@ -10,6 +10,7 @@ import {
   MapPin,
   Navigation,
   Package,
+  User,
   Phone,
   Power,
   ReceiptText,
@@ -493,9 +494,9 @@ export default function RiderView() {
 
   if (!rider) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-violet-950 text-white flex items-center justify-center p-6">
         <div className="max-w-sm text-center">
-          <ShieldAlert size={40} className="mx-auto mb-4 text-amber-400" />
+          <ShieldAlert size={40} className="mx-auto mb-4 text-violet-200" />
           <h1 className="text-xl font-bold">Conta de estafeta não disponível</h1>
           <p className="text-sm text-slate-400 mt-2">A tua conta ainda não tem um perfil de estafeta activo.</p>
           <button onClick={() => setActiveRole('customer')} className="mt-6 px-5 py-3 rounded-xl bg-white text-slate-900 font-bold">
@@ -506,9 +507,9 @@ export default function RiderView() {
     );
   }
 
-  const shell = 'bg-slate-950 text-white';
-  const panel = 'bg-slate-900/80 border-slate-800';
-  const muted = 'text-slate-400';
+  const shell = 'bg-violet-950 text-white';
+  const panel = 'bg-violet-950/80 border-violet-800/60';
+  const muted = 'text-violet-200/65';
 
   const renderOffer = () => {
     if (!offer) return null;
@@ -525,7 +526,7 @@ export default function RiderView() {
               <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">Nova entrega</p>
               <p className="text-3xl font-black mt-1">{money(job.riderPay)}</p>
             </div>
-            <div className={`w-14 h-14 rounded-full border-4 flex items-center justify-center font-black text-lg ${offerSeconds <= 5 ? 'border-red-500 text-red-400' : 'border-emerald-500 text-emerald-400'}`}>
+            <div className={`w-14 h-14 rounded-full border-4 flex items-center justify-center font-black text-lg ${offerSeconds <= 5 ? 'border-red-500 text-red-400' : 'border-violet-500 text-violet-300'}`}>
               {offerSeconds}
             </div>
           </div>
@@ -549,11 +550,11 @@ export default function RiderView() {
 
           <div className="space-y-3 mb-5">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Recolha</p>
+              <p className="text-[11px] uppercase tracking-wider text-violet-300/45 font-bold">Recolha</p>
               <p className="font-bold mt-1">{job.senderName || 'Ponto de recolha'}</p>
               <p className={`text-sm ${muted}`}>{job.pickupAddress}</p>
             </div>
-            <div className="h-px bg-slate-800" />
+            <div className="h-px bg-violet-900" />
             <div>
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Entrega</p>
               <p className="font-bold mt-1">{job.recipientName || 'Destinatário'}</p>
@@ -563,7 +564,7 @@ export default function RiderView() {
           </div>
 
           {cash && job.totalAmount > 0 && (
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-sm mb-4">
+            <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-3 py-2 text-sm mb-4">
               Cobrar no destino: <strong>{money(job.totalAmount)}</strong>
             </div>
           )}
@@ -572,7 +573,7 @@ export default function RiderView() {
             <button onClick={rejectOffer} disabled={actionLoading} className="flex-1 py-3.5 rounded-xl border border-slate-700 font-bold disabled:opacity-40">
               Recusar
             </button>
-            <button onClick={acceptOffer} disabled={actionLoading || offerSeconds <= 0} className="flex-[1.4] py-3.5 rounded-xl bg-emerald-500 text-white font-black disabled:opacity-40">
+            <button onClick={acceptOffer} disabled={actionLoading || offerSeconds <= 0} className="flex-[1.4] py-3.5 rounded-xl bg-violet-600 text-white font-black disabled:opacity-40">
               {actionLoading ? 'A processar...' : 'Aceitar'}
             </button>
           </div>
@@ -582,9 +583,9 @@ export default function RiderView() {
   };
 
   const renderHome = () => (
-    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(148,163,184,0.16),_transparent_58%)]" aria-hidden="true" />
-      <div className="absolute inset-0 opacity-25 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px]" aria-hidden="true" />
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-violet-950">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(124,58,237,0.18),_transparent_58%)]" aria-hidden="true" />
+      <div className="absolute inset-0 opacity-25 bg-[linear-gradient(rgba(196,181,253,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px]" aria-hidden="true" />
 
       <div className="relative z-10 flex min-h-[calc(100dvh-4rem)] flex-col">
         <div className="flex items-center justify-between px-4 pt-4">
@@ -596,17 +597,17 @@ export default function RiderView() {
             {userProfile?.avatarUrl ? (
               <img src={userProfile.avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Bike size={20} className="mx-auto text-white/80" />
+              <User size={20} className="mx-auto text-violet-200" />
             )}
           </button>
-          <button onClick={help} aria-label="Ajuda" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/20 backdrop-blur-md">
+          <button onClick={help} aria-label="Ajuda" className="flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/20 bg-violet-950/45 backdrop-blur-md">
             <CircleHelp size={20} />
           </button>
         </div>
 
         <div className="flex flex-1 items-center justify-center px-6">
           <div className="text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Estado</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-violet-200/55">Estado</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight">
               {isBusy ? 'EM ENTREGA' : isOnline ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
             </h1>
@@ -623,7 +624,7 @@ export default function RiderView() {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-md">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-violet-200/15 bg-violet-950/45 p-3 backdrop-blur-md">
             <div><p className="text-[10px] uppercase tracking-wider text-white/45">Hoje</p><p className="mt-1 font-black">{money(todayPay)}</p></div>
             <div><p className="text-[10px] uppercase tracking-wider text-white/45">Entregas</p><p className="mt-1 font-black">{history.length}</p></div>
             <div><p className="text-[10px] uppercase tracking-wider text-white/45">GPS</p><p className="mt-1 font-black">{gpsStatus === 'tracking' ? 'Activo' : '—'}</p></div>
@@ -684,7 +685,7 @@ export default function RiderView() {
           <div className="relative pl-7">
             <div className="absolute left-2 top-2 bottom-2 w-px bg-slate-700" />
             <div className="relative mb-7">
-              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-emerald-400 bg-slate-950" />
+              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-emerald-400 bg-violet-950" />
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Recolha</p>
               <p className="font-bold mt-1">{activeJob.senderName || 'Ponto de recolha'}</p>
               <p className={`text-sm mt-1 ${muted}`}>{activeJob.pickupAddress}</p>
@@ -700,7 +701,7 @@ export default function RiderView() {
         </section>
 
         <div className="grid grid-cols-2 gap-3">
-          <a href={navigationUrl(targetLocation, targetAddress)} target="_blank" rel="noreferrer" className="py-3 rounded-2xl bg-sky-500 text-white font-bold flex items-center justify-center gap-2">
+          <a href={navigationUrl(targetLocation, targetAddress)} target="_blank" rel="noreferrer" className="py-3 rounded-2xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2">
             <Navigation size={18} /> Navegar
           </a>
           {contactPhone ? (
@@ -719,7 +720,7 @@ export default function RiderView() {
         </button>
 
         {cash && activeJob.status === 'ARRIVED_DESTINATION' && activeJob.totalAmount > 0 && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <div className="rounded-2xl border border-violet-500/30 bg-amber-500/10 p-4">
             <p className="text-xs uppercase tracking-wider text-amber-400 font-bold">Cobrança</p>
             <p className="text-xl font-black mt-1">{money(activeJob.totalAmount)}</p>
             <p className={`text-xs mt-1 ${muted}`}>Confirma a entrega depois de o pagamento ser registado.</p>
@@ -779,7 +780,7 @@ export default function RiderView() {
     <div className="space-y-3">
       <section className={`rounded-3xl border p-5 ${panel}`}>
         <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-          <Bike size={26} />
+          <User size={26} />
         </div>
         <p className="font-black text-xl">{userProfile?.name || 'Estafeta'}</p>
         <p className={`text-sm mt-1 ${muted}`}>{userProfile?.phone || userProfile?.email || ''}</p>
@@ -833,17 +834,17 @@ export default function RiderView() {
         {content}
       </main>
 
-      <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+      <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${isDarkMode ? 'bg-violet-950/95 border-violet-900' : 'bg-white/95 border-slate-200'}`}>
         <div className="max-w-md mx-auto grid grid-cols-4 h-20">
           {[
             ['home', Power, 'Início'],
             ['active', Bike, 'Entregas'],
             ['wallet', WalletCards, 'Ganhos'],
-            ['profile', CircleHelp, 'Perfil'],
+            ['profile', User, 'Perfil'],
           ].map(([tab, Icon, label]) => {
             const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
             return (
-              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-white' : muted}`}>
+              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-violet-300' : muted}`}>
                 <Icon size={18} />
                 {label}
               </button>
