@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, LockKeyhole } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, LockKeyhole } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
 
@@ -26,7 +26,8 @@ export default function AuthView() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [stage, setStage] = useState('phone');
-  const [loading, setLoading] = useState(false);\n  const otpInputRef = useRef(null);\n  const verifyingOtpRef = useRef(false);
+  const [loading, setLoading] = useState(false);
+  const otpInputRef = useRef(null);
 
   const selectedCountry = useMemo(
     () => COUNTRIES.find((item) => item.code === country) || COUNTRIES[0],
@@ -34,12 +35,18 @@ export default function AuthView() {
   );
 
   const fullPhone = normalizePhone(phone, selectedCountry.dial);
+  const isOnboarding = authMode === 'register';
 
   const reset = () => {
     setPhone('');
     setOtp('');
     setStage('phone');
     setLoading(false);
+  };
+
+  const switchMode = (mode) => {
+    reset();
+    setAuthMode(mode);
   };
 
   const sendCode = async () => {
@@ -56,18 +63,31 @@ export default function AuthView() {
     setLoading(true);
     try {
       const { supabase } = await import('../lib/supabase');
+
+      // Existing Estafeta login: never create an identity.
+      // Onboarding: explicitly permits creation of a new authenticated identity.
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: isOnboarding },
       });
 
       if (error) {
-        notifySystem('Não foi possível enviar', error.message, 'error');
+        notifySystem(
+          isOnboarding ? 'Não foi possível iniciar a candidatura' : 'Não foi possível entrar',
+          error.message,
+          'error',
+        );
         return;
       }
 
       setStage('otp');
-      notifySystem('Código enviado', 'Enviámos um código por SMS.', 'success');
+      notifySystem(
+        'Código enviado',
+        isOnboarding
+          ? 'Enviámos o código de candidatura por SMS.'
+          : 'Enviámos o código de acesso por SMS.',
+        'success',
+      );
     } finally {
       setLoading(false);
     }
@@ -82,7 +102,7 @@ export default function AuthView() {
     setLoading(true);
     try {
       const { supabase } = await import('../lib/supabase');
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone: fullPhone,
         token: otp,
         type: 'sms',
@@ -93,7 +113,17 @@ export default function AuthView() {
         return;
       }
 
-      notifySystem('Sessão iniciada', 'A preparar o seu Pedejá.', 'success');
+      if (isOnboarding) {
+        // This OTP authenticates the applicant only. It does not grant
+        // Estafeta capability and does not enter the operational rider app.
+        // The onboarding flow will continue from this authenticated state.
+        notifySystem('Número confirmado', 'Vamos continuar a tua candidatura.', 'success');
+        setStage('onboarding');
+        return;
+      }
+
+      setActiveRole('rider');
+      notifySystem('Sessão iniciada', 'A preparar o teu Pedejá.', 'success');
       reset();
     } finally {
       setLoading(false);
@@ -106,7 +136,7 @@ export default function AuthView() {
       const { supabase } = await import('../lib/supabase');
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: isOnboarding },
       });
 
       if (error) {
@@ -114,16 +144,135 @@ export default function AuthView() {
         return;
       }
 
-      notifySystem('Novo código enviado', 'Verifique as suas mensagens.', 'success');
+      notifySystem(
+        'Novo código enviado',
+        isOnboarding
+          ? 'Novo código de candidatura enviado.'
+          : 'Novo código de acesso enviado.',
+        'success',
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const switchMode = (mode) => {
-    reset();
-    setAuthMode(mode);
-  };
+  const renderOtp = () => (
+    <section className="flex flex-1 flex-col justify-center py-10">
+      <button
+        type="button"
+        onClick={reset}
+        className="mb-10 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+      >
+        <ArrowLeft size={17} />
+        Voltar
+      </button>
+
+      <div className="mb-10">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">
+          {isOnboarding ? 'Candidatura de estafeta' : 'Acesso de estafeta'}
+        </p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">
+          {isOnboarding ? 'Confirma o teu número' : 'Confirma o teu número'}
+        </h1>
+        <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Enviámos um código de 6 dígitos por SMS para{' '}
+          <strong className="text-slate-800 dark:text-slate-200">{fullPhone}</strong>.
+        </p>
+      </div>
+
+      <div className="relative">
+        <label htmlFor="otp" className="sr-only">Código de 6 dígitos</label>
+        <div aria-hidden="true" className="grid grid-cols-6 gap-2 sm:gap-3">
+          {Array.from({ length: 6 }).map((_, index) => {
+            const digit = otp[index] || '';
+            return (
+              <div
+                key={index}
+                className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-2xl font-black text-slate-950 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              >
+                {digit || <span className="h-2 w-2 rounded-full bg-slate-200 dark:bg-slate-700" />}
+              </div>
+            );
+          })}
+        </div>
+
+        <input
+          ref={otpInputRef}
+          id="otp"
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={otp}
+          onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+          onPaste={(event) => {
+            event.preventDefault();
+            setOtp((event.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6));
+          }}
+          onKeyDown={(event) => event.key === 'Enter' && verifyCode()}
+          onClick={() => otpInputRef.current?.focus()}
+          autoComplete="one-time-code"
+          autoFocus
+          aria-label="Código de 6 dígitos"
+          className="absolute inset-0 h-full w-full cursor-text opacity-0"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={verifyCode}
+        disabled={loading || otp.length !== 6}
+        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {loading ? 'A verificar…' : 'Confirmar'}
+        {!loading && <Check size={18} />}
+      </button>
+
+      <button
+        type="button"
+        onClick={resendCode}
+        disabled={loading}
+        className="mt-5 w-full text-center text-sm font-bold text-violet-600 disabled:opacity-50"
+      >
+        Reenviar código
+      </button>
+
+      <p className="mt-8 text-center text-xs text-slate-400">
+        {isOnboarding
+          ? 'Este código confirma apenas o teu número. A candidatura continua depois da verificação.'
+          : 'Este código confirma o acesso à tua conta de estafeta.'}
+      </p>
+    </section>
+  );
+
+  const renderOnboardingStart = () => (
+    <section className="flex flex-1 flex-col justify-center py-10">
+      <div className="mb-8">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">
+          Candidatura de estafeta
+        </p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight">
+          Número confirmado.
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Agora vamos recolher os dados necessários para a tua candidatura.
+        </p>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+          Próximo: os teus dados pessoais e morada.
+        </p>
+        <button
+          type="button"
+          onClick={() => notifySystem('Próximo passo', 'O formulário de dados pessoais será ligado a seguir.', 'info')}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white"
+        >
+          Continuar
+          <ArrowRight size={18} />
+        </button>
+      </div>
+    </section>
+  );
 
   return (
     <div className="min-h-screen bg-white text-slate-950 dark:bg-slate-950 dark:text-white">
@@ -199,121 +348,66 @@ export default function AuthView() {
           </section>
         )}
 
-        {authMode === 'login' && stage === 'otp' && (
+        {authMode === 'login' && stage === 'otp' && renderOtp()}
+
+        {authMode === 'register' && stage === 'phone' && (
           <section className="flex flex-1 flex-col justify-center py-10">
             <button
               type="button"
-              onClick={reset}
+              onClick={() => switchMode('login')}
               className="mb-10 flex w-fit items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             >
               <ArrowLeft size={17} />
               Voltar
             </button>
 
-            <div className="mb-10">
-              <h1 className="text-3xl font-black tracking-tight">Confirma o teu número</h1>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Enviámos um código de 6 dígitos por SMS para{' '}
-                <strong className="text-slate-800 dark:text-slate-200">{fullPhone}</strong>.
+            <div className="mb-8">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Candidatura de estafeta</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight">Começa aqui.</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Primeiro confirmamos o teu número. Depois recolhemos os dados necessários para avaliar a tua candidatura.
               </p>
             </div>
 
-            <div className="relative">
-              <label htmlFor="otp" className="sr-only">Código de 6 dígitos</label>
-              <div
-                aria-hidden="true"
-                className="grid grid-cols-6 gap-2 sm:gap-3"
-              >
-                {Array.from({ length: 6 }).map((_, index) => {
-                  const digit = otp[index] || '';
-                  return (
-                    <div
-                      key={index}
-                      className="flex h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-2xl font-black text-slate-950 shadow-sm transition focus-within:border-violet-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                    >
-                      {digit || <span className="h-2 w-2 rounded-full bg-slate-200 dark:bg-slate-700" />}
-                    </div>
-                  );
-                })}
+            <label htmlFor="register-phone" className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+              Número de telefone
+            </label>
+            <div className="flex overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100 dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center border-r border-slate-200 px-4 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                {selectedCountry.dial}
               </div>
-
               <input
-                ref={otpInputRef}
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={handleOtpChange}
-                onPaste={handleOtpPaste}
-                onKeyDown={(event) => event.key === 'Enter' && verifyCode()}
-                onClick={() => otpInputRef.current?.focus()}
-                autoComplete="one-time-code"
+                id="register-phone"
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value.replace(/[^0-9 ]/g, ''))}
+                onKeyDown={(event) => event.key === 'Enter' && sendCode()}
+                placeholder={country === 'AO' ? '9XX XXX XXX' : 'Número de telefone'}
+                autoComplete="tel"
+                className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-semibold outline-none"
                 autoFocus
-                aria-label="Código de 6 dígitos"
-                className="absolute inset-0 h-full w-full cursor-text opacity-0"
               />
             </div>
 
             <button
               type="button"
-              onClick={verifyCode}
-              disabled={loading || otp.length !== 6}
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? 'A verificar…' : 'Confirmar'}
-              {!loading && <Check size={18} />}
-            </button>
-
-            <button
-              type="button"
-              onClick={resendCode}
+              onClick={sendCode}
               disabled={loading}
-              className="mt-5 w-full text-center text-sm font-bold text-violet-600 disabled:opacity-50"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Reenviar código
+              {loading ? 'A enviar…' : 'Continuar'}
+              {!loading && <ArrowRight size={18} />}
             </button>
 
-            <p className="mt-8 text-center text-xs text-slate-400">
-              Se este número estiver associado a uma conta Pedejá, entrarás directamente na aplicação.
+            <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+              Ao continuar, receberás um código de candidatura por SMS.
             </p>
           </section>
         )}
 
-        {authMode === 'register' && (
-          <section className="flex flex-1 flex-col justify-center py-10">
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="mb-8 flex w-fit items-center gap-2 text-sm font-bold text-slate-500"
-            >
-              <ArrowLeft size={17} />
-              Voltar
-            </button>
-
-            <div className="mb-8">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Estafeta Pedejá</p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">Começa aqui.</h1>
-              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Primeiro confirmamos a tua identidade. Depois seguimos com a candidatura de estafeta.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
-                A candidatura começa pelo teu número de telefone. Depois da verificação, recolheremos os dados necessários para avaliar a tua candidatura.
-              </p>
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-5 py-4 text-sm font-black uppercase tracking-wide text-white"
-              >
-                Começar com o telefone
-                <ArrowRight size={18} />
-              </button>
-            </div>
-          </section>
-        )}
+        {authMode === 'register' && stage === 'otp' && renderOtp()}
+        {authMode === 'register' && stage === 'onboarding' && renderOnboardingStart()}
 
         <footer className="pb-1 pt-5 text-center text-[11px] leading-5 text-slate-400">
           <div className="mb-2 flex items-center justify-center gap-2">
