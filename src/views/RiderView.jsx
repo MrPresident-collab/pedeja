@@ -444,6 +444,10 @@ export default function RiderView() {
   }, [rider?.id, supabase]);
 
   const setOnline = async (nextOnline) => {
+    if (accountRestricted) {
+      setError('A conta não está autorizada a operar entregas neste momento.');
+      return;
+    }
     if (nextOnline && gpsStatus !== 'tracking') {
       setError(gpsStatus === 'denied'
         ? 'A localização do dispositivo é obrigatória para ficar disponível.'
@@ -585,7 +589,7 @@ export default function RiderView() {
   const muted = 'text-slate-500';
 
   const renderOffer = () => {
-    if (!offer) return null;
+    if (!offer || accountRestricted) return null;
     const job = offer.job;
     const TypeIcon = getOrderTypeIcon(job.kind);
     const cash = ['CASH', 'NUMERARIO', 'CASH_ON_DELIVERY'].includes(job.paymentMethod);
@@ -981,7 +985,9 @@ export default function RiderView() {
   );
 
   let content = null;
-  if (loading) {
+  if (accountRestricted) {
+    content = renderHome();
+  } else if (loading) {
     content = (
       <div className="space-y-3">
         <div className={`h-40 rounded-3xl border ${panel} animate-pulse`} />
