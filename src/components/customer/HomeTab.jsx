@@ -346,6 +346,26 @@ export default function HomeTab() {
       .filter(Boolean).slice(0, 2).join(', ')
     : 'Adicionar morada';
 
+  const [repeatItems, setRepeatItems] = useState([]);
+  const [repeatLoading, setRepeatLoading] = useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadRepeatItems = async () => {
+      setRepeatLoading(true);
+      try {
+        const { data, error } = await supabase.rpc('customer_repeat_items');
+        if (!cancelled && !error) setRepeatItems(Array.isArray(data) ? data : []);
+      } catch {
+        if (!cancelled) setRepeatItems([]);
+      } finally {
+        if (!cancelled) setRepeatLoading(false);
+      }
+    };
+    loadRepeatItems();
+    return () => { cancelled = true; };
+  }, [supabase]);
+
   const discoverBusinesses = useMemo(() => {
     const openBusinesses = businessesWithDistance.filter(business => business.status === 'open');
     if (discoverMode === 'nearby') {
@@ -362,109 +382,115 @@ export default function HomeTab() {
     return openBusinesses.filter(business => business.serviceType === targetType).slice(0, 6);
   }, [businessesWithDistance, discoverMode]);
 
+  const discoverTabs = [
+    { id: 'nearby', label: 'Perto de ti' },
+    { id: 'shopping', label: 'Compras' },
+    { id: 'drinks', label: 'Bebidas' },
+    { id: 'promo', label: 'Promo' },
+  ];
+
+  const discoverList = discoverMode === 'shopping'
+    ? businessesWithDistance.filter(b => b.status === 'open' && b.serviceType === PEDEJA_SERVICE_TYPES.COMPRAS).slice(0, 6)
+    : discoverMode === 'drinks'
+      ? businessesWithDistance.filter(b => b.status === 'open' && /bebid|bar|drink/i.test(`${b.name || ''} ${b.category || ''}`)).slice(0, 6)
+      : discoverMode === 'promo'
+        ? businessesWithDistance.filter(b => b.status === 'open' && b.promoBadge).slice(0, 6)
+        : discoverBusinesses;
+
+  const openBusiness = (business) => {
+    setServiceType(business.serviceType || PEDEJA_SERVICE_TYPES.FOME);
+    setSelectedRestaurant(business);
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
-      <div className="px-4 pt-5 pb-4">
+      <div className="px-4 pt-5">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => setActiveTab('profile')} className="w-11 h-11 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm" aria-label="Abrir perfil">
-            {userProfile?.avatarUrl
-              ? <img src={userProfile.avatarUrl} alt="" className="w-full h-full object-cover" />
-              : <div className="w-full h-full flex items-center justify-center bg-violet-100 text-violet-700 font-black text-sm">{firstName.slice(0, 1).toUpperCase()}</div>}
+          <button type="button" onClick={() => setShowAddressPicker(true)} className="min-w-0 flex items-center gap-2.5 text-left" aria-label="Alterar morada">
+            <MapPin size={19} className="text-violet-600 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Morada de entrega</p>
+              <p className="text-sm font-black truncate max-w-[250px]">{primaryAddress?.label || 'Adicionar morada'} <span className="font-normal text-gray-400">·</span> {addressLabel}</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-400 shrink-0" />
           </button>
-          <button type="button" className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-200 shadow-sm" aria-label="Notificações">
+          <button type="button" className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm" aria-label="Notificações">
             <Bell size={19} strokeWidth={1.9} />
           </button>
         </div>
 
-        <div className="mt-5">
-          <p className="text-[15px] text-gray-500 dark:text-gray-400">Olá, <span className="font-semibold text-gray-800 dark:text-gray-100">{firstName}</span></p>
-          <h1 className="text-[27px] leading-tight font-black tracking-tight mt-0.5">O que precisas?</h1>
-        </div>
-
-        <button type="button" onClick={() => setShowAddressPicker(true)} className="w-full mt-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left shadow-sm active:scale-[0.99] transition-transform">
-          <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0"><MapPin size={18} /></div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-[0.08em] font-bold text-gray-400">Entregar em</p>
-            <p className="text-sm font-bold truncate mt-0.5">{primaryAddress?.label || 'Casa'} <span className="text-gray-400 font-normal">·</span> {addressLabel}</p>
-          </div>
-          <ChevronRight size={19} className="text-gray-400 shrink-0" />
+        <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="w-full mt-5 h-12 rounded-2xl bg-white border border-gray-200 px-4 flex items-center gap-3 text-left shadow-sm">
+          <Search size={19} className="text-gray-400" />
+          <span className="text-sm text-gray-500">Comida e Compras</span>
         </button>
 
         <div className="grid grid-cols-2 gap-3 mt-4">
-          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="relative h-36 rounded-2xl overflow-hidden text-left shadow-sm border border-black/5 active:scale-[0.985] transition-transform" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
-            <div className="relative h-full flex flex-col justify-end p-4"><span className="text-white text-lg font-black">Pedir algo</span><span className="text-white/80 text-xs mt-0.5">Comida e compras</span></div>
+          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setActiveTab('home'); }} className="relative h-40 rounded-3xl overflow-hidden bg-gradient-to-br from-violet-600 to-violet-900 text-left shadow-sm active:scale-[0.985] transition-transform">
+            <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10" />
+            <div className="absolute right-4 top-5 text-white/30"><Package size={64} strokeWidth={1} /></div>
+            <div className="absolute bottom-4 left-4"><p className="text-white text-lg font-black">Enviar Pacote</p><p className="text-white/70 text-xs mt-1">De um ponto para outro</p></div>
           </button>
-
-          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setActiveTab('home'); }} className="relative h-36 rounded-2xl overflow-hidden text-left shadow-sm border border-black/5 active:scale-[0.985] transition-transform" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=80')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
-            <div className="relative h-full flex flex-col justify-end p-4"><span className="text-white text-lg font-black">Enviar pacote</span><span className="text-white/80 text-xs mt-0.5">De um ponto para outro</span></div>
+          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="relative h-40 rounded-3xl overflow-hidden bg-gradient-to-br from-amber-400 to-orange-600 text-left shadow-sm active:scale-[0.985] transition-transform">
+            <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/20" />
+            <div className="absolute right-4 top-5 text-white/30"><Utensils size={64} strokeWidth={1} /></div>
+            <div className="absolute bottom-4 left-4"><p className="text-white text-lg font-black">Pedir Algo</p><p className="text-white/80 text-xs mt-1">Comida e compras</p></div>
           </button>
         </div>
 
-        {activeDelivery && (
-          <section className="mt-7">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-black">Actividade</h2>
-              <button type="button" onClick={() => setActiveTab('activity')} className="text-xs font-bold text-violet-700">Ver &gt;</button>
-            </div>
-            <button type="button" onClick={() => setActiveTab('activity')} className="w-full text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm active:scale-[0.99] transition-transform">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-black text-sm truncate">{activeDelivery.status === 'delivered' ? 'A tua entrega chegou' : 'A tua entrega está a caminho'}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {activeDelivery.riderName || 'Estafeta'}
-                    {activeDeliveryEta ? ` · ~${activeDeliveryEta} min` : ''}
-                    {activeDeliveryDistance != null ? ` · ${activeDeliveryDistance} km` : ''}
-                  </p>
-                </div>
-                <div className="w-9 h-9 rounded-full bg-violet-50 dark:bg-violet-950/40 text-violet-700 flex items-center justify-center shrink-0"><ChevronRight size={18} /></div>
-              </div>
-              <div className="mt-3 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className="h-full w-2/3 bg-violet-600 rounded-full" /></div>
-            </button>
-          </section>
-        )}
-
-        <section className="mt-7">
-          <div className="flex items-center justify-between mb-3"><h2 className="text-base font-black">Descobre</h2></div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[
-              { label: 'Perto de ti', mode: 'nearby' },
-              { label: 'Fome', mode: 'food' },
-              { label: 'Compras', mode: 'shopping' },
-            ].map(item => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  setDiscoverMode(item.mode);
-                  if (item.mode === 'food') setServiceType(PEDEJA_SERVICE_TYPES.FOME);
-                  if (item.mode === 'shopping') setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS);
-                }}
-                className={`shrink-0 px-4 py-2 rounded-full border text-xs font-bold ${
-                  discoverMode === item.mode
-                    ? 'bg-violet-600 text-white border-violet-600'
-                    : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200'
-                }`}
-              >
-                {item.label}
+        <section className="mt-8">
+          <h2 className="text-base font-black mb-3">DESCOBRE</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {discoverTabs.map(tab => (
+              <button key={tab.id} type="button" onClick={() => setDiscoverMode(tab.id)} className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-bold border ${discoverMode === tab.id ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+                {tab.label}
               </button>
             ))}
           </div>
-
-          {discoverBusinesses.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto mt-4 pb-2">
-              {discoverBusinesses.map(business => (
-                <button key={business.id} type="button" onClick={() => setSelectedRestaurant(business)} className="w-40 shrink-0 text-left bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm">
-                  <div className="h-24 bg-gray-100 dark:bg-gray-800">{business.image ? <img src={business.image} alt="" className="w-full h-full object-cover" loading="lazy" /> : null}</div>
-                  <div className="p-3"><p className="font-bold text-sm truncate">{business.name}</p><p className="text-[11px] text-gray-500 mt-1 truncate">{business.category || 'Perto de ti'}</p></div>
+          {discoverList.length > 0 && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {discoverList.map(business => (
+                <button key={business.id} type="button" onClick={() => openBusiness(business)} className="text-left bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="h-24 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <ShoppingBag size={28} className="text-gray-300" />
+                  </div>
+                  <div className="p-3">
+                    <p className="font-black text-sm truncate">{business.name}</p>
+                    <p className="text-[11px] text-gray-500 truncate mt-1">{business.category || 'Comida e compras'}</p>
+                  </div>
                 </button>
               ))}
             </div>
           )}
         </section>
-      </div>
 
+        <section className="mt-8 pb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-black">PEDIR NOVAMENTE</h2>
+          </div>
+          {repeatLoading ? (
+            <div className="flex gap-3 overflow-hidden">
+              {[1,2,3].map(i => <div key={i} className="w-36 h-44 shrink-0 rounded-2xl bg-gray-100 animate-pulse" />)}
+            </div>
+          ) : repeatItems.length > 0 ? (
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {repeatItems.map(item => (
+                <button key={`${item.product_id}-${item.business_id}`} type="button" onClick={() => setServiceType(item.marketplace_category === 'compras' ? PEDEJA_SERVICE_TYPES.COMPRAS : PEDEJA_SERVICE_TYPES.FOME)} className="w-36 shrink-0 text-left bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="h-28 bg-gray-100 overflow-hidden">
+                    {item.image_url ? <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={28} className="text-gray-300" /></div>}
+                  </div>
+                  <div className="p-3">
+                    <p className="font-black text-sm truncate">{item.product_name}</p>
+                    <p className="text-[11px] text-gray-500 truncate mt-1">{item.business_name}</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{item.order_count} pedidos</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-5 text-sm text-gray-400 text-center">Ainda não tens pedidos para repetir.</div>
+          )}
+        </section>
+      </div>
       {showAddressPicker && (
         <div className="fixed inset-0 z-[80] bg-black/35 flex items-end sm:items-center justify-center" onClick={() => setShowAddressPicker(false)}>
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl p-5 pb-7 shadow-2xl" onClick={event => event.stopPropagation()}>
@@ -486,6 +512,9 @@ export default function HomeTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
     </div>
   );
 }
