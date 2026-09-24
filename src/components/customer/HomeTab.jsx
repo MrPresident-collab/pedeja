@@ -16,6 +16,9 @@ import {
   CheckCircle,
   Bell,
   ChevronRight,
+  Search,
+  Wine,
+  Tag,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
@@ -23,6 +26,7 @@ import { DEFAULT_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
 import { filterPedejaMarketplaceBusinesses } from '../../domain/pedejaMarketplace';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
+import { supabase } from '../../lib/supabase';
 
 const SERVICE_OPTIONS = [
   { id: PEDEJA_SERVICE_TYPES.FOME, label: 'Fome', description: 'Comida e restaurantes', icon: Utensils },
@@ -53,6 +57,8 @@ export default function HomeTab() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [discoverMode, setDiscoverMode] = useState('nearby');
+  const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
 
   const businessesWithDistance = useMemo(() => restaurants.map(business => ({
     ...business,
@@ -383,18 +389,36 @@ export default function HomeTab() {
   }, [businessesWithDistance, discoverMode]);
 
   const discoverTabs = [
-    { id: 'nearby', label: 'Perto de ti' },
-    { id: 'shopping', label: 'Compras' },
-    { id: 'drinks', label: 'Bebidas' },
-    { id: 'promo', label: 'Promo' },
+    { id: 'nearby', label: 'Perto de ti', icon: MapPin },
+    { id: 'shopping', label: 'Compras', icon: ShoppingBag },
+    { id: 'drinks', label: 'Bebidas', icon: Wine },
+    { id: 'promo', label: 'Promo', icon: Tag },
   ];
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadDiscovery = async () => {
+      if (!['drinks', 'promo'].includes(discoverMode)) return;
+      setDiscoveryLoading(true);
+      try {
+        const { data, error } = await supabase.rpc('customer_discovery', { p_mode: discoverMode });
+        if (!cancelled && !error) {
+          setMarketplaceDiscovery(prev => ({ ...prev, [discoverMode === 'drinks' ? 'beverages' : 'promos']: Array.isArray(data) ? data : [] }));
+        }
+      } finally {
+        if (!cancelled) setDiscoveryLoading(false);
+      }
+    };
+    loadDiscovery();
+    return () => { cancelled = true; };
+  }, [discoverMode]);
 
   const discoverList = discoverMode === 'shopping'
     ? businessesWithDistance.filter(b => b.status === 'open' && b.serviceType === PEDEJA_SERVICE_TYPES.COMPRAS).slice(0, 6)
     : discoverMode === 'drinks'
-      ? businessesWithDistance.filter(b => b.status === 'open' && /bebid|bar|drink/i.test(`${b.name || ''} ${b.category || ''}`)).slice(0, 6)
+      ? marketplaceDiscovery.beverages
       : discoverMode === 'promo'
-        ? businessesWithDistance.filter(b => b.status === 'open' && b.promoBadge).slice(0, 6)
+        ? marketplaceDiscovery.promos
         : discoverBusinesses;
 
   const openBusiness = (business) => {
@@ -440,13 +464,15 @@ export default function HomeTab() {
         <section className="mt-8">
           <h2 className="text-base font-black mb-3">DESCOBRE</h2>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {discoverTabs.map(tab => (
+            {discoverTabs.map(tab => { const Icon = tab.icon; return (
               <button key={tab.id} type="button" onClick={() => setDiscoverMode(tab.id)} className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-bold border ${discoverMode === tab.id ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-gray-600 border-gray-200'}`}>
+                <Icon size={14} strokeWidth={2} />
                 {tab.label}
               </button>
-            ))}
+            ); })}
           </div>
-          {discoverList.length > 0 && (
+          {discoveryLoading && <div className="mt-4 h-28 rounded-2xl bg-gray-100 animate-pulse" />}
+          {!discoveryLoading && discoverList.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-3">
               {discoverList.map(business => (
                 <button key={business.id} type="button" onClick={() => openBusiness(business)} className="text-left bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
@@ -459,6 +485,11 @@ export default function HomeTab() {
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+          {!discoveryLoading && discoverList.length === 0 && (
+            <div className="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
+              <p className="text-sm font-semibold text-gray-500">{discoverMode === 'promo' ? 'Ainda não há promoções disponíveis.' : 'Ainda não há opções disponíveis.'}</p>
             </div>
           )}
         </section>
