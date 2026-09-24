@@ -1289,8 +1289,7 @@ export default function RiderView() {
                 {snapshot.email || userProfile?.email || 'Adicionar email'} · {profileSnapshot?.emailVerified ? 'Verificado' : 'Não verificado · Editar'}
               </p>
             </Row>
-          )
-        }
+          )}
         </section>
 
         <section className={`rounded-3xl border overflow-hidden ${panel}`}>
