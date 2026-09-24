@@ -122,6 +122,7 @@ export default function RiderView() {
   const [availability, setAvailability] = useState(rider?.availabilityStatus || 'OFFLINE');
   const [gpsStatus, setGpsStatus] = useState('idle');
   const [gps, setGps] = useState(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [offer, setOffer] = useState(null);
   const [offerSeconds, setOfferSeconds] = useState(0);
   const [activeJob, setActiveJob] = useState(null);
@@ -371,11 +372,25 @@ export default function RiderView() {
       return undefined;
     }
 
-    const options = { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 };
-    const onSuccess = (position) => {
-      const next = { lat: position.coords.latitude, lng: position.coords.longitude };
+    let cancelled = false;
+    let retryTimer = null;
+    let heartbeatTimer = null;
+    let watchId = null;
+
+    const options = {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 15000,
+    };
+
+    const reportLocation = (position) => {
+      if (cancelled) return;
+      const { latitude, longitude, accuracy } = position.coords;
+      const next = { lat: latitude, lng: longitude };
       setGps(next);
+      setGpsAccuracy(Number.isFinite(accuracy) ? accuracy : null);
       setGpsStatus('tracking');
+
       supabase.rpc('rider_update_location', {
         p_latitude: next.lat,
         p_longitude: next.lng,
@@ -383,17 +398,58 @@ export default function RiderView() {
         if (rpcError) console.error('[RiderView] rider_update_location', rpcError);
       });
     };
+
     const onError = (geoError) => {
-      if (geoError.code === 1) setGpsStatus('denied');
-      else setGpsStatus('unavailable');
+      if (cancelled) return;
+      if (geoError.code === 1) {
+        setGpsStatus('denied');
+        if (retryTimer) window.clearTimeout(retryTimer);
+        return;
+      }
+
+      setGpsStatus('recovering');
+      if (!retryTimer) {
+        retryTimer = window.setTimeout(() => {
+          retryTimer = null;
+          navigator.geolocation.getCurrentPosition(reportLocation, onError, options);
+        }, 5000);
+      }
     };
 
-    navigator.geolocation.getCurrentPosition(onSuccess, onError, options);
-    const watchId = navigator.geolocation.watchPosition(onSuccess, onError, options);
-    return () => navigator.geolocation.clearWatch(watchId);
+    const acquire = () => {
+      if (cancelled) return;
+      setGpsStatus('locating');
+      navigator.geolocation.getCurrentPosition(reportLocation, onError, options);
+    };
+
+    acquire();
+    watchId = navigator.geolocation.watchPosition(reportLocation, onError, options);
+
+    // watchPosition is event-driven and may not emit while a rider is stationary.
+    // Refresh the server-side heartbeat periodically so location freshness is explicit.
+    heartbeatTimer = window.setInterval(acquire, 10000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') acquire();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelled = true;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [rider?.id, supabase]);
 
   const setOnline = async (nextOnline) => {
+    if (nextOnline && gpsStatus !== 'tracking') {
+      setError(gpsStatus === 'denied'
+        ? 'A localização do dispositivo é obrigatória para ficar disponível.'
+        : 'A aguardar pela localização do dispositivo. Ative o GPS para ficar disponível.');
+      return;
+    }
     setActionLoading(true);
     setError('');
     try {
@@ -718,8 +774,21 @@ export default function RiderView() {
                 disabled={actionLoading}
                 className="mb-3 w-full rounded-2xl bg-violet-600 py-4 text-base font-black text-white shadow-[0_8px_24px_rgba(109,40,217,0.30)] transition hover:bg-violet-700 active:scale-[0.985] disabled:opacity-60"
               >
-                {actionLoading ? 'A actualizar...' : isOnline ? 'INDISPONÍVEL' : 'DISPONÍVEL'}
+                {actionLoading ? 'A actualizar...' : isOnline ? 'INDISPONÍVEL' : gpsStatus === 'tracking' ? 'DISPONÍVEL' : 'LOCALIZAÇÃO NECESSÁRIA'}
               </button>
+            )}
+
+            {!isBusy && gpsStatus !== 'tracking' && (
+              <div className="mb-3 rounded-2xl border border-violet-200 bg-white/95 px-4 py-3 text-center shadow-[0_8px_30px_rgba(38,20,72,0.12)] backdrop-blur">
+                <p className="text-xs font-black text-violet-800">
+                  {gpsStatus === 'denied' ? 'LOCALIZAÇÃO BLOQUEADA' : gpsStatus === 'recovering' ? 'A PROCURAR LOCALIZAÇÃO' : 'A OBTER LOCALIZAÇÃO'}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {gpsStatus === 'denied'
+                    ? 'Ative a localização nas permissões do dispositivo para usar o modo estafeta.'
+                    : 'A localização é necessária para a segurança e operação das entregas.'}
+                </p>
+              </div>
             )}
 
             <div className="grid grid-cols-4 overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_8px_30px_rgba(38,20,72,0.16)] backdrop-blur">
