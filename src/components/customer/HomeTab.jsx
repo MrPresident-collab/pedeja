@@ -546,9 +546,6 @@ export default function HomeTab() {
     </div>
   );
 }
-    </div>
-  );
-}
 
 function ServiceSwitcher({ serviceType, setServiceType }) {
   return (
