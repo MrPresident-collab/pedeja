@@ -22,26 +22,39 @@ export function useApp() {
 
 export function AppProvider({ children }) {
   // --- Theme State ---
+  const [themeMode, setThemeMode] = useState(() => {
+    const saved = localStorage.getItem('pedeja_theme');
+    return ['system', 'dark', 'light'].includes(saved) ? saved : 'system';
+  });
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('pedeja_theme');
-    return saved === 'dark';
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
   });
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      const dark = themeMode === 'dark' || (themeMode === 'system' && (media?.matches ?? false));
+      setIsDarkMode(dark);
+      document.documentElement.classList.toggle('dark', dark);
+    };
+    applyTheme();
+    media?.addEventListener?.('change', applyTheme);
+    return () => media?.removeEventListener?.('change', applyTheme);
+  }, [themeMode]);
+
+  const setThemeModeAndPersist = useCallback((mode) => {
+    if (!['system', 'dark', 'light'].includes(mode)) return;
+    localStorage.setItem('pedeja_theme', mode);
+    setThemeMode(mode);
+  }, []);
 
   const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      localStorage.setItem('pedeja_theme', next ? 'dark' : 'light');
-      return next;
-    });
-  }, []);
+    setThemeModeAndPersist(isDarkMode ? 'light' : 'dark');
+  }, [isDarkMode, setThemeModeAndPersist]);
 
   // --- Role & Navigation ---
   const [activeRole, setActiveRole] = useState(() => {
@@ -1358,7 +1371,7 @@ export function AppProvider({ children }) {
   // --- Context Value ---
   const value = {
     // Theme
-    isDarkMode, toggleDarkMode,
+    isDarkMode, toggleDarkMode, themeMode, setThemeMode: setThemeModeAndPersist,
 
     // Navigation
     activeRole, setActiveRole,
