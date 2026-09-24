@@ -140,6 +140,9 @@ export default function RiderView() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
+  const [emailEditing, setEmailEditing] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
   const [history, setHistory] = useState([]);
   const offerTimerRef = useRef(null);
   const offerDeadlineRef = useRef(null);
@@ -527,6 +530,37 @@ export default function RiderView() {
   const setProfileTheme = useCallback((mode) => {
     setThemeMode(mode);
   }, [setThemeMode]);
+
+  const startEmailEdit = useCallback(() => {
+    if (profileSnapshot?.emailVerified) return;
+    setEmailDraft(profileSnapshot?.email || userProfile?.email || '');
+    setEmailEditing(true);
+  }, [profileSnapshot?.email, profileSnapshot?.emailVerified, userProfile?.email]);
+
+  const saveEmail = useCallback(async () => {
+    const email = emailDraft.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setProfileError('Indica um endereço de email válido.');
+      return;
+    }
+    setEmailSaving(true);
+    setProfileError('');
+    try {
+      const { data, error: updateError } = await supabase.auth.updateUser({ email });
+      if (updateError) throw updateError;
+      setProfileSnapshot(prev => ({
+        ...prev,
+        email: data?.user?.email || email,
+        emailVerified: false,
+      }));
+      setEmailEditing(false);
+    } catch (err) {
+      console.error('[RiderView] email update', err);
+      setProfileError('Não foi possível actualizar o email.');
+    } finally {
+      setEmailSaving(false);
+    }
+  }, [emailDraft, supabase]);
 
   const handleRiderLogout = useCallback(async () => {
     setActionLoading(true);
@@ -1131,7 +1165,7 @@ export default function RiderView() {
       <button
         type="button"
         onClick={onClick}
-        disabled={disabled || !onClick}
+        disabled={disabled}
         className={`w-full min-h-14 px-4 py-3 flex items-center justify-between text-left border-b border-slate-100 last:border-b-0 ${disabled ? 'opacity-60' : onClick ? 'active:bg-slate-50' : ''}`}
       >
         <span className="min-w-0">{children}</span>
@@ -1204,12 +1238,35 @@ export default function RiderView() {
           <Row><p className="font-semibold">Dados pessoais</p></Row>
           <Row><p className="font-semibold">Documento de identificação</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.identity?.status] || 'Não disponível'}</p></Row>
           <Row><p className="font-semibold">Carta de condução</p><p className={`text-xs mt-1 ${muted}`}>{verificationLabels[documents.driving_license?.status] || 'Não disponível'}</p></Row>
-          <Row>
-            <p className="font-semibold">Email</p>
-            <p className={`text-xs mt-1 ${profileSnapshot?.emailVerified ? 'text-emerald-600' : 'text-amber-600'}`}>
-              {snapshot.email || userProfile?.email || 'Adicionar email'} · {profileSnapshot?.emailVerified ? 'Verificado' : 'Não verificado'}
-            </p>
-          </Row>
+          {emailEditing ? (
+            <div className="px-4 py-4 border-b border-slate-100">
+              <p className="font-semibold mb-2">Email</p>
+              <input
+                type="email"
+                value={emailDraft}
+                onChange={(event) => setEmailDraft(event.target.value)}
+                placeholder="nome@exemplo.com"
+                autoFocus
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500"
+              />
+              <p className="text-xs text-slate-500 mt-2">Será enviado um link de verificação para o novo email.</p>
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={saveEmail} disabled={emailSaving} className="rounded-xl bg-violet-700 px-4 py-2 text-sm font-bold text-white">
+                  {emailSaving ? 'A guardar…' : 'Guardar'}
+                </button>
+                <button type="button" onClick={() => setEmailEditing(false)} disabled={emailSaving} className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Row onClick={profileSnapshot?.emailVerified ? undefined : startEmailEdit}>
+              <p className="font-semibold">Email</p>
+              <p className={`text-xs mt-1 ${profileSnapshot?.emailVerified ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {snapshot.email || userProfile?.email || 'Adicionar email'} · {profileSnapshot?.emailVerified ? 'Verificado' : 'Não verificado · Editar'}
+              </p>
+            </Row>
+          )
         </section>
 
         <section className={`rounded-3xl border overflow-hidden ${panel}`}>
