@@ -117,6 +117,8 @@ export default function RiderView() {
   } = useApp();
 
   const uid = userProfile?.id || currentUser?.id;
+  const accountStatus = String(currentUser?.account_status || userProfile?.accountStatus || 'ACTIVE').toUpperCase();
+  const accountRestricted = ['SUSPENDED', 'DEACTIVATED', 'DELETED'].includes(accountStatus);
   const rider = useMemo(() => riders.find((item) => item.userId === uid), [riders, uid]);
 
   const [availability, setAvailability] = useState(rider?.availabilityStatus || 'OFFLINE');
@@ -139,6 +141,8 @@ export default function RiderView() {
 
   const isOnline = availability === 'AVAILABLE';
   const isBusy = availability === 'BUSY';
+  const isAccountSuspended = accountStatus === 'SUSPENDED';
+  const isAccountDeactivated = accountStatus === 'DEACTIVATED';
 
   const loadJob = useCallback(async (jobId) => {
     if (!jobId) return null;
@@ -735,6 +739,37 @@ export default function RiderView() {
 
     map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
   }, [createRiderMarkerIcon, gps, riderTab]);
+  const renderAccountState = () => {
+    if (!accountRestricted) return null;
+    const title = isAccountSuspended ? 'CONTA SUSPENSA' : isAccountDeactivated ? 'CONTA DESACTIVADA' : 'CONTA ENCERRADA';
+    const message = isAccountSuspended
+      ? 'A tua conta está temporariamente impedida de operar entregas.'
+      : isAccountDeactivated
+        ? 'O acesso operacional desta conta está desactivado.'
+        : 'Esta conta já não pode operar na plataforma.';
+    return (
+      <div className="absolute inset-x-4 bottom-32 z-30 mx-auto max-w-md rounded-3xl border border-white/90 bg-white/95 p-5 shadow-[0_12px_40px_rgba(38,20,72,0.20)] backdrop-blur">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+            <ShieldAlert size={21} />
+          </div>
+          <div>
+            <p className="text-sm font-black tracking-wide text-slate-900">{title}</p>
+            <p className="mt-1 text-sm leading-5 text-slate-500">{message}</p>
+            <div className="my-4 h-px bg-slate-100" />
+            <p className="text-xs font-black uppercase tracking-[0.08em] text-slate-700">
+              {isAccountSuspended ? 'Verificação necessária' : 'Contacta o suporte'}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" onClick={help} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-800">VER DETALHES</button>
+          <button type="button" onClick={help} className="rounded-2xl bg-violet-600 px-4 py-3 text-xs font-black text-white">SUPORTE</button>
+        </div>
+      </div>
+    );
+  };
+
   const renderHome = () => {
     return (
       <div className="relative h-[calc(100dvh-5rem)] min-h-[620px] overflow-hidden bg-[#F7F5FF]">
@@ -769,6 +804,8 @@ export default function RiderView() {
             EM ENTREGA
           </div>
         )}
+
+        {accountRestricted && renderAccountState()}
 
         <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-4">
           <div className="mx-auto max-w-md">
