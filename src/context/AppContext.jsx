@@ -24,7 +24,7 @@ export function AppProvider({ children }) {
   // --- Theme State ---
   const [themeMode, setThemeMode] = useState(() => {
     const saved = localStorage.getItem('pedeja_theme');
-    return ['system', 'dark', 'light'].includes(saved) ? saved : 'system';
+    return ['system', 'dark', 'light'].includes(saved) ? saved : 'light';
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
