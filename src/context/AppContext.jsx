@@ -44,7 +44,7 @@ export function AppProvider({ children }) {
   }, []);
 
   // --- Role & Navigation ---
-  const [activeRole, setActiveRole] = useState('customer');
+  const [activeRole, setActiveRole] = useState(() => {\n    try {\n      return localStorage.getItem('pedeja_app_face') || 'customer';\n    } catch {\n      return 'customer';\n    }\n  });
   const [adminTab, setAdminTab] = useState('dashboard');
   const [merchantTab, setMerchantTab] = useState('orders');
   const [riderTab, setRiderTab] = useState('jobs');
