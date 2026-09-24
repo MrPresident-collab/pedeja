@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    // Phone development uses HTTPS so browser geolocation is available on the LAN device.
+    ...(mode === 'phone'
+      ? [basicSsl({ name: 'pedeja-phone', ttlDays: 30 })]
+      : []),
+  ],
 
   build: {
     // Target modern browsers for smaller bundles
@@ -48,6 +55,7 @@ export default defineConfig({
     port: 5173,
     host: true,
     open: false,
+    strictPort: mode === 'phone',
   },
 
   // Preview server
@@ -60,4 +68,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'lucide-react'],
   },
-})
+}))
