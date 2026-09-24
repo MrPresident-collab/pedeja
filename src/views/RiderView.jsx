@@ -1,17 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
-  ArrowLeft,
   Bike,
-  Check,
   ChevronRight,
   CircleHelp,
-  Clock3,
   CreditCard,
   HandCoins,
   History,
   MapPin,
-  MessageCircle,
   Navigation,
   Package,
   Phone,
@@ -19,7 +15,6 @@ import {
   ReceiptText,
   ShieldAlert,
   ShoppingBag,
-  Store,
   WalletCards,
   X,
   XCircle,
@@ -511,9 +506,9 @@ export default function RiderView() {
     );
   }
 
-  const shell = isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-950';
-  const panel = isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
-  const muted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
+  const shell = 'bg-slate-950 text-white';
+  const panel = 'bg-slate-900/80 border-slate-800';
+  const muted = 'text-slate-400';
 
   const renderOffer = () => {
     if (!offer) return null;
@@ -587,72 +582,54 @@ export default function RiderView() {
   };
 
   const renderHome = () => (
-    <div className="space-y-4">
-      <section className={`rounded-3xl border p-5 ${panel}`}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className={`text-xs uppercase tracking-wider font-bold ${muted}`}>Estado</p>
-            <h1 className="text-3xl font-black mt-1">
-              {isBusy ? 'Em entrega' : isOnline ? 'Disponível' : 'Offline'}
-            </h1>
-            <p className={`text-sm mt-1 ${muted}`}>
-              {isBusy ? 'Tens uma entrega activa.' : isOnline ? 'A procurar entregas na tua zona.' : 'Não estás a receber entregas.'}
-            </p>
-          </div>
-          <div className={`w-3 h-3 rounded-full mt-2 ${isBusy ? 'bg-amber-400' : isOnline ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-        </div>
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-slate-900">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(148,163,184,0.16),_transparent_58%)]" aria-hidden="true" />
+      <div className="absolute inset-0 opacity-25 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px]" aria-hidden="true" />
 
-        {!isBusy && (
+      <div className="relative z-10 flex min-h-[calc(100dvh-4rem)] flex-col">
+        <div className="flex items-center justify-between px-4 pt-4">
           <button
-            onClick={() => setOnline(!isOnline)}
-            disabled={actionLoading}
-            className={`w-full mt-6 py-4 rounded-2xl font-black flex items-center justify-center gap-2 ${isOnline ? 'bg-slate-800 text-white' : 'bg-emerald-500 text-white'}`}
+            onClick={() => setActiveRole('customer')}
+            aria-label="Perfil do estafeta"
+            className="h-11 w-11 overflow-hidden rounded-full border border-white/20 bg-slate-800 shadow-lg"
           >
-            <Power size={19} />
-            {actionLoading ? 'A actualizar...' : isOnline ? 'Ficar offline' : 'Ficar disponível'}
+            {userProfile?.avatarUrl ? (
+              <img src={userProfile.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Bike size={20} className="mx-auto text-white/80" />
+            )}
           </button>
-        )}
-
-        {isBusy && (
-          <button onClick={() => setRiderTab('active')} className="w-full mt-6 py-4 rounded-2xl bg-white text-slate-950 font-black flex items-center justify-center gap-2">
-            Ver entrega activa <ChevronRight size={18} />
+          <button onClick={help} aria-label="Ajuda" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/20 backdrop-blur-md">
+            <CircleHelp size={20} />
           </button>
-        )}
-      </section>
+        </div>
 
-      {isOnline && !isBusy && (
-        <section className={`rounded-2xl border p-4 ${panel}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <Navigation size={19} className="text-emerald-400" />
-            </div>
-            <div>
-              <p className="font-bold">A procurar entregas</p>
-              <p className={`text-xs ${muted}`}>{gpsStatus === 'tracking' ? 'Localização activa' : 'A aguardar localização'}</p>
-            </div>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <div className="text-center">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/45">Estado</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight">
+              {isBusy ? 'EM ENTREGA' : isOnline ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
+            </h1>
+            {!isBusy && (
+              <button
+                onClick={() => setOnline(!isOnline)}
+                disabled={actionLoading}
+                className="mt-6 rounded-full border border-white/15 bg-black/20 px-6 py-3 text-sm font-bold backdrop-blur-md disabled:opacity-50"
+              >
+                {actionLoading ? 'A actualizar...' : isOnline ? 'Ficar indisponível' : 'Ficar disponível'}
+              </button>
+            )}
           </div>
-        </section>
-      )}
+        </div>
 
-      {gpsStatus === 'denied' && (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
-          <AlertCircle size={18} className="text-amber-400 shrink-0" />
-          <p className="text-sm text-amber-300">Activa a localização do dispositivo para receber ofertas baseadas na tua posição.</p>
+        <div className="px-4 pb-4">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-md">
+            <div><p className="text-[10px] uppercase tracking-wider text-white/45">Hoje</p><p className="mt-1 font-black">{money(todayPay)}</p></div>
+            <div><p className="text-[10px] uppercase tracking-wider text-white/45">Entregas</p><p className="mt-1 font-black">{history.length}</p></div>
+            <div><p className="text-[10px] uppercase tracking-wider text-white/45">GPS</p><p className="mt-1 font-black">{gpsStatus === 'tracking' ? 'Activo' : '—'}</p></div>
+          </div>
         </div>
-      )}
-
-      <section className="grid grid-cols-2 gap-3">
-        <div className={`rounded-2xl border p-4 ${panel}`}>
-          <WalletCards size={18} className="text-emerald-400 mb-3" />
-          <p className={`text-xs ${muted}`}>Hoje</p>
-          <p className="text-xl font-black mt-1">{money(todayPay)}</p>
-        </div>
-        <div className={`rounded-2xl border p-4 ${panel}`}>
-          <History size={18} className="text-slate-400 mb-3" />
-          <p className={`text-xs ${muted}`}>Entregas</p>
-          <p className="text-xl font-black mt-1">{history.length}</p>
-        </div>
-      </section>
+      </div>
     </div>
   );
 
@@ -842,23 +819,10 @@ export default function RiderView() {
   }
 
   return (
-    <div className={`min-h-screen ${shell} pb-24`}>
+    <div className={`min-h-screen ${shell} pb-20`}>
       {renderOffer()}
 
-      <header className={`sticky top-0 z-40 border-b backdrop-blur-xl ${isDarkMode ? 'bg-slate-950/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-        <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => setActiveRole('customer')} className="font-black tracking-tight flex items-center gap-2">
-            <Bike size={20} />
-            Pedejá
-          </button>
-          <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${isBusy ? 'bg-amber-400' : isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
-            <span className="text-xs font-bold">{isBusy ? 'Em entrega' : isOnline ? 'Disponível' : 'Offline'}</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-md mx-auto px-4 py-5">
+      <main className="mx-auto w-full max-w-md">
         {error && (
           <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-2 text-sm text-red-300">
             <XCircle size={18} className="shrink-0 mt-0.5" />
@@ -870,16 +834,16 @@ export default function RiderView() {
       </main>
 
       <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
-        <div className="max-w-md mx-auto grid grid-cols-4 h-16">
+        <div className="max-w-md mx-auto grid grid-cols-4 h-20">
           {[
             ['home', Power, 'Início'],
-            ['active', Bike, 'Entrega'],
-            ['wallet', WalletCards, 'Carteira'],
+            ['active', Bike, 'Entregas'],
+            ['wallet', WalletCards, 'Ganhos'],
             ['profile', CircleHelp, 'Perfil'],
           ].map(([tab, Icon, label]) => {
             const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
             return (
-              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-emerald-400' : muted}`}>
+              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-white' : muted}`}>
                 <Icon size={18} />
                 {label}
               </button>
