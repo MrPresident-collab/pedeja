@@ -14,6 +14,8 @@ import {
   Banknote,
   Crosshair,
   CheckCircle,
+  Bell,
+  ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
@@ -31,7 +33,7 @@ const SERVICE_OPTIONS = [
 export default function HomeTab() {
   const {
     serviceType, setServiceType,
-    restaurants, menuItems, appConfig,
+    restaurants, menuItems, appConfig, orders,
     userProfile, userAddresses,
     cart, setCart,
     parcelDetails, setParcelDetails,
@@ -41,7 +43,7 @@ export default function HomeTab() {
     placeOrder, placeParcelOrder,
     addToCart, calculateFoodTotal, calculateDeliveryFee,
     handleParcelMapSelect, getCurrentLocationForParcel,
-    notifySystem, selectedRestaurant, setSelectedRestaurant,
+    notifySystem, selectedRestaurant, setSelectedRestaurant, setActiveTab,
   } = useApp();
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -49,11 +51,7 @@ export default function HomeTab() {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const primaryAddress = useMemo(
-    () => userAddresses?.find(address => address.isDefault) || userAddresses?.[0] || null,
-    [userAddresses],
-  );
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
 
   const businessesWithDistance = useMemo(() => restaurants.map(business => ({
     ...business,
@@ -81,6 +79,31 @@ export default function HomeTab() {
     const shopCategories = restaurants.filter(b => b.category).map(b => b.category);
     return ['Todos', ...new Set([...DEFAULT_CATEGORIES, ...shopCategories])];
   }, [restaurants, serviceType]);
+
+  const activeOrders = useMemo(() => (orders || []).filter(order =>
+    order.customerId === userProfile?.id &&
+    ['pending', 'accepted', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)
+  ), [orders, userProfile?.id]);
+
+  const activeDelivery = useMemo(() =>
+    activeOrders.find(order => ['rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)) || activeOrders[0] || null,
+    [activeOrders],
+  );
+
+  const activeDeliveryDistance = useMemo(() => {
+    if (!activeDelivery?.riderLocation) return null;
+    const destination = activeDelivery.status === 'picking_up'
+      ? activeDelivery.pickupLocation
+      : activeDelivery.location;
+    if (!destination) return null;
+    const km = getDistanceFromLatLonInKm(
+      activeDelivery.riderLocation.lat,
+      activeDelivery.riderLocation.lng,
+      destination.lat,
+      destination.lng,
+    );
+    return Number(km.toFixed(1));
+  }, [activeDelivery]);
 
   const handleOpenItem = (item) => {
     if (item.options?.length) {
@@ -293,40 +316,119 @@ export default function HomeTab() {
     );
   }
 
+  const firstName = (userProfile?.name || 'Utilizador').trim().split(/\\s+/)[0];
+  const addressLabel = primaryAddress
+    ? [primaryAddress.addressLine1, primaryAddress.neighborhood, primaryAddress.municipality || primaryAddress.city]
+      .filter(Boolean).slice(0, 2).join(', ')
+    : 'Adicionar morada';
+
+  const discoverBusinesses = (restaurants || []).filter(business => business.status === 'open').slice(0, 6);
+
   return (
-    <div className="p-4 pb-28">
-      <ServiceSwitcher serviceType={serviceType} setServiceType={setServiceType} />
-
-      {serviceType === PEDEJA_SERVICE_TYPES.FOME && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
-          {categories.map(category => (
-            <button key={category} onClick={() => setSelectedCategory(category)} className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold ${selectedCategory === category ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}>
-              {category}
-            </button>
-          ))}
+    <div className="min-h-screen bg-[#fafafa] dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
+      <div className="px-4 pt-5 pb-4">
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => setActiveTab('profile')} className="w-11 h-11 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm" aria-label="Abrir perfil">
+            {userProfile?.avatarUrl
+              ? <img src={userProfile.avatarUrl} alt="" className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center bg-violet-100 text-violet-700 font-black text-sm">{firstName.slice(0, 1).toUpperCase()}</div>}
+          </button>
+          <button type="button" className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-200 shadow-sm" aria-label="Notificações">
+            <Bell size={19} strokeWidth={1.9} />
+          </button>
         </div>
-      )}
 
-      <div className="mb-4">
-        <h1 className="text-xl font-black text-gray-900 dark:text-white">{serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'Comida perto de si' : 'Compras perto de si'}</h1>
-        <p className="text-sm text-gray-500 mt-1">Escolha um estabelecimento e faça o pedido.</p>
+        <div className="mt-5">
+          <p className="text-[15px] text-gray-500 dark:text-gray-400">Olá, <span className="font-semibold text-gray-800 dark:text-gray-100">{firstName}</span></p>
+          <h1 className="text-[27px] leading-tight font-black tracking-tight mt-0.5">O que precisas?</h1>
+        </div>
+
+        <button type="button" onClick={() => setShowAddressPicker(true)} className="w-full mt-5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left shadow-sm active:scale-[0.99] transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0"><MapPin size={18} /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-[0.08em] font-bold text-gray-400">Entregar em</p>
+            <p className="text-sm font-bold truncate mt-0.5">{primaryAddress?.label || 'Casa'} <span className="text-gray-400 font-normal">·</span> {addressLabel}</p>
+          </div>
+          <ChevronRight size={19} className="text-gray-400 shrink-0" />
+        </button>
+
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="relative h-36 rounded-2xl overflow-hidden text-left shadow-sm border border-black/5 active:scale-[0.985] transition-transform" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
+            <div className="relative h-full flex flex-col justify-end p-4"><span className="text-white text-lg font-black">Pedir algo</span><span className="text-white/80 text-xs mt-0.5">Comida e compras</span></div>
+          </button>
+
+          <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.ENVIAR); setActiveTab('home'); }} className="relative h-36 rounded-2xl overflow-hidden text-left shadow-sm border border-black/5 active:scale-[0.985] transition-transform" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=80')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
+            <div className="relative h-full flex flex-col justify-end p-4"><span className="text-white text-lg font-black">Enviar pacote</span><span className="text-white/80 text-xs mt-0.5">De um ponto para outro</span></div>
+          </button>
+        </div>
+
+        <section className="mt-7">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-black">Actividade</h2>
+            {activeDelivery && <button type="button" onClick={() => setActiveTab('activity')} className="text-xs font-bold text-violet-700">Ver pedidos</button>}
+          </div>
+          {activeDelivery ? (
+            <button type="button" onClick={() => setActiveTab('activity')} className="w-full text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm active:scale-[0.99] transition-transform">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-black text-sm truncate">{activeDelivery.status === 'delivered' ? 'A tua entrega chegou' : 'A tua entrega está a caminho'}</p>
+                  <p className="text-xs text-gray-500 mt-1">{activeDelivery.riderName || 'Estafeta'} · {activeDeliveryDistance != null ? activeDeliveryDistance + ' km' : 'A actualizar localização'}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-violet-50 dark:bg-violet-950/40 text-violet-700 flex items-center justify-center shrink-0"><ChevronRight size={18} /></div>
+              </div>
+              <div className="mt-3 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className="h-full w-2/3 bg-violet-600 rounded-full" /></div>
+            </button>
+          ) : (
+            <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-4">
+              <p className="text-sm font-semibold">Ainda não tens entregas activas.</p>
+              <p className="text-xs text-gray-500 mt-1">Quando houver uma entrega em curso, o estado aparece aqui.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-7">
+          <div className="flex items-center justify-between mb-3"><h2 className="text-base font-black">Descobre</h2></div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { label: 'Perto de ti', action: () => setServiceType(PEDEJA_SERVICE_TYPES.FOME) },
+              { label: 'Fome', action: () => setServiceType(PEDEJA_SERVICE_TYPES.FOME) },
+              { label: 'Compras', action: () => setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS) },
+            ].map(item => <button key={item.label} type="button" onClick={item.action} className="shrink-0 px-4 py-2 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-700 dark:text-gray-200">{item.label}</button>)}
+          </div>
+
+          {discoverBusinesses.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto mt-4 pb-2">
+              {discoverBusinesses.map(business => (
+                <button key={business.id} type="button" onClick={() => setSelectedRestaurant(business)} className="w-40 shrink-0 text-left bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <div className="h-24 bg-gray-100 dark:bg-gray-800">{business.image ? <img src={business.image} alt="" className="w-full h-full object-cover" loading="lazy" /> : null}</div>
+                  <div className="p-3"><p className="font-bold text-sm truncate">{business.name}</p><p className="text-[11px] text-gray-500 mt-1 truncate">{business.category || 'Perto de ti'}</p></div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      {visibleBusinesses.length ? visibleBusinesses.map(business => (
-        <RestaurantCard key={business.id} rest={business} appConfig={appConfig} userProfile={userProfile} onSelect={setSelectedRestaurant} />
-      )) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center text-gray-400">
-          <ShoppingBag size={38} className="mx-auto mb-3 opacity-30" />
-          <p className="font-semibold">Nenhum estabelecimento disponível.</p>
-          <p className="text-xs mt-1">Tente outra pesquisa ou categoria.</p>
-        </div>
-      )}
-
-      {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] px-4 py-3 z-50">
-          <div className="flex items-center justify-between">
-            <div><p className="text-xs text-gray-400">Carrinho</p><p className="font-black">Kz {calculateFoodTotal().toLocaleString()}</p></div>
-            <button onClick={() => setSelectedRestaurant(restaurants.find(item => item.id === cart[0].restaurantId) || null)} className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold">Rever pedido</button>
+      {showAddressPicker && (
+        <div className="fixed inset-0 z-[80] bg-black/35 flex items-end sm:items-center justify-center" onClick={() => setShowAddressPicker(false)}>
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl p-5 pb-7 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div><h3 className="text-lg font-black">Entregar em</h3><p className="text-xs text-gray-500 mt-0.5">Escolhe uma morada guardada.</p></div>
+              <button type="button" onClick={() => setShowAddressPicker(false)} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center" aria-label="Fechar"><X size={18} /></button>
+            </div>
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+              {(userAddresses || []).map(address => (
+                <button key={address.id} type="button" onClick={() => { setShowAddressPicker(false); notifySystem('Morada seleccionada', 'A morada seleccionada será usada como destino principal.', 'success'); }} className="w-full text-left p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center gap-3">
+                  <MapPin size={18} className="text-violet-600 shrink-0" />
+                  <div className="min-w-0 flex-1"><p className="font-bold text-sm">{address.label || 'Morada'}</p><p className="text-xs text-gray-500 truncate">{[address.addressLine1, address.neighborhood, address.municipality || address.city].filter(Boolean).join(', ')}</p></div>
+                  {address.id === primaryAddress?.id && <span className="text-[10px] font-black text-violet-700">ACTUAL</span>}
+                </button>
+              ))}
+            </div>
+            {(userAddresses || []).length === 0 && <p className="text-sm text-gray-500 py-6 text-center">Ainda não tens uma morada guardada.</p>}
+            <button type="button" onClick={() => { setShowAddressPicker(false); setActiveTab('profile'); }} className="w-full mt-4 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm">Gerir moradas</button>
           </div>
         </div>
       )}
