@@ -52,6 +52,7 @@ export default function HomeTab() {
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [discoverMode, setDiscoverMode] = useState('nearby');
 
   const businessesWithDistance = useMemo(() => restaurants.map(business => ({
     ...business,
@@ -80,6 +81,14 @@ export default function HomeTab() {
     return ['Todos', ...new Set([...DEFAULT_CATEGORIES, ...shopCategories])];
   }, [restaurants, serviceType]);
 
+  const primaryAddress = useMemo(() => (
+    (userAddresses || []).find(address => address.isDefault && String(address.label || '').toLowerCase() === 'casa')
+    || (userAddresses || []).find(address => address.isDefault)
+    || (userAddresses || []).find(address => String(address.label || '').toLowerCase() === 'casa')
+    || (userAddresses || [])[0]
+    || null
+  ), [userAddresses]);
+
   const activeOrders = useMemo(() => (orders || []).filter(order =>
     order.customerId === userProfile?.id &&
     ['pending', 'accepted', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)
@@ -89,6 +98,21 @@ export default function HomeTab() {
     activeOrders.find(order => ['rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)) || activeOrders[0] || null,
     [activeOrders],
   );
+
+  const activeDeliveryEta = useMemo(() => {
+    if (!activeDelivery?.riderLocation) return null;
+    const destination = activeDelivery.status === 'picking_up'
+      ? activeDelivery.pickupLocation
+      : activeDelivery.location;
+    if (!destination) return null;
+    const km = getDistanceFromLatLonInKm(
+      activeDelivery.riderLocation.lat,
+      activeDelivery.riderLocation.lng,
+      destination.lat,
+      destination.lng,
+    );
+    return Math.max(1, Math.ceil((km / 30) * 60));
+  }, [activeDelivery]);
 
   const activeDeliveryDistance = useMemo(() => {
     if (!activeDelivery?.riderLocation) return null;
@@ -322,7 +346,21 @@ export default function HomeTab() {
       .filter(Boolean).slice(0, 2).join(', ')
     : 'Adicionar morada';
 
-  const discoverBusinesses = (restaurants || []).filter(business => business.status === 'open').slice(0, 6);
+  const discoverBusinesses = useMemo(() => {
+    const openBusinesses = businessesWithDistance.filter(business => business.status === 'open');
+    if (discoverMode === 'nearby') {
+      return [...openBusinesses].sort((a, b) => {
+        if (a.distance == null && b.distance == null) return 0;
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      }).slice(0, 6);
+    }
+    const targetType = discoverMode === 'food'
+      ? PEDEJA_SERVICE_TYPES.FOME
+      : PEDEJA_SERVICE_TYPES.COMPRAS;
+    return openBusinesses.filter(business => business.serviceType === targetType).slice(0, 6);
+  }, [businessesWithDistance, discoverMode]);
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
@@ -364,38 +402,54 @@ export default function HomeTab() {
           </button>
         </div>
 
-        <section className="mt-7">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-black">Actividade</h2>
-            {activeDelivery && <button type="button" onClick={() => setActiveTab('activity')} className="text-xs font-bold text-violet-700">Ver pedidos</button>}
-          </div>
-          {activeDelivery ? (
+        {activeDelivery && (
+          <section className="mt-7">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-black">Actividade</h2>
+              <button type="button" onClick={() => setActiveTab('activity')} className="text-xs font-bold text-violet-700">Ver &gt;</button>
+            </div>
             <button type="button" onClick={() => setActiveTab('activity')} className="w-full text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm active:scale-[0.99] transition-transform">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-black text-sm truncate">{activeDelivery.status === 'delivered' ? 'A tua entrega chegou' : 'A tua entrega está a caminho'}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activeDelivery.riderName || 'Estafeta'} · {activeDeliveryDistance != null ? activeDeliveryDistance + ' km' : 'A actualizar localização'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {activeDelivery.riderName || 'Estafeta'}
+                    {activeDeliveryEta ? ` · ~${activeDeliveryEta} min` : ''}
+                    {activeDeliveryDistance != null ? ` · ${activeDeliveryDistance} km` : ''}
+                  </p>
                 </div>
                 <div className="w-9 h-9 rounded-full bg-violet-50 dark:bg-violet-950/40 text-violet-700 flex items-center justify-center shrink-0"><ChevronRight size={18} /></div>
               </div>
               <div className="mt-3 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className="h-full w-2/3 bg-violet-600 rounded-full" /></div>
             </button>
-          ) : (
-            <div className="bg-white dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl px-4 py-4">
-              <p className="text-sm font-semibold">Ainda não tens entregas activas.</p>
-              <p className="text-xs text-gray-500 mt-1">Quando houver uma entrega em curso, o estado aparece aqui.</p>
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="mt-7">
           <div className="flex items-center justify-between mb-3"><h2 className="text-base font-black">Descobre</h2></div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {[
-              { label: 'Perto de ti', action: () => setServiceType(PEDEJA_SERVICE_TYPES.FOME) },
-              { label: 'Fome', action: () => setServiceType(PEDEJA_SERVICE_TYPES.FOME) },
-              { label: 'Compras', action: () => setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS) },
-            ].map(item => <button key={item.label} type="button" onClick={item.action} className="shrink-0 px-4 py-2 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-700 dark:text-gray-200">{item.label}</button>)}
+              { label: 'Perto de ti', mode: 'nearby' },
+              { label: 'Fome', mode: 'food' },
+              { label: 'Compras', mode: 'shopping' },
+            ].map(item => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  setDiscoverMode(item.mode);
+                  if (item.mode === 'food') setServiceType(PEDEJA_SERVICE_TYPES.FOME);
+                  if (item.mode === 'shopping') setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS);
+                }}
+                className={`shrink-0 px-4 py-2 rounded-full border text-xs font-bold ${
+                  discoverMode === item.mode
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
           {discoverBusinesses.length > 0 && (
