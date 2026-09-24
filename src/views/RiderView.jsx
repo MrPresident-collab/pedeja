@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import L from 'leaflet';
 import {
   AlertCircle,
   Bike,
   ChevronRight,
   CircleHelp,
+  ArrowLeft,
+  MessageCircle,
   CreditCard,
   HandCoins,
   History,
@@ -121,6 +124,9 @@ export default function RiderView() {
   const [history, setHistory] = useState([]);
   const offerTimerRef = useRef(null);
   const offerDeadlineRef = useRef(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const riderMarkerRef = useRef(null);
 
   const isOnline = availability === 'AVAILABLE';
   const isBusy = availability === 'BUSY';
@@ -498,7 +504,7 @@ export default function RiderView() {
         <div className="max-w-sm text-center">
           <ShieldAlert size={40} className="mx-auto mb-4 text-violet-200" />
           <h1 className="text-xl font-bold">Conta de estafeta não disponível</h1>
-          <p className="text-sm text-slate-400 mt-2">A tua conta ainda não tem um perfil de estafeta activo.</p>
+          <p className="text-sm text-slate-500 mt-2">A tua conta ainda não tem um perfil de estafeta activo.</p>
           <button onClick={() => setActiveRole('customer')} className="mt-6 px-5 py-3 rounded-xl bg-white text-slate-900 font-bold">
             Voltar
           </button>
@@ -507,9 +513,9 @@ export default function RiderView() {
     );
   }
 
-  const shell = 'bg-violet-950 text-white';
-  const panel = 'bg-violet-950/80 border-violet-800/60';
-  const muted = 'text-violet-200/65';
+  const shell = 'bg-[#F7F5FF] text-slate-900';
+  const panel = 'bg-white border-slate-200';
+  const muted = 'text-slate-500';
 
   const renderOffer = () => {
     if (!offer) return null;
@@ -519,7 +525,7 @@ export default function RiderView() {
     const tip = Number(job.tipAmount || 0);
 
     return (
-      <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-end justify-center">
+      <div className="fixed inset-0 z-[200] bg-slate-950/45 backdrop-blur-sm flex items-end justify-center">
         <div className={`${panel} w-full max-w-md rounded-t-3xl border p-5 pb-7 shadow-2xl`}>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -545,7 +551,7 @@ export default function RiderView() {
           <div className="flex items-center gap-4 text-sm font-semibold mb-4">
             <span>{job.pickupKm ? `${job.pickupKm.toFixed(1)} km` : '—'}</span>
             <span>{job.expected_pickup_at ? `até ${new Date(job.expected_pickup_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}` : 'tempo estimado'}</span>
-            {tip > 0 && <span className="text-emerald-400">Gorjeta {money(tip)}</span>}
+            {tip > 0 && <span className="text-violet-700">Gorjeta {money(tip)}</span>}
           </div>
 
           <div className="space-y-3 mb-5">
@@ -559,7 +565,7 @@ export default function RiderView() {
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Entrega</p>
               <p className="font-bold mt-1">{job.recipientName || 'Destinatário'}</p>
               <p className={`text-sm ${muted}`}>{job.destinationAddress}</p>
-              {job.instructions && <p className="text-sm mt-1 text-amber-400">{job.instructions}</p>}
+              {job.instructions && <p className="text-sm mt-1 text-violet-700">{job.instructions}</p>}
             </div>
           </div>
 
@@ -582,57 +588,121 @@ export default function RiderView() {
     );
   };
 
-  const renderHome = () => (
-    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-violet-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(124,58,237,0.18),_transparent_58%)]" aria-hidden="true" />
-      <div className="absolute inset-0 opacity-25 bg-[linear-gradient(rgba(196,181,253,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px]" aria-hidden="true" />
+  const renderHome = () => {
+    useEffect(() => {
+      if (riderTab !== 'home') return undefined;
+      if (!mapRef.current || mapInstanceRef.current) return undefined;
 
-      <div className="relative z-10 flex min-h-[calc(100dvh-4rem)] flex-col">
-        <div className="flex items-center justify-between px-4 pt-4">
+      const map = L.map(mapRef.current, {
+        zoomControl: false,
+        attributionControl: true,
+        dragging: true,
+        scrollWheelZoom: false,
+        doubleClickZoom: true,
+        touchZoom: true,
+      }).setView(gps ? [gps.lat, gps.lng] : [-8.8383, 13.2344], gps ? 15 : 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+
+      return () => {
+        map.remove();
+        mapInstanceRef.current = null;
+        riderMarkerRef.current = null;
+      };
+    }, [riderTab]);
+
+    useEffect(() => {
+      const map = mapInstanceRef.current;
+      if (!map || !gps) return;
+      const point = [gps.lat, gps.lng];
+      if (!riderMarkerRef.current) {
+        riderMarkerRef.current = L.circleMarker(point, {
+          radius: 8,
+          color: '#6D28D9',
+          weight: 4,
+          fillColor: '#FFFFFF',
+          fillOpacity: 1,
+        }).addTo(map);
+      } else {
+        riderMarkerRef.current.setLatLng(point);
+      }
+      map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
+    }, [gps]);
+
+    return (
+      <div className="relative h-[calc(100dvh-5rem)] min-h-[620px] overflow-hidden bg-[#F7F5FF]">
+        <div ref={mapRef} className="absolute inset-0 z-0" />
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-white/90 via-white/45 to-transparent" />
+
+        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-4">
           <button
             onClick={() => setActiveRole('customer')}
             aria-label="Perfil do estafeta"
-            className="h-11 w-11 overflow-hidden rounded-full border border-white/20 bg-slate-800 shadow-lg"
+            className="h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-[0_4px_18px_rgba(38,20,72,0.18)]"
           >
             {userProfile?.avatarUrl ? (
-              <img src={userProfile.avatarUrl} alt="" className="h-full w-full object-cover" />
+              <img src={userProfile.avatarUrl} alt="Foto do estafeta" className="h-full w-full object-cover" />
             ) : (
-              <User size={20} className="mx-auto text-violet-200" />
+              <User size={21} className="mx-auto text-violet-700" />
             )}
           </button>
-          <button onClick={help} aria-label="Ajuda" className="flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/20 bg-violet-950/45 backdrop-blur-md">
+
+          <button
+            onClick={help}
+            aria-label="Ajuda"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white bg-white text-violet-800 shadow-[0_4px_18px_rgba(38,20,72,0.16)]"
+          >
             <CircleHelp size={20} />
           </button>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-6">
-          <div className="text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-violet-200/55">Estado</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight">
-              {isBusy ? 'EM ENTREGA' : isOnline ? 'DISPONÍVEL' : 'INDISPONÍVEL'}
-            </h1>
+        {isBusy && (
+          <div className="absolute left-1/2 top-24 z-20 -translate-x-1/2 rounded-full border border-white bg-white/95 px-4 py-2 text-xs font-black tracking-[0.12em] text-violet-800 shadow-[0_4px_18px_rgba(38,20,72,0.14)] backdrop-blur">
+            EM ENTREGA
+          </div>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-4">
+          <div className="mx-auto max-w-md">
             {!isBusy && (
               <button
                 onClick={() => setOnline(!isOnline)}
                 disabled={actionLoading}
-                className="mt-6 rounded-full border border-white/15 bg-black/20 px-6 py-3 text-sm font-bold backdrop-blur-md disabled:opacity-50"
+                className="mb-3 w-full rounded-2xl bg-violet-600 py-4 text-base font-black text-white shadow-[0_8px_24px_rgba(109,40,217,0.30)] transition hover:bg-violet-700 active:scale-[0.985] disabled:opacity-60"
               >
-                {actionLoading ? 'A actualizar...' : isOnline ? 'Ficar indisponível' : 'Ficar disponível'}
+                {actionLoading ? 'A actualizar...' : isOnline ? 'INDISPONÍVEL' : 'DISPONÍVEL'}
               </button>
             )}
-          </div>
-        </div>
 
-        <div className="px-4 pb-4">
-          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-violet-200/15 bg-violet-950/45 p-3 backdrop-blur-md">
-            <div><p className="text-[10px] uppercase tracking-wider text-white/45">Hoje</p><p className="mt-1 font-black">{money(todayPay)}</p></div>
-            <div><p className="text-[10px] uppercase tracking-wider text-white/45">Entregas</p><p className="mt-1 font-black">{history.length}</p></div>
-            <div><p className="text-[10px] uppercase tracking-wider text-white/45">GPS</p><p className="mt-1 font-black">{gpsStatus === 'tracking' ? 'Activo' : '—'}</p></div>
+            <div className="grid grid-cols-4 overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-[0_8px_30px_rgba(38,20,72,0.16)] backdrop-blur">
+              <div className="px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Hoje</p>
+                <p className="mt-1 text-sm font-black text-slate-900">{money(todayPay)}</p>
+              </div>
+              <div className="border-l border-slate-100 px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Entregas</p>
+                <p className="mt-1 text-sm font-black text-slate-900">{history.length}</p>
+              </div>
+              <div className="border-l border-slate-100 px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Duração</p>
+                <p className="mt-1 text-sm font-black text-slate-900">—</p>
+              </div>
+              <div className="border-l border-slate-100 px-3 py-3 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">Km</p>
+                <p className="mt-1 text-sm font-black text-slate-900">—</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderActive = () => {
     if (!activeJob) {
@@ -685,13 +755,13 @@ export default function RiderView() {
           <div className="relative pl-7">
             <div className="absolute left-2 top-2 bottom-2 w-px bg-slate-700" />
             <div className="relative mb-7">
-              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-emerald-400 bg-violet-950" />
+              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-violet-500 bg-violet-950" />
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Recolha</p>
               <p className="font-bold mt-1">{activeJob.senderName || 'Ponto de recolha'}</p>
               <p className={`text-sm mt-1 ${muted}`}>{activeJob.pickupAddress}</p>
             </div>
             <div className="relative">
-              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-slate-500 bg-slate-950" />
+              <div className="absolute -left-7 top-0 w-4 h-4 rounded-full border-2 border-slate-500 bg-white" />
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Entrega</p>
               <p className="font-bold mt-1">{activeJob.recipientName || 'Destinatário'}</p>
               <p className={`text-sm mt-1 ${muted}`}>{activeJob.destinationAddress}</p>
@@ -720,7 +790,7 @@ export default function RiderView() {
         </button>
 
         {cash && activeJob.status === 'ARRIVED_DESTINATION' && activeJob.totalAmount > 0 && (
-          <div className="rounded-2xl border border-violet-500/30 bg-amber-500/10 p-4">
+          <div className="rounded-2xl border border-violet-500/30 bg-violet-50 p-4">
             <p className="text-xs uppercase tracking-wider text-amber-400 font-bold">Cobrança</p>
             <p className="text-xl font-black mt-1">{money(activeJob.totalAmount)}</p>
             <p className={`text-xs mt-1 ${muted}`}>Confirma a entrega depois de o pagamento ser registado.</p>
@@ -730,7 +800,7 @@ export default function RiderView() {
         <button
           onClick={() => advance(nextAction)}
           disabled={actionLoading}
-          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-base disabled:opacity-50"
+          className="w-full py-4 rounded-2xl bg-violet-600 text-white font-black text-base disabled:opacity-50"
         >
           {actionLoading ? 'A actualizar...' : actionLabel}
         </button>
@@ -779,7 +849,7 @@ export default function RiderView() {
   const renderProfile = () => (
     <div className="space-y-3">
       <section className={`rounded-3xl border p-5 ${panel}`}>
-        <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
           <User size={26} />
         </div>
         <p className="font-black text-xl">{userProfile?.name || 'Estafeta'}</p>
@@ -834,7 +904,7 @@ export default function RiderView() {
         {content}
       </main>
 
-      <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${isDarkMode ? 'bg-violet-950/95 border-violet-900' : 'bg-white/95 border-slate-200'}`}>
+      <nav className={`fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-xl ${'bg-white/95 border-slate-200'}`}>
         <div className="max-w-md mx-auto grid grid-cols-4 h-20">
           {[
             ['home', Power, 'Início'],
@@ -844,7 +914,7 @@ export default function RiderView() {
           ].map(([tab, Icon, label]) => {
             const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
             return (
-              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-violet-300' : muted}`}>
+              <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-violet-700' : muted}`}>
                 <Icon size={18} />
                 {label}
               </button>
