@@ -452,12 +452,8 @@ export default function RiderView() {
       setError('A conta não está autorizada a operar entregas neste momento.');
       return;
     }
-    if (nextOnline && gpsStatus !== 'tracking') {
-      setError(gpsStatus === 'denied'
-        ? 'A localização do dispositivo é obrigatória para ficar disponível.'
-        : 'A aguardar pela localização do dispositivo. Ative o GPS para ficar disponível.');
-      return;
-    }
+    // Location is not required to stay available. It only controls whether
+    // the rider can receive new delivery offers on the dispatch side.
     setActionLoading(true);
     setError('');
     try {
@@ -815,19 +811,17 @@ export default function RiderView() {
                 disabled={actionLoading}
                 className="mb-3 w-full rounded-2xl bg-violet-600 py-4 text-base font-black text-white shadow-[0_8px_24px_rgba(109,40,217,0.30)] transition hover:bg-violet-700 active:scale-[0.985] disabled:opacity-60"
               >
-                {actionLoading ? 'A actualizar...' : isOnline ? 'INDISPONÍVEL' : gpsStatus === 'tracking' ? 'DISPONÍVEL' : 'LOCALIZAÇÃO NECESSÁRIA'}
+                {actionLoading ? 'A actualizar...' : isOnline ? 'INDISPONÍVEL' : 'DISPONÍVEL'}
               </button>
             )}
 
             {!isBusy && gpsStatus !== 'tracking' && (
               <div className="mb-3 rounded-2xl border border-violet-200 bg-white/95 px-4 py-3 text-center shadow-[0_8px_30px_rgba(38,20,72,0.12)] backdrop-blur">
                 <p className="text-xs font-black text-violet-800">
-                  {gpsStatus === 'denied' ? 'LOCALIZAÇÃO BLOQUEADA' : gpsStatus === 'recovering' ? 'A PROCURAR LOCALIZAÇÃO' : 'A OBTER LOCALIZAÇÃO'}
+                  LOCALIZAÇÃO DESACTIVADA
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {gpsStatus === 'denied'
-                    ? 'Ative a localização nas permissões do dispositivo para usar o modo estafeta.'
-                    : 'A localização é necessária para a segurança e operação das entregas.'}
+                  Ative a localização para receber novas entregas.
                 </p>
               </div>
             )}
