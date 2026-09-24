@@ -9,7 +9,7 @@ export default function BottomNav() {
   if (selectedRestaurant) return null;
 
   const activityBadge = orders.filter(order =>
-    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status) &&
+    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering'].includes(order.status) &&
     (order.customerId === userProfile.id || order.customerId === currentUser?.id),
   ).length;
 
