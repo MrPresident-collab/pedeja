@@ -588,7 +588,6 @@ export default function RiderView() {
     );
   };
 
-  const renderHome = () => {
     useEffect(() => {
       if (riderTab !== 'home') return undefined;
       if (!mapRef.current || mapInstanceRef.current) return undefined;
@@ -633,7 +632,52 @@ export default function RiderView() {
       }
       map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
     }, [gps]);
+  useEffect(() => {
+    if (riderTab !== 'home') return undefined;
+    if (!mapRef.current || mapInstanceRef.current) return undefined;
 
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      attributionControl: true,
+      dragging: true,
+      scrollWheelZoom: false,
+      doubleClickZoom: true,
+      touchZoom: true,
+    }).setView(gps ? [gps.lat, gps.lng] : [-8.8383, 13.2344], gps ? 15 : 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      riderMarkerRef.current = null;
+    };
+  }, [riderTab]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !gps) return;
+    const point = [gps.lat, gps.lng];
+    if (!riderMarkerRef.current) {
+      riderMarkerRef.current = L.circleMarker(point, {
+        radius: 8,
+        color: '#6D28D9',
+        weight: 4,
+        fillColor: '#FFFFFF',
+        fillOpacity: 1,
+      }).addTo(map);
+    } else {
+      riderMarkerRef.current.setLatLng(point);
+    }
+    map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
+  }, [gps]);
+
+  const renderHome = () => {
     return (
       <div className="relative h-[calc(100dvh-5rem)] min-h-[620px] overflow-hidden bg-[#F7F5FF]">
         <div ref={mapRef} className="absolute inset-0 z-0" />
