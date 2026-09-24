@@ -681,6 +681,7 @@ export function AppProvider({ children }) {
 
         const profile = profileResult.data || {};
         const mergedRoles = ['customer'];
+        const accountStatus = String(profile.account_status || 'ACTIVE').toUpperCase();
 
         const prof = {
           id: authUser.id,
@@ -689,6 +690,8 @@ export function AppProvider({ children }) {
           email: authUser.email || '',
           location: null,
           image: profile.avatar_url || null,
+          avatarUrl: profile.avatar_url || null,
+          accountStatus,
         };
 
         const addressIds = (customerAddressesResult.data || []).map(row => row.address_id).filter(Boolean);
@@ -732,7 +735,7 @@ export function AppProvider({ children }) {
             location: prof.location, addresses,
           }),
         };
-        setCurrentUser({ id: authUser.id, email: authUser.email, ...profile, roles: mergedRoles });
+        setCurrentUser({ id: authUser.id, email: authUser.email, ...profile, account_status: accountStatus, roles: mergedRoles });
         setUserProfile(prof);
         setTempProfile(prof);
         setUserRoles(mergedRoles);
