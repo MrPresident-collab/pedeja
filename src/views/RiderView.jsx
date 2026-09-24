@@ -815,12 +815,14 @@ export default function RiderView() {
               <AlertCircle size={15} className="shrink-0 text-amber-700" />
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.08em] text-amber-800">
-                  {gpsStatus === 'denied' ? 'LOCALIZAÇÃO DESACTIVADA' : 'SEM COBERTURA DE REDE'}
+                  {gpsStatus === 'denied' ? 'LOCALIZAÇÃO DESACTIVADA' : !networkOnline ? 'SEM COBERTURA DE REDE' : 'LOCALIZAÇÃO INDISPONÍVEL'}
                 </p>
                 <p className="text-[10px] leading-tight text-amber-900/75">
                   {gpsStatus === 'denied'
                     ? 'Ativa a localização para receber novas entregas.'
-                    : 'Não foi possível actualizar a tua localização.'}
+                    : !networkOnline
+                      ? 'Não foi possível actualizar a tua localização.'
+                      : 'Não foi possível obter a tua localização.'}
                 </p>
               </div>
             </div>
