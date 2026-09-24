@@ -588,50 +588,35 @@ export default function RiderView() {
     );
   };
 
-    useEffect(() => {
-      if (riderTab !== 'home') return undefined;
-      if (!mapRef.current || mapInstanceRef.current) return undefined;
+  const escapeHtml = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 
-      const map = L.map(mapRef.current, {
-        zoomControl: false,
-        attributionControl: true,
-        dragging: true,
-        scrollWheelZoom: false,
-        doubleClickZoom: true,
-        touchZoom: true,
-      }).setView(gps ? [gps.lat, gps.lng] : [-8.8383, 13.2344], gps ? 15 : 13);
+  const createRiderMarkerIcon = useCallback(() => {
+    const avatarUrl = userProfile?.avatarUrl ? escapeHtml(userProfile.avatarUrl) : '';
+    const avatarMarkup = avatarUrl
+      ? '<image href="' + avatarUrl + '" x="22" y="22" width="46" height="46" preserveAspectRatio="xMidYMid slice" clip-path="url(#rider-avatar-clip)" />'
+      : '<circle cx="45" cy="45" r="23" fill="#F7F5FF"/><path d="M45 31.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Zm-14 28.2c2.9-7.2 8-10.8 14-10.8s11.1 3.6 14 10.8" fill="none" stroke="#6D28D9" stroke-width="3.5" stroke-linecap="round"/>';
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(map);
+    const radarMarkup = isOnline && !isBusy
+      ? '<circle cx="45" cy="45" r="25" fill="none" stroke="#6D28D9" stroke-width="2.5"><animate attributeName="r" values="25;58" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.34;0" dur="2.4s" repeatCount="indefinite"/></circle>' +
+        '<circle cx="45" cy="45" r="25" fill="none" stroke="#6D28D9" stroke-width="2.5"><animate attributeName="r" values="25;58" dur="2.4s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.34;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></circle>'
+      : '';
 
-      mapInstanceRef.current = map;
+    return L.divIcon({
+      className: 'pedeja-rider-map-icon',
+      html: '<div style="width:90px;height:90px;position:relative;"><svg width="90" height="90" viewBox="0 0 90 90" aria-hidden="true" style="overflow:visible"><defs><clipPath id="rider-avatar-clip"><circle cx="45" cy="45" r="23"/></clipPath></defs>' +
+        radarMarkup +
+        '<circle cx="45" cy="45" r="27" fill="#FFFFFF" stroke="#6D28D9" stroke-width="3"/>' +
+        avatarMarkup +
+        '<circle cx="45" cy="45" r="23" fill="none" stroke="#FFFFFF" stroke-width="2"/></svg></div>',
+      iconSize: [90, 90],
+      iconAnchor: [45, 45],
+    });
+  }, [isBusy, isOnline, userProfile?.avatarUrl]);
 
-      return () => {
-        map.remove();
-        mapInstanceRef.current = null;
-        riderMarkerRef.current = null;
-      };
-    }, [riderTab]);
-
-    useEffect(() => {
-      const map = mapInstanceRef.current;
-      if (!map || !gps) return;
-      const point = [gps.lat, gps.lng];
-      if (!riderMarkerRef.current) {
-        riderMarkerRef.current = L.circleMarker(point, {
-          radius: 8,
-          color: '#6D28D9',
-          weight: 4,
-          fillColor: '#FFFFFF',
-          fillOpacity: 1,
-        }).addTo(map);
-      } else {
-        riderMarkerRef.current.setLatLng(point);
-      }
-      map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
-    }, [gps]);
   useEffect(() => {
     if (riderTab !== 'home') return undefined;
     if (!mapRef.current || mapInstanceRef.current) return undefined;
@@ -661,22 +646,24 @@ export default function RiderView() {
 
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !gps) return;
+    if (riderTab !== 'home' || !map || !gps) return;
+
     const point = [gps.lat, gps.lng];
+    const icon = createRiderMarkerIcon();
+
     if (!riderMarkerRef.current) {
-      riderMarkerRef.current = L.circleMarker(point, {
-        radius: 8,
-        color: '#6D28D9',
-        weight: 4,
-        fillColor: '#FFFFFF',
-        fillOpacity: 1,
+      riderMarkerRef.current = L.marker(point, {
+        icon,
+        interactive: false,
+        keyboard: false,
       }).addTo(map);
     } else {
       riderMarkerRef.current.setLatLng(point);
+      riderMarkerRef.current.setIcon(icon);
     }
-    map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
-  }, [gps]);
 
+    map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
+  }, [createRiderMarkerIcon, gps, riderTab]);
   const renderHome = () => {
     return (
       <div className="relative h-[calc(100dvh-5rem)] min-h-[620px] overflow-hidden bg-[#F7F5FF]">
