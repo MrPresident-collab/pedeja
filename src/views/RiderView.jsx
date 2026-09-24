@@ -143,6 +143,10 @@ export default function RiderView() {
   const [emailEditing, setEmailEditing] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
+  const [language, setLanguage] = useState(() => {
+    const stored = localStorage.getItem('pedeja_language');
+    return ['pt', 'en', 'fr'].includes(stored) ? stored : 'pt';
+  });
   const [history, setHistory] = useState([]);
   const offerTimerRef = useRef(null);
   const offerDeadlineRef = useRef(null);
@@ -530,6 +534,12 @@ export default function RiderView() {
   const setProfileTheme = useCallback((mode) => {
     setThemeMode(mode);
   }, [setThemeMode]);
+
+  const setProfileLanguage = useCallback((value) => {
+    if (!['pt', 'en', 'fr'].includes(value)) return;
+    setLanguage(value);
+    localStorage.setItem('pedeja_language', value);
+  }, []);
 
   const startEmailEdit = useCallback(() => {
     if (profileSnapshot?.emailVerified) return;
@@ -1193,7 +1203,20 @@ export default function RiderView() {
       >
         <span className="text-sm font-semibold">{label}</span>
         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${themeMode === value ? 'border-violet-700' : 'border-slate-300'}`}>
-          {themeMode === value && <span className="w-2.5 h-2.5 rounded-full rounded-full bg-violet-700" />}
+          {themeMode === value && <span className="w-2.5 h-2.5 rounded-full bg-violet-700" />}
+        </span>
+      </button>
+    );
+
+    const LanguageChoice = ({ value, label }) => (
+      <button
+        type="button"
+        onClick={() => setProfileLanguage(value)}
+        className="w-full min-h-12 px-4 flex items-center justify-between border-b border-slate-100 last:border-b-0 text-left"
+      >
+        <span className="text-sm font-semibold">{label}</span>
+        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${language === value ? 'border-violet-700' : 'border-slate-300'}`}>
+          {language === value && <span className="w-2.5 h-2.5 rounded-full bg-violet-700" />}
         </span>
       </button>
     );
@@ -1267,6 +1290,7 @@ export default function RiderView() {
               </p>
             </Row>
           )
+        }
         </section>
 
         <section className={`rounded-3xl border overflow-hidden ${panel}`}>
@@ -1332,6 +1356,13 @@ export default function RiderView() {
             <Toggle value locked />
           </div>
           <div className="pt-2">
+            <p className="px-4 pt-3 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">IDIOMA</p>
+            <LanguageChoice value="pt" label="Português" />
+            <LanguageChoice value="en" label="English" />
+            <LanguageChoice value="fr" label="Français" />
+          </div>
+          <div className="pt-2">
+            <p className="px-4 pt-3 pb-2 text-xs font-black uppercase tracking-wider text-slate-400">APARÊNCIA</p>
             <ThemeChoice value="system" label="Sistema" />
             <ThemeChoice value="dark" label="Modo escuro" />
             <ThemeChoice value="light" label="Modo claro" />
