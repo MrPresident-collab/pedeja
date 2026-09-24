@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Utensils,
   ShoppingBag,
@@ -56,6 +56,9 @@ export default function HomeTab() {
   const [orderNotes, setOrderNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [discoverMode, setDiscoverMode] = useState('nearby');
   const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
   const [discoveryLoading, setDiscoveryLoading] = useState(false);
@@ -413,6 +416,29 @@ export default function HomeTab() {
     return () => { cancelled = true; };
   }, [discoverMode]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotifications = async () => {
+      setNotificationsLoading(true);
+      const { data, error } = await supabase.rpc('customer_notification_snapshot', { p_limit: 30 });
+      if (!cancelled && !error) setNotifications(Array.isArray(data) ? data : []);
+      if (!cancelled) setNotificationsLoading(false);
+    };
+    loadNotifications();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openNotification = (notification) => {
+    setShowNotifications(false);
+    if (notification?.source_type === 'order') {
+      setActiveTab('activity');
+      return;
+    }
+    if (notification?.source_type === 'enviar') {
+      setActiveTab('activity');
+    }
+  };
+
   const discoverList = discoverMode === 'shopping'
     ? businessesWithDistance.filter(b => b.status === 'open' && b.serviceType === PEDEJA_SERVICE_TYPES.COMPRAS).slice(0, 6)
     : discoverMode === 'drinks'
@@ -438,8 +464,9 @@ export default function HomeTab() {
             </div>
             <ChevronRight size={16} className="text-gray-400 shrink-0" />
           </button>
-          <button type="button" className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm" aria-label="Notificações">
+          <button type="button" onClick={() => setShowNotifications(true)} className="relative w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm" aria-label="Notificações">
             <Bell size={19} strokeWidth={1.9} />
+            {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-violet-600" />}
           </button>
         </div>
 
@@ -557,6 +584,26 @@ export default function HomeTab() {
           )}
         </section>
       </div>
+      {showNotifications && (
+        <div className="fixed inset-0 z-[90] bg-black/35 flex items-end sm:items-center justify-center" onClick={() => setShowNotifications(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-7 shadow-2xl max-h-[75vh] flex flex-col" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div><h3 className="text-lg font-black">Notificações</h3><p className="text-xs text-gray-500 mt-0.5">Actualizações dos teus pedidos.</p></div>
+              <button type="button" onClick={() => setShowNotifications(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" aria-label="Fechar"><X size={18} /></button>
+            </div>
+            <div className="overflow-y-auto space-y-2">
+              {notificationsLoading ? <div className="py-10 text-center text-sm text-gray-400">A carregar...</div> : notifications.length === 0 ? (
+                <div className="py-10 text-center"><Bell size={30} className="mx-auto text-gray-300 mb-2" /><p className="text-sm text-gray-500">Ainda não tens notificações.</p></div>
+              ) : notifications.map(notification => (
+                <button key={notification.event_id} type="button" onClick={() => openNotification(notification)} className="w-full text-left p-3.5 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-violet-50">
+                  <div className="flex items-start gap-3"><span className="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0"><Bell size={16} /></span><div className="min-w-0"><p className="text-sm font-bold">{notification.title === 'enviar' ? 'Encomenda' : 'Pedido'}</p><p className="text-xs text-gray-500 mt-0.5">{notification.context_name || notification.reference || 'Actualização de estado'}</p><p className="text-[10px] text-gray-400 mt-1">{String(notification.event_type || '').replaceAll('_', ' ')}</p></div></div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddressPicker && (
         <div className="fixed inset-0 z-[80] bg-black/35 flex items-end sm:items-center justify-center" onClick={() => setShowAddressPicker(false)}>
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl p-5 pb-7 shadow-2xl" onClick={event => event.stopPropagation()}>
@@ -566,7 +613,16 @@ export default function HomeTab() {
             </div>
             <div className="space-y-2 max-h-[55vh] overflow-y-auto">
               {(userAddresses || []).map(address => (
-                <button key={address.id} type="button" onClick={() => { setShowAddressPicker(false); notifySystem('Morada seleccionada', 'A morada seleccionada será usada como destino principal.', 'success'); }} className="w-full text-left p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center gap-3">
+                <button key={address.id} type="button" onClick={async () => {
+                    if (address.id === primaryAddress?.id) { setShowAddressPicker(false); return; }
+                    const { error } = await supabase.rpc('set_default_customer_address', { p_address_id: address.address_id || address.id });
+                    if (error) {
+                      notifySystem('Não foi possível', 'Não foi possível actualizar a morada principal.', 'error');
+                      return;
+                    }
+                    setShowAddressPicker(false);
+                    await window.location.reload();
+                  }} className="w-full text-left p-3.5 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center gap-3">
                   <MapPin size={18} className="text-violet-600 shrink-0" />
                   <div className="min-w-0 flex-1"><p className="font-bold text-sm">{address.label || 'Morada'}</p><p className="text-xs text-gray-500 truncate">{[address.addressLine1, address.neighborhood, address.municipality || address.city].filter(Boolean).join(', ')}</p></div>
                   {address.id === primaryAddress?.id && <span className="text-[10px] font-black text-violet-700">ACTUAL</span>}
