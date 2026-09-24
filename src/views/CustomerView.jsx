@@ -33,10 +33,10 @@ export default function CustomerView() {
   };
 
   return (
-    <div className="pb-20 pt-14 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white transition-colors duration-200">
+    <div className="pb-20 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white transition-colors duration-200">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      {!selectedRestaurant && (activeTab !== 'profile' || profileSubView === 'main') && (
+      {!selectedRestaurant && activeTab !== 'home' && (activeTab !== 'profile' || profileSubView === 'main') && (
         <div className="bg-white dark:bg-gray-800 px-4 pt-4 pb-3 shadow-sm sticky top-12 z-40 border-b border-transparent dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
