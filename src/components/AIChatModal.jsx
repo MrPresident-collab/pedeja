@@ -7,117 +7,110 @@ import { generateId, formatDateTime, playOrderNotificationSound, getDistanceFrom
 import { USER_LOCATION } from '../constants';
 
 const STATUS_MAP = {
-  pending: 'รอร้านค้ารับออเดอร์',
-  preparing: 'ร้านกำลังเตรียมอาหาร',
-  ready_to_pickup: 'รอไรเดอร์เข้ารับสินค้า',
-  rider_accepted: 'ไรเดอร์รับงานแล้ว',
-  picking_up: 'ไรเดอร์กำลังรับสินค้า',
-  delivering: 'ไรเดอร์กำลังเดินทางไปส่ง',
-  delivered: 'จัดส่งแล้ว (รอคุณยืนยัน)',
-  completed: 'เสร็จสิ้นเรียบร้อย',
-  cancelled: 'ยกเลิกแล้ว',
+  pending: '',
+  preparing: '',
+  ready_to_pickup: '',
+  rider_accepted: '',
+  picking_up: '',
+  delivering: '',
+  delivered: ' ()',
+  completed: '',
+  cancelled: '',
 };
 
-const SYSTEM_PROMPT = `คุณคือ "น้องบูม (BoomBot)" ผู้ช่วยอัจฉริยะ AI ประจำแอปพลิเคชัน BoomRider (บริการสั่งอาหารและส่งพัสดุในประเทศไทย)
-หน้าที่ของคุณคือบริการและช่วยเหลือผู้ใช้ด้วยความเป็นกันเอง สุภาพ มีหางเสียง (ครับ/ค่ะ)
-ความสามารถพิเศษของคุณ:
-1. สามารถเข้าถึงรายชื่อร้านค้าในระบบทั้งหมด และเมนูของร้านค้าทั้งหมด
-2. สามารถแสดงตัวเลือกร้านค้าและเมนูอาหารเพื่อให้ลูกค้าเลือกและกดสั่งซื้อผ่านน้องบูม AI ได้ทันที
-3. เช็คสถานะออเดอร์ และ ยอดเงิน Wallet
-4. สามารถ "สั่งอาหาร" ให้ลูกค้าได้โดยตรง เมื่อลูกค้าระบุชื่อร้านค้าและรายการอาหาร
-5. สามารถ "สั่งส่งพัสดุ / เรียกไรเดอร์" ให้ลูกค้าได้โดยตรง เมื่อลูกค้าระบุจุดรับ จุดส่ง
-6. สามารถ "ส่งข้อความสื่อสาร/แจ้งเตือน" ไปยังห้องแชทของร้านค้า ไรเดอร์ หรือแอดมิน เกี่ยวกับออเดอร์ที่ดำเนินการอยู่ได้ทันที
-ตอบคำถามสั้นกระชับ ชัดเจน เข้าใจง่าย ภาษาไทยเสมอ`;
+const SYSTEM_PROMPT = `És o Assistente Pedejá, o apoio digital da aplicação Pedejá em Angola.
+Responde sempre em português, com clareza e cordialidade. Ajudas com Fome, Compras, Pedidos, Pacotes, Moradas, Pagamentos, Carteira e Suporte.
+Usa apenas dados reais fornecidos pelo sistema. Nunca inventes saldo, movimentos, preços, taxas, estados, estafetas, localizações, prazos ou operações financeiras. Se uma informação não estiver disponível, explica que está indisponível e orienta o cliente para o suporte.`;
 
 const GEMINI_TOOLS = [
   {
     function_declarations: [
       {
         name: 'list_all_restaurants',
-        description: 'เข้าถึงและแสดงรายชื่อร้านค้าทั้งหมดในระบบ BoomRider เพื่อให้ลูกค้าเลือกดูและสั่งซื้อ',
+        description: ' BoomRider ',
         parameters: {
           type: 'OBJECT',
           properties: {
-            keyword: { type: 'STRING', description: 'คำค้นหาชื่อร้านค้า หรือประเภทอาหาร (ไม่ระบุก็ได้เพื่อแสดงร้านค้าทั้งหมด)' },
+            keyword: { type: 'STRING', description: '  ()' },
           },
         },
       },
       {
         name: 'get_restaurant_menu',
-        description: 'ค้นหาชื่อร้านค้าและเข้าถึงรายการเมนูทั้งหมดของร้านค้านั้นๆ เพื่อให้ลูกค้าเลือกและกดสั่งซื้อ',
+        description: ' ',
         parameters: {
           type: 'OBJECT',
           properties: {
-            restaurantName: { type: 'STRING', description: 'ชื่อร้านค้า หรือคีย์เวิร์ดชื่อร้าน (หากไม่ระบุจะดึงร้านค้าแรกในระบบ)' },
+            restaurantName: { type: 'STRING', description: '  ()' },
           },
         },
       },
       {
         name: 'place_food_order',
-        description: 'สั่งอาหารจากร้านค้าโดยระบุชื่อร้านค้า รายการอาหาร วิธีชำระเงิน และหมายเหตุ',
+        description: '   ',
         parameters: {
           type: 'OBJECT',
           properties: {
-            restaurantName: { type: 'STRING', description: 'ชื่อร้านค้า หรือคีย์เวิร์ดชื่อร้าน' },
+            restaurantName: { type: 'STRING', description: ' ' },
             items: {
               type: 'ARRAY',
-              description: 'รายการเมนูและจำนวนที่สั่ง',
+              description: '',
               items: {
                 type: 'OBJECT',
                 properties: {
-                  itemName: { type: 'STRING', description: 'ชื่อเมนูอาหาร' },
-                  qty: { type: 'NUMBER', description: 'จำนวนจาน/ชิ้น' },
+                  itemName: { type: 'STRING', description: '' },
+                  qty: { type: 'NUMBER', description: '/' },
                 },
                 required: ['itemName', 'qty'],
               },
             },
-            paymentMethod: { type: 'STRING', description: "วิธีชำระเงิน 'wallet' หรือ 'cash'" },
-            notes: { type: 'STRING', description: 'หมายเหตุเพิ่มเติมถึงร้านค้า' },
+            paymentMethod: { type: 'STRING', description: " 'wallet'  'cash'" },
+            notes: { type: 'STRING', description: '' },
           },
           required: ['restaurantName', 'items'],
         },
       },
       {
         name: 'place_parcel_order',
-        description: 'สั่งส่งพัสดุ/เรียกไรเดอร์มารับของ โดยระบุจุดรับ จุดส่ง เบอร์ผู้รับ',
+        description: '/   ',
         parameters: {
           type: 'OBJECT',
           properties: {
-            pickup: { type: 'STRING', description: 'จุดรับสินค้า/พัสดุ' },
-            dropoff: { type: 'STRING', description: 'จุดส่งสินค้า/พัสดุ' },
-            receiverName: { type: 'STRING', description: 'ชื่อผู้รับ' },
-            receiverPhone: { type: 'STRING', description: 'เบอร์โทรศัพท์ผู้รับ' },
-            weight: { type: 'STRING', description: 'น้ำหนักพัสดุ (กก.)' },
-            paymentMethod: { type: 'STRING', description: "วิธีชำระเงิน 'wallet' หรือ 'cash'" },
+            pickup: { type: 'STRING', description: '/' },
+            dropoff: { type: 'STRING', description: '/' },
+            receiverName: { type: 'STRING', description: '' },
+            receiverPhone: { type: 'STRING', description: '' },
+            weight: { type: 'STRING', description: ' (.)' },
+            paymentMethod: { type: 'STRING', description: " 'wallet'  'cash'" },
           },
           required: ['pickup', 'dropoff'],
         },
       },
       {
         name: 'send_order_chat_message',
-        description: 'ส่งข้อความสื่อสารหรือแจ้งเตือนไปยังห้องแชทของร้านค้า ไรเดอร์ หรือแอดมินสำหรับออเดอร์',
+        description: '  ',
         parameters: {
           type: 'OBJECT',
           properties: {
-            orderId: { type: 'STRING', description: "ID ของออเดอร์ หรือ 'latest' สำหรับออเดอร์ล่าสุด" },
-            message: { type: 'STRING', description: 'ข้อความแจ้งเตือนหรือสื่อสารที่ต้องการส่งถึงร้านค้า/ไรเดอร์/แอดมิน' },
+            orderId: { type: 'STRING', description: "ID   'latest' " },
+            message: { type: 'STRING', description: '//' },
           },
           required: ['message'],
         },
       },
       {
         name: 'check_order_status',
-        description: 'เช็คสถานะออเดอร์ปัจจุบันของผู้ใช้',
+        description: '',
         parameters: {
           type: 'OBJECT',
           properties: {
-            orderId: { type: 'STRING', description: 'ID ออเดอร์ (ไม่ระบุก็ได้)' },
+            orderId: { type: 'STRING', description: 'ID  ()' },
           },
         },
       },
       {
         name: 'get_system_health_report',
-        description: 'ตรวจสอบและวิเคราะห์สถานะความสมบูรณ์ของระบบ BoomRider (สำหรับ Admin เท่านั้น)',
+        description: ' BoomRider ( Admin )',
         parameters: {
           type: 'OBJECT',
           properties: {},
@@ -150,8 +143,8 @@ export default function AIChatModal({ isOpen, onClose }) {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: `สวัสดีครับคุณ ${userProfile?.name || currentUser?.name || 'ลูกค้า'}! 🛵✨ ผมน้องบูม AI Assistant\nผมสามารถช่วยเช็คสถานะ, ดูเมนูร้านค้า, สั่งอาหาร, เรียกไรเดอร์ส่งพัสดุ หรือส่งข้อความแจ้งเตือนไปยังร้านค้าและไรเดอร์ได้ครับ! มีอะไรให้รับใช้ไหมครับ?`,
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      text: ` ${userProfile?.name || currentUser?.name || ''}! 🛵✨  Assistente Pedejá\n, , ,  ! ?`,
+      time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
   const [inputText, setInputText] = useState('');
@@ -164,8 +157,8 @@ export default function AIChatModal({ isOpen, onClose }) {
       setMessages([
         {
           sender: 'bot',
-          text: `สวัสดีครับคุณ ${userProfile?.name || currentUser?.name || 'ลูกค้า'}! 🛵✨ ผมน้องบูม AI Assistant พร้อมดึงข้อมูลออเดอร์ ยอดเงิน Wallet และร้านอาหารมาช่วยดูแลคุณครับ วันนี้มีอะไรให้ผมช่วยไหมครับ?`,
-          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          text: ` ${userProfile?.name || currentUser?.name || ''}! 🛵✨  Assistente Pedejá   Wallet  ?`,
+          time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     }
@@ -180,10 +173,10 @@ export default function AIChatModal({ isOpen, onClose }) {
   const isAdminUser = activeRole === 'admin' || userProfile?.roles?.includes('admin') || currentUser?.roles?.includes('admin');
 
   const quickPrompts = [
-    ...(isAdminUser ? ['🛡️ วิเคราะห์ระบบ'] : []),
-    '📦 เช็คสถานะออเดอร์',
-    '💳 ยอดเงิน Wallet',
-    '🚚 เรียกส่งพัสดุ',
+    ...(isAdminUser ? ['🛡️ '] : []),
+    '📦 ',
+    '💳  Wallet',
+    '🚚 ',
   ];
 
   const currentUserId = userProfile?.id || currentUser?.id || '';
@@ -204,38 +197,38 @@ export default function AIChatModal({ isOpen, onClose }) {
   const buildContextPrompt = () => {
     const activeOrderSummary = activeOrders
       .map((o, idx) => {
-        const typeStr = o.type === 'parcel' ? 'ส่งพัสดุ' : `สั่งอาหาร (${o.restaurantName || 'ร้านค้า'})`;
+        const typeStr = o.type === 'parcel' ? '' : ` (${o.restaurantName || ''})`;
         const statusStr = STATUS_MAP[o.status] || o.status;
-        const riderStr = o.riderName ? ` | ไรเดอร์: ${o.riderName}` : '';
-        return `${idx + 1}. ออเดอร์ #${o.id.slice(-6)} [${typeStr}] - สถานะ: ${statusStr} - ยอดรวม: ฿${o.grandTotal || o.total || o.amount || 0}${riderStr}`;
+        const riderStr = o.riderName ? ` | : ${o.riderName}` : '';
+        return `${idx + 1}.  #${o.id.slice(-6)} [${typeStr}] - : ${statusStr} - : ${o.grandTotal || o.total || o.amount || 0}${riderStr}`;
       })
       .join('\n');
 
     const openShops = (restaurants || [])
       .filter((r) => r.status === 'open')
       .slice(0, 5)
-      .map((r) => `- ${r.name} (⭐ ${r.rating || 5.0}, ค่าส่ง ฿${r.deliveryFee ?? 15})`)
+      .map((r) => `- ${r.name} (⭐ ${r.rating || 5.0},  ${r.deliveryFee ?? 15})`)
       .join('\n');
 
-    return `คุณคือ "น้องบูม (BoomBot)" AI Assistant ประจำแอปพลิเคชัน BoomRider
-หน้าที่ของคุณคือช่วยเหลือผู้ใช้อย่างเป็นกันเอง สุภาพ มีหางเสียง (ครับ/ค่ะ) โดยอ้างอิงข้อมูลจริงจากระบบดังนี้:
+    return ` " (BoomBot)" Assistente Pedejá  BoomRider
+   (/) :
 
-[ข้อมูลผู้ใช้ปัจจุบัน]
-- ชื่อ: ${userProfile?.name || currentUser?.name || 'ลูกค้า'}
-- เบอร์โทร: ${userProfile?.phone || 'ไม่ระบุ'}
-- บทบาทปัจจุบัน: ${activeRole || 'customer'} ${isAdminUser ? '(สิทธิ์ผู้ดูแลระบบ Admin)' : ''}
-- ยอดเงินคงเหลือใน Wallet: ฿${balanceNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+[]
+- : ${userProfile?.name || currentUser?.name || ''}
+- : ${userProfile?.phone || ''}
+- : ${activeRole || 'customer'} ${isAdminUser ? '( Admin)' : ''}
+-  Wallet: ${balanceNum.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 
-${isAdminUser ? `[สิทธิ์พิเศษ Admin]
-- คุณได้รับสิทธิ์ในการสั่งการและเรียกใช้เครื่องมือ "get_system_health_report" เพื่อตรวจสอบวิเคราะห์ข้อผิดพลาดและสถานะความสมบูรณ์ของระบบแบบ Real-time ได้เมื่อ Admin ร้องขอ` : ''}
+${isAdminUser ? `[ Admin]
+-  "get_system_health_report"  Real-time  Admin ` : ''}
 
-[สถานะออเดอร์ปัจจุบันของคุณ (${activeOrders.length} รายการ)]
-${activeOrderSummary || 'ไม่มีออเดอร์ที่กำลังดำเนินการในขณะนี้'}
+[ (${activeOrders.length} )]
+${activeOrderSummary || ''}
 
-[ร้านอาหารที่เปิดให้บริการขณะนี้]
-${openShops || 'ไม่มีข้อมูลร้านค้า'}
+[]
+${openShops || ''}
 
-คำสั่งสถิติตอบให้ตรงกับข้อมูลจริงด้านบนเสมอ หากผู้ใช้ถามเรื่องยอดเงิน ให้ตอบ ฿${balanceNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} หากถามออเดอร์ ให้ระบุสถานะและเลขท้ายออเดอร์ตรงตามข้อมูลจริงสั้นกระชับเข้าใจง่ายครับ`;
+   ${balanceNum.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}  `;
   };
 
   // ── Local Tool Execution Handlers ──────────────────────────────────────────
@@ -246,7 +239,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
 
     if (allShops.length === 0) {
       return {
-        text: 'ขณะนี้ยังไม่มีรายชื่อร้านค้าในระบบครับ 🏪',
+        text: ' 🏪',
       };
     }
 
@@ -286,7 +279,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     });
 
     return {
-      text: `นี่คือรายชื่อร้านค้าทั้งหมดในระบบ BoomRider ครับ 🏪✨\nคุณสามารถเลือกดูเมนูอาหาร หรือกดเข้าสู่หน้าร้านค้าเพื่อสั่งซื้อได้เลยครับ!`,
+      text: ` BoomRider  🏪✨\n !`,
       cardData: {
         type: 'all_restaurants',
         shops: shopsWithDetails,
@@ -301,7 +294,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
 
     if (allShops.length === 0) {
       return {
-        text: 'ขออภัยครับ ขณะนี้ไม่มีร้านอาหารอยู่ในระบบครับ 🍔',
+        text: '  🍔',
       };
     }
 
@@ -345,12 +338,12 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
 
     if (shopMenuItems.length === 0) {
       return {
-        text: `ร้าน "${matchedShop.name}" ยังไม่มีรายการเมนูอาหารในระบบขณะนี้ครับ 🍔`,
+        text: ` "${matchedShop.name}"  🍔`,
       };
     }
 
     return {
-      text: `นี่คือชื่อร้านและรายการเมนูของ "${matchedShop.name}" (${matchedShop.status === 'open' ? '🟢 เปิดให้บริการ' : '🔴 ปิดบริการ'}) ครับ 😋\nคุณสามารถกดสั่งซื้อเมนูที่ต้องการ หรือกดใส่ตะกร้าได้ทันทีครับ!`,
+      text: ` "${matchedShop.name}" (${matchedShop.status === 'open' ? '🟢 ' : '🔴 '})  😋\n !`,
       cardData: {
         type: 'restaurant_menu',
         restaurant: matchedShop,
@@ -366,7 +359,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     const openShops = (restaurants || []).filter((r) => r.status === 'open');
 
     if (openShops.length === 0) {
-      return 'ขออภัยครับ ขณะนี้ไม่มีร้านอาหารที่เปิดให้บริการครับ 🍔';
+      return '  🍔';
     }
 
     let matchedShop = null;
@@ -381,14 +374,14 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     if (!matchedShop) {
       if (targetRestName) {
         const availableShopNames = openShops.map((r) => `• ${r.name}`).join('\n');
-        return `ขออภัยครับ ไม่พบร้าน "${targetRestName}" ที่เปิดให้บริการขณะนี้\n\nร้านที่เปิดให้บริการอยู่ในขณะนี้:\n${availableShopNames}`;
+        return `  "${targetRestName}" \n\n:\n${availableShopNames}`;
       }
       matchedShop = openShops[0];
     }
 
     const shopMenuItems = menuItems[matchedShop.id] || [];
     if (shopMenuItems.length === 0) {
-      return `ขออภัยครับ ร้าน "${matchedShop.name}" ยังไม่มีรายการเมนูอาหารในระบบครับ`;
+      return `  "${matchedShop.name}" `;
     }
 
     const orderedItems = [];
@@ -419,8 +412,8 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     }
 
     if (orderedItems.length === 0) {
-      const availableMenuNames = shopMenuItems.slice(0, 8).map((m) => `• ${m.name} (฿${m.price})`).join('\n');
-      return `ขออภัยครับ ไม่พบเมนูที่คุณระบุในร้าน "${matchedShop.name}"\n\nเมนูแนะนำของร้าน ${matchedShop.name}:\n${availableMenuNames}`;
+      const availableMenuNames = shopMenuItems.slice(0, 8).map((m) => `• ${m.name} (${m.price})`).join('\n');
+      return `  "${matchedShop.name}"\n\n ${matchedShop.name}:\n${availableMenuNames}`;
     }
 
     // Validate coordinates
@@ -428,7 +421,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     const shopLoc = matchedShop.location;
 
     if (!isValidCoordinate(custLoc) || !isValidCoordinate(shopLoc)) {
-      return `ขออภัยครับ ไม่สามารถสร้างออเดอร์ได้เนื่องจากยังไม่มีพิกัดจัดส่งที่แน่นอน กรุณาเลือกเปิดหน้าแผนที่และปักหมุดตำแหน่งจัดส่งจริงก่อนสั่งซื้อครับ 📍`;
+      return `   📍`;
     }
 
     let distance = getDistanceFromLatLonInKm(custLoc.lat, custLoc.lng, shopLoc.lat, shopLoc.lng);
@@ -443,10 +436,10 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     const paymentMethod = args.paymentMethod === 'cash' ? 'cash' : 'wallet';
 
     if (paymentMethod === 'wallet' && balanceNum < grandTotal) {
-      return `ขออภัยครับ ยอดเงินใน Wallet ไม่เพียงพอ (มียอด ฿${balanceNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} แต่ยอดสั่งซื้อคือ ฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) กรุณาเติมเงินก่อนทำรายการครับ 💳`;
+      return `  Wallet  ( ${balanceNum.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}  ${grandTotal.toLocaleString('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})  💳`;
     }
 
-    const addr = userAddresses?.[0] || { address: 'ที่อยู่ปัจจุบันของลูกค้า', location: custLoc };
+    const addr = userAddresses?.[0] || { address: '', location: custLoc };
     const orderId = generateId();
 
     const { data: quote, error: quoteError } = await supabase.rpc('create_service_quote', {
@@ -459,7 +452,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       p_dropoff_lng: custLoc.lng,
     });
     if (quoteError || !quote?.ok) {
-      return `ไม่สามารถยืนยันราคาออเดอร์ได้: ${quoteError?.message || quote?.reason || 'กรุณาลองใหม่'}`;
+      return `: ${quoteError?.message || quote?.reason || ''}`;
     }
 
     const newOrder = {
@@ -468,7 +461,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       type: 'food',
       status: 'pending',
       customerId: currentUserId,
-      customerName: userProfile?.name || currentUser?.name || 'ลูกค้า',
+      customerName: userProfile?.name || currentUser?.name || '',
       customerPhone: userProfile?.phone || null,
       restaurantId: matchedShop.id,
       restaurantName: matchedShop.name,
@@ -483,36 +476,36 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       promoDiscount: 0,
       grandTotal,
       paymentMethod,
-      notes: args.notes || 'สั่งผ่านน้องบูม AI Assistant',
+      notes: args.notes || ' Assistente Pedejá',
       createdAt: formatDateTime(),
     };
 
     const { data: placed, error: placeError } = await supabase.rpc('place_customer_order', { p_order: newOrder });
     if (placeError || !placed?.ok) {
-      return `สั่งอาหารไม่สำเร็จ: ${placeError?.message || placed?.reason || 'กรุณาลองใหม่'}`;
+      return `: ${placeError?.message || placed?.reason || ''}`;
     }
     const authoritativeOrder = placed.order || newOrder;
     setOrders((prev) => [authoritativeOrder, ...prev.filter(o => o.id !== orderId)]);
     if (paymentMethod === 'wallet') {
-      creditWalletLocal(currentUserId, -(authoritativeOrder.grandTotal || grandTotal), `ชำระค่าอาหาร ออเดอร์ #${orderId.slice(-6)} (สั่งผ่าน AI)`);
+      creditWalletLocal(currentUserId, -(authoritativeOrder.grandTotal || grandTotal), `  #${orderId.slice(-6)} ( AI)`);
     }
 
-    notifyAdmin('🛎️ ออเดอร์ใหม่ (ผ่าน AI)', `${userProfile?.name || 'ลูกค้า'} สั่ง ${matchedShop.name} ฿${grandTotal}`, 'info');
-    notifySystem('สั่งอาหารสำเร็จ! 🎉', `ออเดอร์ #${orderId.slice(-6)} ส่งไปยังร้านแล้ว`, 'success');
+    notifyAdmin('🛎️  ( AI)', `${userProfile?.name || ''}  ${matchedShop.name} ${grandTotal}`, 'info');
+    notifySystem('! 🎉', ` #${orderId.slice(-6)} `, 'success');
     playOrderNotificationSound();
 
-    const itemListStr = orderedItems.map((i) => `• ${i.name} x${i.qty} (฿${i.price * i.qty})`).join('\n');
+    const itemListStr = orderedItems.map((i) => `• ${i.name} x${i.qty} (${i.price * i.qty})`).join('\n');
     let missingNote = '';
     if (missingItems.length > 0) {
-      missingNote = `\n\n⚠️ หมายเหตุ: ไม่พบเมนู (${missingItems.join(', ')}) จึงเว้นรายการดังกล่าวไว้ครับ`;
+      missingNote = `\n\n⚠️ :  (${missingItems.join(', ')}) `;
     }
 
-    return `✅ สั่งอาหารให้เรียบร้อยแล้วครับ! 🎉\n\nร้านค้า: ${matchedShop.name}\nรายการที่สั่ง:\n${itemListStr}\nค่าอาหาร: ฿${foodTotal}\nค่าจัดส่ง (${distance.toFixed(1)} กม.): ฿${deliveryFee}\nยอดรวมทั้งสิ้น: ฿${grandTotal} (${paymentMethod === 'wallet' ? 'ตัดผ่าน Wallet' : 'เงินสด'})\nเลขที่ออเดอร์: #${orderId.slice(-6)}${missingNote}\n\nระบบได้ส่งคำสั่งซื้อและแจ้งเตือนไปยังร้านค้าเรียบร้อยแล้วครับ! 🍔🔔`;
+    return `✅ ! 🎉\n\n: ${matchedShop.name}\n:\n${itemListStr}\n: ${foodTotal}\n (${distance.toFixed(1)} .): ${deliveryFee}\n: ${grandTotal} (${paymentMethod === 'wallet' ? ' Wallet' : ''})\n: #${orderId.slice(-6)}${missingNote}\n\n! 🍔🔔`;
   };
 
   const executePlaceParcelOrder = async (args) => {
     void args;
-    return 'เพื่อคำนวณค่าส่งให้ถูกต้อง กรุณาเปิดหน้าส่งพัสดุและปักหมุดจุดรับกับจุดส่งบนแผนที่ก่อนยืนยันครับ';
+    return ' ';
   };
 
   const executeSendOrderChatMessage = async (args) => {
@@ -527,26 +520,26 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     }
 
     if (!targetOrder) {
-      return 'ขณะนี้ไม่พบออเดอร์ที่กำลังดำเนินการอยู่ จึงไม่สามารถส่งข้อความถึงร้านค้า/ไรเดอร์ได้ครับ 🛵';
+      return ' / 🛵';
     }
 
     const messageText = args.message || '';
     if (!messageText.trim()) {
-      return 'กรุณาระบุข้อความที่ต้องการส่งครับ';
+      return '';
     }
 
     const newMessage = {
-      text: `🤖 [ข้อความผ่านน้องบูม AI Assistant]: ${messageText}`,
+      text: `🤖 [ Assistente Pedejá]: ${messageText}`,
       sender: 'customer',
-      senderName: userProfile?.name ? `${userProfile.name} (ผ่าน AI)` : 'ลูกค้า (ผ่าน AI)',
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      senderName: userProfile?.name ? `${userProfile.name} ( AI)` : ' ( AI)',
+      time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
     };
 
     await supabase.rpc('append_chat_message', { p_order_id: targetOrder.id, p_message: newMessage });
 
-    notifySystem('ส่งข้อความสำเร็จ 💬', `ส่งข้อความออเดอร์ #${targetOrder.id.slice(-6)} เรียบร้อย`, 'success');
+    notifySystem(' 💬', ` #${targetOrder.id.slice(-6)} `, 'success');
 
-    return `💬 ส่งข้อความเรียบร้อยแล้วครับ!\n\nข้อความ: "${messageText}"\nไปยังออเดอร์: #${targetOrder.id.slice(-6)} (${targetOrder.type === 'parcel' ? 'ส่งพัสดุ' : targetOrder.restaurantName || 'ร้านค้า'})\n\nข้อความถูกบันทึกลงในห้องแชทและแจ้งเตือนไปยังร้านค้า/ไรเดอร์ทันทีครับ! ✨`;
+    return `💬 !\n\n: "${messageText}"\n: #${targetOrder.id.slice(-6)} (${targetOrder.type === 'parcel' ? '' : targetOrder.restaurantName || ''})\n\n/! ✨`;
   };
 
   const executeCheckOrderStatus = async (args) => {
@@ -555,20 +548,20 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     );
 
     if (userOrders.length === 0) {
-      return 'ขณะนี้คุณยังไม่มีประวัติออเดอร์ในระบบครับ คุณสามารถสั่งอาหารหรือเรียกส่งพัสดุผ่านผมได้เลยครับ! 🛵✨';
+      return ' ! 🛵✨';
     }
 
     const targetId = args?.orderId;
     if (targetId && targetId !== 'latest') {
       const matched = userOrders.find((o) => o.id.endsWith(targetId) || o.id === targetId);
       if (matched) {
-        const typeStr = matched.type === 'parcel' ? 'ส่งพัสดุ' : `อาหาร (${matched.restaurantName || 'ร้านค้า'})`;
+        const typeStr = matched.type === 'parcel' ? '' : ` (${matched.restaurantName || ''})`;
         const statusStr = STATUS_MAP[matched.status] || matched.status;
-        const riderStr = matched.riderName ? `\nไรเดอร์: ${matched.riderName} (${matched.riderPhone || 'มีเบอร์ในระบบ'})` : '\nไรเดอร์: กำลังค้นหาไรเดอร์...';
-        const itemsStr = matched.items ? `\nรายการ: ${matched.items.map((i) => `${i.name} x${i.qty}`).join(', ')}` : '';
-        const routeStr = matched.type === 'parcel' ? `\nจุดรับ: ${matched.pickup}\nจุดส่ง: ${matched.dropoff}` : '';
+        const riderStr = matched.riderName ? `\n: ${matched.riderName} (${matched.riderPhone || ''})` : '\n: ...';
+        const itemsStr = matched.items ? `\n: ${matched.items.map((i) => `${i.name} x${i.qty}`).join(', ')}` : '';
+        const routeStr = matched.type === 'parcel' ? `\n: ${matched.pickup}\n: ${matched.dropoff}` : '';
 
-        return `📦 รายละเอียดออเดอร์ #${matched.id.slice(-6)} [${typeStr}]\nสถานะปัจจุบัน: ${statusStr}${riderStr}${itemsStr}${routeStr}\nยอดรวมทั้งสิ้น: ฿${matched.grandTotal || matched.deliveryFee || 0}\nเวลาสั่ง: ${matched.createdAt || 'ไม่ระบุ'}`;
+        return `📦  #${matched.id.slice(-6)} [${typeStr}]\n: ${statusStr}${riderStr}${itemsStr}${routeStr}\n: ${matched.grandTotal || matched.deliveryFee || 0}\n: ${matched.createdAt || ''}`;
       }
     }
 
@@ -576,25 +569,25 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     if (activeList.length > 0) {
       const summaryList = activeList
         .map((o, idx) => {
-          const typeStr = o.type === 'parcel' ? 'ส่งพัสดุ' : `อาหาร (${o.restaurantName || 'ร้านค้า'})`;
+          const typeStr = o.type === 'parcel' ? '' : ` (${o.restaurantName || ''})`;
           const statusStr = STATUS_MAP[o.status] || o.status;
-          const riderStr = o.riderName ? ` | ไรเดอร์: ${o.riderName}` : '';
-          return `${idx + 1}. #${o.id.slice(-6)} [${typeStr}]\n   • สถานะ: ${statusStr}${riderStr}\n   • ยอดรวม: ฿${o.grandTotal || o.deliveryFee || 0}`;
+          const riderStr = o.riderName ? ` | : ${o.riderName}` : '';
+          return `${idx + 1}. #${o.id.slice(-6)} [${typeStr}]\n   • : ${statusStr}${riderStr}\n   • : ${o.grandTotal || o.deliveryFee || 0}`;
         })
         .join('\n\n');
 
-      return `🛵 สถานะออเดอร์ที่กำลังดำเนินการ (${activeList.length} รายการ):\n\n${summaryList}\n\nต้องการดูรายละเอียดเพิ่มเติมของออเดอร์ไหน พิมพ์ระบุเลขท้ายออเดอร์ได้เลยครับ!`;
+      return `🛵  (${activeList.length} ):\n\n${summaryList}\n\n !`;
     }
 
     const latest = userOrders[0];
     const latestStatus = STATUS_MAP[latest.status] || latest.status;
-    return `ขณะนี้ไม่มีออเดอร์ที่กำลังดำเนินการครับ\n\nออเดอร์ล่าสุดของคุณคือ #${latest.id.slice(-6)} (${latest.type === 'parcel' ? 'ส่งพัสดุ' : latest.restaurantName || 'อาหาร'})\nสถานะ: ${latestStatus}\nเวลาสั่ง: ${latest.createdAt || 'ไม่ระบุ'}\n\nคุณสามารถสั่งอาหารหรือเรียกส่งพัสดุรายการใหม่ได้เลยครับ! 🍔📦`;
+    return `\n\n #${latest.id.slice(-6)} (${latest.type === 'parcel' ? '' : latest.restaurantName || ''})\n: ${latestStatus}\n: ${latest.createdAt || ''}\n\n! 🍔📦`;
   };
 
   const executeGetSystemHealthReport = async () => {
     if (!isAdminUser) {
       return {
-        text: '🔒 ขออภัยครับ ฟังก์ชันตรวจสอบและวิเคราะห์ระบบอนุญาตให้เฉพาะผู้ดูแลระบบ (Admin) ใช้งานเท่านั้นครับ',
+        text: '🔒   (Admin) ',
       };
     }
 
@@ -604,7 +597,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       if (error || !data) {
         console.error('admin_get_system_health RPC error:', error);
         return {
-          text: `⚠️ ไม่สามารถดึงรายงานสถานะระบบได้: ${error?.message || 'ข้อผิดพลาดระบบ'}`,
+          text: `⚠️ : ${error?.message || ''}`,
         };
       }
 
@@ -615,27 +608,27 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       const e = data.entity_counts || {};
 
       let statusMsg = isHealthy
-        ? '🟢 **สถานะระบบโดยรวม: ปกติและสมบูรณ์ดี (Healthy)**\nไม่พบข้อผิดพลาดหรือความผิดปกติของยอดเงินและออเดอร์ในระบบครับ!'
-        : '⚠️ **สถานะระบบโดยรวม: ตรวจพบข้อผิดพลาด/ความผิดปกติ (Action Required)**';
+        ? '🟢 **:  (Healthy)**\n!'
+        : '⚠️ **: / (Action Required)**';
 
       const detailsList = [
-        `📊 **สรุปภาพรวมออเดอร์**:`,
-        `  • ออเดอร์ทั้งหมด: ${o.total_orders || 0} รายการ (เสร็จสิ้น: ${o.completed_orders || 0}, ยกเลิก: ${o.cancelled_orders || 0})`,
-        `  • ออเดอร์เสร็จสิ้นที่ค้างเคลียร์เงิน: ${o.completed_unsettled_count > 0 ? `⚠️ ${o.completed_unsettled_count} รายการ` : '0 รายการ 🟢'}`,
-        `  • ออเดอร์ยกเลิกที่ยังไม่ได้คืนเงิน: ${o.cancelled_unrefunded_count > 0 ? `⚠️ ${o.cancelled_unrefunded_count} รายการ` : '0 รายการ 🟢'}`,
+        `📊 ****:`,
+        `  • : ${o.total_orders || 0}  (: ${o.completed_orders || 0}, : ${o.cancelled_orders || 0})`,
+        `  • : ${o.completed_unsettled_count > 0 ? `⚠️ ${o.completed_unsettled_count} ` : '0  🟢'}`,
+        `  • : ${o.cancelled_unrefunded_count > 0 ? `⚠️ ${o.cancelled_unrefunded_count} ` : '0  🟢'}`,
         ``,
-        `💳 **สรุปบัญชี Wallet & บัญชีแยกประเภท (Ledger)**:`,
-        `  • กระเป๋าเงินทั้งหมด: ${w.total_wallets || 0} บัญชี (ยอดรวมคงเหลือ: ฿${(w.total_wallet_balance_sum || 0).toLocaleString('th-TH')})`,
-        `  • บัญชีที่มียอดติดลบ: ${w.negative_wallets_count > 0 ? `⚠️ ${w.negative_wallets_count} บัญชี` : '0 บัญชี 🟢'}`,
-        `  • ผลต่าง Wallet vs Ledger (Variance): ${v.wallet_ledger_variance_count > 0 ? `⚠️ พบผลต่างไม่ตรงกัน ${v.wallet_ledger_variance_count} รายการ` : 'ตรงกัน 100% 🟢'}`,
+        `💳 ** Wallet &  (Ledger)**:`,
+        `  • : ${w.total_wallets || 0}  (: ${(w.total_wallet_balance_sum || 0).toLocaleString('pt-AO')})`,
+        `  • : ${w.negative_wallets_count > 0 ? `⚠️ ${w.negative_wallets_count} ` : '0  🟢'}`,
+        `  •  Wallet vs Ledger (Variance): ${v.wallet_ledger_variance_count > 0 ? `⚠️  ${v.wallet_ledger_variance_count} ` : ' 100% 🟢'}`,
         ``,
-        `🏢 **จำนวนผู้ใช้งานและร้านค้าในระบบ**:`,
-        `  • ผู้ใช้งานทั้งหมด: ${e.total_profiles || 0} ราย (ร้านค้า: ${e.total_restaurants || 0}, ไรเดอร์: ${e.total_riders || 0})`,
-        `  • คำขออนุมัติค้างดำเนินการ: ${e.total_pending_requests || 0} รายการ`,
+        `🏢 ****:`,
+        `  • : ${e.total_profiles || 0}  (: ${e.total_restaurants || 0}, : ${e.total_riders || 0})`,
+        `  • : ${e.total_pending_requests || 0} `,
       ].join('\n');
 
       return {
-        text: `🛡️ **รายงานวิเคราะห์สถานะระบบ BoomRider** (สำหรับ Admin)\n\n${statusMsg}\n\n${detailsList}`,
+        text: `🛡️ ** BoomRider** ( Admin)\n\n${statusMsg}\n\n${detailsList}`,
         cardData: {
           type: 'system_health',
           healthData: data,
@@ -643,7 +636,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       };
     } catch (err) {
       console.error('executeGetSystemHealthReport exception:', err);
-      return { text: 'เกิดข้อผิดพลาดในการตรวจสอบระบบ กรุณาลองใหม่อีกครั้งครับ' };
+      return { text: ' ' };
     }
   };
 
@@ -668,10 +661,10 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       } else if (functionName === 'get_system_health_report') {
         return await executeGetSystemHealthReport();
       }
-      return { text: 'ไม่พบฟังก์ชันที่ระบุครับ' };
+      return { text: '' };
     } catch (err) {
       console.error('executeTool error:', err);
-      return { text: 'เกิดข้อผิดพลาดในการทำรายการ กรุณาลองใหม่อีกครั้งครับ' };
+      return { text: ' ' };
     }
   };
 
@@ -684,7 +677,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
     const userMsg = {
       sender: 'user',
       text,
-      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
@@ -699,43 +692,43 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
       let replyCardData = null;
 
       const isListRestaurantsIntent =
-        text.includes('รายชื่อร้าน') ||
-        text.includes('ร้านทั้งหมด') ||
-        text.includes('ร้านค้าทั้งหมด') ||
-        text.includes('มีร้านอะไรบ้าง') ||
-        text.includes('มีร้านค้าอะไรบ้าง') ||
-        text.includes('ร้านค้าในระบบ') ||
-        text.includes('เลือกร้าน') ||
-        text.includes('แนะนำร้าน');
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('');
 
       const isMenuIntent =
         !isListRestaurantsIntent &&
-        (text.includes('ขอเมนู') ||
-        text.includes('ดูเมนู') ||
-        text.includes('แสดงเมนู') ||
-        text.includes('มีเมนูอะไรบ้าง') ||
-        text.includes('รายการอาหาร') ||
-        text.includes('เมนูร้าน'));
+        (text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes(''));
 
       const isChatMessageIntent =
-        text.includes('ส่งข้อความ') ||
-        text.includes('บอกร้าน') ||
-        text.includes('บอกไรเดอร์') ||
-        text.includes('แจ้งร้าน');
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('');
 
       const isPlaceFoodIntent =
         !isMenuIntent &&
-        (text.includes('สั่งอาหาร') || text.includes('สั่งกะเพรา') || text.includes('สั่งข้าว'));
+        (text.includes('') || text.includes('') || text.includes(''));
 
       const isPlaceParcelIntent =
-        text.includes('สั่งส่งพัสดุ') || text.includes('เรียกไรเดอร์') || text.includes('ส่งพัสดุจาก');
+        text.includes('') || text.includes('') || text.includes('');
 
       const isSystemHealthIntent =
-        text.includes('วิเคราะห์ระบบ') ||
-        text.includes('ตรวจสอบระบบ') ||
-        text.includes('เช็คระบบ') ||
-        text.includes('สถานะระบบ') ||
-        text.includes('ข้อผิดพลาดระบบ') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
+        text.includes('') ||
         text.includes('health check') ||
         text.includes('system health');
 
@@ -749,15 +742,15 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
         replyCardData = res.cardData || null;
       } else if (isMenuIntent) {
         let cleanShopName = text
-          .replace(/^(ขอเมนู|ดูเมนู|แสดงเมนู|ขอเมนูอาหาร|มีเมนูอะไรบ้าง|รายการอาหาร|เมนูร้าน)\s*/g, '')
-          .replace(/(ของร้าน|ร้าน|หน่อยครับ|หน่อยค่ะ|หน่อย|ครับ|ค่ะ)/g, '')
+          .replace(/^(||||||)\s*/g, '')
+          .replace(/(||||||)/g, '')
           .trim();
         const res = await executeGetRestaurantMenu({ restaurantName: cleanShopName });
         replyText = res.text;
         replyCardData = res.cardData || null;
       } else if (isChatMessageIntent) {
         const cleanMsg = text.replace(
-          /^(ส่งข้อความถึงร้าน|บอกร้านว่า|บอกไรเดอร์ว่า|แจ้งร้านว่า|ส่งข้อความว่า)\s*/,
+          /^(||||)\s*/,
           ''
         );
         replyText = await executeSendOrderChatMessage({ message: cleanMsg || text });
@@ -769,17 +762,17 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
         });
       } else if (isPlaceParcelIntent) {
         replyText = await executePlaceParcelOrder({
-          pickup: 'จุดรับของปัจจุบัน',
-          dropoff: 'จุดส่งของปลายทาง',
+          pickup: '',
+          dropoff: '',
           paymentMethod: 'wallet',
         });
-      } else if (text.includes('สถานะออเดอร์') || text.includes('เช็คออเดอร์')) {
+      } else if (text.includes('') || text.includes('')) {
         replyText = await executeCheckOrderStatus({});
-      } else if (text.includes('Wallet') || text.includes('ยอดเงิน') || text.includes('เงิน')) {
-        replyText = `ยอดเงินใน Wallet ของคุณในปัจจุบันคือ ฿${balanceNum.toLocaleString('th-TH', {
+      } else if (text.includes('Wallet') || text.includes('') || text.includes('')) {
+        replyText = ` Wallet  ${balanceNum.toLocaleString('pt-AO', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-        })} ครับ สามารถใช้ชำระค่าอาหารและค่าส่งพัสดุได้ทันที! 💳`;
+        })}  ! 💳`;
       } else {
         const systemPromptWithContext = buildContextPrompt();
         const data = await generateAiReply({
@@ -804,7 +797,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
           sender: 'bot',
           text: replyText,
           cardData: replyCardData,
-          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     } catch (error) {
@@ -813,8 +806,8 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
         ...prev,
         {
           sender: 'bot',
-          text: 'ขออภัยครับ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งครับ',
-          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          text: '  ',
+          time: new Date().toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
     } finally {
@@ -831,14 +824,14 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
         <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 p-4 text-white shadow-md flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-2xl backdrop-blur-md border border-white/20">
-              <Bot size={22} className="text-purple-200" />
+              <img src="/pedeja-assistant-avatar.png" alt="Assistente Pedejá" className="w-9 h-9 rounded-full object-cover" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="font-bold text-base">น้องบูม AI Assistant</h3>
+                <h3 className="font-bold text-base"> Assistente Pedejá</h3>
                 <Sparkles size={14} className="text-amber-300 animate-pulse" />
               </div>
-              <p className="text-[11px] text-purple-200">สั่งอาหาร • เรียกพัสดุ • แจ้งเตือนร้าน/ไรเดอร์</p>
+              <p className="text-[11px] text-purple-200"> •  • /</p>
             </div>
           </div>
           <button
@@ -860,7 +853,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
               >
                 {isBot && (
                   <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs shrink-0 mt-1 shadow-sm">
-                    <Bot size={15} />
+                    <img src="/pedeja-assistant-avatar.png" alt="Assistente Pedejá" className="w-full h-full rounded-full object-cover" />
                   </div>
                 )}
                 <div
@@ -894,27 +887,27 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
 
                         <div className="grid grid-cols-2 gap-2 text-[10px]">
                           <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
-                            <span className="text-slate-400 block text-[9px]">ออเดอร์ค้างเคลียร์</span>
+                            <span className="text-slate-400 block text-[9px]"></span>
                             <span className={`font-mono text-xs font-bold ${msg.cardData.healthData?.order_health?.completed_unsettled_count > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                              {msg.cardData.healthData?.order_health?.completed_unsettled_count || 0} รายการ
+                              {msg.cardData.healthData?.order_health?.completed_unsettled_count || 0} 
                             </span>
                           </div>
                           <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
-                            <span className="text-slate-400 block text-[9px]">บัญชีเงินติดลบ</span>
+                            <span className="text-slate-400 block text-[9px]"></span>
                             <span className={`font-mono text-xs font-bold ${msg.cardData.healthData?.wallet_health?.negative_wallets_count > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                              {msg.cardData.healthData?.wallet_health?.negative_wallets_count || 0} บัญชี
+                              {msg.cardData.healthData?.wallet_health?.negative_wallets_count || 0} 
                             </span>
                           </div>
                           <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
-                            <span className="text-slate-400 block text-[9px]">ผลต่าง Wallet/Ledger</span>
+                            <span className="text-slate-400 block text-[9px]"> Wallet/Ledger</span>
                             <span className={`font-mono text-xs font-bold ${msg.cardData.healthData?.variance_health?.wallet_ledger_variance_count > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                              {msg.cardData.healthData?.variance_health?.wallet_ledger_variance_count || 0} รายการ
+                              {msg.cardData.healthData?.variance_health?.wallet_ledger_variance_count || 0} 
                             </span>
                           </div>
                           <div className="bg-slate-800/80 p-2 rounded-xl border border-slate-700/60">
-                            <span className="text-slate-400 block text-[9px]">คำขออนุมัติค้าง</span>
+                            <span className="text-slate-400 block text-[9px]"></span>
                             <span className="font-mono text-xs font-bold text-indigo-300">
-                              {msg.cardData.healthData?.entity_counts?.total_pending_requests || 0} รายการ
+                              {msg.cardData.healthData?.entity_counts?.total_pending_requests || 0} 
                             </span>
                           </div>
                         </div>
@@ -924,7 +917,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                             <ShieldCheck size={12} className="text-indigo-400" /> Authorized Admin Diagnostic
                           </span>
                           <span className="font-mono text-[8px]">
-                            {new Date(msg.cardData.healthData?.timestamp || Date.now()).toLocaleTimeString('th-TH')}
+                            {new Date(msg.cardData.healthData?.timestamp || Date.now()).toLocaleTimeString('pt-AO')}
                           </span>
                         </div>
                       </div>
@@ -936,7 +929,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                     <div className="mt-2.5 pt-2.5 border-t border-purple-100 space-y-2">
                       <div className="text-[11px] font-bold text-purple-900 flex items-center gap-1">
                         <Store size={14} className="text-purple-600" />
-                        <span>รายชื่อร้านค้าในระบบ ({msg.cardData.shops.length} ร้าน)</span>
+                        <span> ({msg.cardData.shops.length} )</span>
                       </div>
                       <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                         {msg.cardData.shops.map((shop) => (
@@ -955,25 +948,25 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                                         : 'bg-rose-100 text-rose-700'
                                     }`}
                                   >
-                                    {shop.status === 'open' ? 'เปิด' : 'ปิด'}
+                                    {shop.status === 'open' ? '' : ''}
                                   </span>
                                 </div>
                                 <div className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
                                   <Star size={10} className="fill-amber-400 text-amber-400" />
                                   <span>{shop.rating || 5.0}</span>
-                                  <span>• {shop.distance} กม.</span>
-                                  <span>• ค่าส่ง ฿{shop.deliveryFee}</span>
-                                  <span>• {shop.itemCount} เมนู</span>
+                                  <span>• {shop.distance} .</span>
+                                  <span>•  {shop.deliveryFee}</span>
+                                  <span>• {shop.itemCount} </span>
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-gray-50">
                               <button
                                 type="button"
-                                onClick={() => handleSend(`ขอเมนูร้าน ${shop.name}`)}
+                                onClick={() => handleSend(` ${shop.name}`)}
                                 className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-xs active:scale-95 transition-all"
                               >
-                                📋 ดูเมนูร้านนี้
+                                📋 
                               </button>
                               {setSelectedRestaurant && (
                                 <button
@@ -984,7 +977,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                                   }}
                                   className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-xs active:scale-95 transition-all"
                                 >
-                                  ดูหน้าร้าน
+                                  
                                 </button>
                               )}
                             </div>
@@ -1010,14 +1003,14 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                                     : 'bg-rose-100 text-rose-700'
                                 }`}
                               >
-                                {msg.cardData.restaurant.status === 'open' ? 'เปิด' : 'ปิด'}
+                                {msg.cardData.restaurant.status === 'open' ? '' : ''}
                               </span>
                             </div>
                             <div className="text-[10px] text-purple-600 flex items-center gap-1">
                               <Star size={10} className="fill-purple-500 text-purple-500" />
                               <span>{msg.cardData.restaurant.rating || 5.0}</span>
-                              <span>• {msg.cardData.distance} กม.</span>
-                              <span>• ค่าส่ง ฿{msg.cardData.deliveryFee}</span>
+                              <span>• {msg.cardData.distance} .</span>
+                              <span>•  {msg.cardData.deliveryFee}</span>
                             </div>
                           </div>
                         </div>
@@ -1030,7 +1023,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                             }}
                             className="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-xs active:scale-95 transition-all shrink-0"
                           >
-                            ดูหน้าร้าน
+                            
                           </button>
                         )}
                       </div>
@@ -1052,19 +1045,19 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                               <div className="min-w-0">
                                 <div className="font-semibold text-gray-800 text-[11px] truncate">{item.name}</div>
                                 {item.desc && <div className="text-[9px] text-gray-400 truncate">{item.desc}</div>}
-                                <div className="text-xs font-bold text-purple-700">฿{item.price}</div>
+                                <div className="text-xs font-bold text-purple-700">{item.price}</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 type="button"
                                 onClick={() =>
-                                  handleSend(`สั่ง ${item.name} จากร้าน ${msg.cardData.restaurant.name} 1 จาน`)
+                                  handleSend(` ${item.name}  ${msg.cardData.restaurant.name} 1 `)
                                 }
                                 className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-0.5 shadow-xs active:scale-95 transition-all"
                               >
                                 <ShoppingBag size={10} />
-                                <span>สั่งซื้อ</span>
+                                <span></span>
                               </button>
                               {addToCart && (
                                 <button
@@ -1076,10 +1069,10 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                                       msg.cardData.restaurant.name,
                                       Number(msg.cardData.distance)
                                     );
-                                    notifySystem('เพิ่มลงตระกร้าแล้ว 🛒', `${item.name} ถูกเพิ่มลงในตะกร้าแล้ว`);
+                                    notifySystem(' 🛒', `${item.name} `);
                                   }}
                                   className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-1 rounded-lg text-[10px] font-medium shadow-xs active:scale-95 transition-all"
-                                  title="ใส่ตะกร้า"
+                                  title=""
                                 >
                                   <Plus size={12} />
                                 </button>
@@ -1111,7 +1104,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
           {loading && (
             <div className="flex gap-2 items-center text-xs text-purple-600 bg-purple-50 p-3 rounded-2xl w-fit animate-pulse border border-purple-100">
               <Loader2 size={16} className="animate-spin" />
-              <span>น้องบูมกำลังประมวลผลคำสั่ง...</span>
+              <span>...</span>
             </div>
           )}
 
@@ -1144,7 +1137,7 @@ ${openShops || 'ไม่มีข้อมูลร้านค้า'}
                 handleSend();
               }
             }}
-            placeholder="สั่งอาหาร, เรียกพัสดุ หรือส่งข้อความ..."
+            placeholder=",  ..."
             className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
           />
           <button

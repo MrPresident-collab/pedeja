@@ -1,451 +1,99 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  MapPin, ArrowDownCircle, Wallet, MessageSquare,
-  ChevronRight, Repeat, LogOut, Settings, Save,
-  Camera, Crosshair, Bike, ChefHat, Plus, Trash2,
-  Check, Edit,
+  ArrowLeft, Bell, Camera, ChevronRight, CircleHelp, CreditCard, Globe2,
+  Info, LogOut, MapPin, MessageSquare, Moon, Package, Plus, ShieldCheck,
+  Sun, Trash2, UserRound, WalletCards, X,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import packageJson from '../../../package.json';
 import { useApp } from '../../context/AppContext';
-import { formatDateTimeFromMs } from '../../utils';
+import { supabase } from '../../lib/supabase';
+
+const EMPTY_ADDRESS = { label: 'Casa', addressLine1: '', addressLine2: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null, location: null };
+const PROFILE_VIEWS = new Set(['wallet', 'addresses', 'edit_profile', 'notifications', 'preferences', 'security', 'help', 'legal', 'about']);
+const walletUnavailable = 'A carteira Pedejá ainda não está disponível para consulta: o backend live não expõe um contrato de saldo e movimentos do cliente.';
+
+function Row({ icon, title, detail, onClick, danger = false }) {
+  return <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border-b border-gray-100 last:border-0 hover:bg-gray-50 ${danger ? 'text-red-600' : 'text-gray-800'}`}><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${danger ? 'bg-red-50' : 'bg-violet-50 text-violet-700'}`}>{React.createElement(icon, { size: 18 })}</span><span className="min-w-0 flex-1"><span className="block font-semibold text-sm">{title}</span>{detail && <span className="block text-xs text-gray-400 mt-0.5 truncate">{detail}</span>}</span><ChevronRight size={17} className="text-gray-300 shrink-0" /></button>;
+}
+
+function Section({ title, children }) {
+  return <section className="mt-5"><h2 className="px-1 mb-2 text-[10px] tracking-[0.16em] uppercase font-black text-gray-400">{title}</h2><div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">{children}</div></section>;
+}
+
+function WalletCard({ onClick }) {
+  return <button onClick={onClick} className="w-full text-left rounded-[26px] bg-[#34205f] text-white p-6 shadow-xl shadow-violet-900/15 relative overflow-hidden"><div className="absolute -right-10 -top-12 w-44 h-44 rounded-full border border-white/10" /><div className="absolute -right-16 -bottom-20 w-56 h-56 rounded-full border border-white/10" /><div className="relative"><div className="flex items-center justify-between"><span className="font-black tracking-[0.16em] text-sm">PEDEJÁ.</span><WalletCards size={20} className="text-violet-200" /></div><p className="mt-8 text-[10px] uppercase tracking-[0.16em] text-violet-200 font-bold">Saldo disponível</p><p className="text-4xl font-black tracking-tight mt-1">Indisponível</p><p className="text-sm text-violet-100 mt-3">Consulta de saldo pendente de suporte backend</p><div className="mt-5 flex items-center gap-2 text-xs text-violet-200 font-semibold"><span>Carteira Pedejá</span><ChevronRight size={15} /></div></div></button>;
+}
+
+function WalletDetail({ onBack }) {
+  return <div className="pb-24"><Header title="Carteira Pedejá" onBack={onBack} /><div className="p-4"><WalletCard onClick={() => {}} /><div className="mt-6 bg-white rounded-2xl border border-gray-100 p-5"><div className="flex items-center gap-2"><WalletCards size={18} className="text-violet-700" /><h2 className="font-black text-gray-900">Movimentos</h2></div><div className="py-10 text-center"><p className="font-semibold text-gray-800">Movimentos indisponíveis</p><p className="text-xs text-gray-500 mt-2">{walletUnavailable}</p></div></div></div></div>;
+}
+
+function Header({ title, onBack }) {
+  return <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-gray-100 px-4 py-3 flex items-center gap-3"><button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-gray-100" aria-label="Voltar"><ArrowLeft size={20} /></button><h1 className="font-black text-gray-900">{title}</h1></div>;
+}
+
+function ProfileEditor({ userProfile, tempProfile, setTempProfile, onBack, onSave, profileUploading }) {
+  const [message, setMessage] = useState('');
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const changedPhone = (tempProfile.phone || '') !== (userProfile.phone || '');
+  const changedEmail = (tempProfile.email || '') !== (userProfile.email || '');
+  const save = async () => {
+    setSavingIdentity(true); setMessage('');
+    const updates = {};
+    if (changedPhone) updates.phone = tempProfile.phone;
+    if (changedEmail) updates.email = tempProfile.email;
+    if (Object.keys(updates).length) {
+      const { error } = await supabase.auth.updateUser(updates);
+      if (error) { setMessage(error.message || 'Não foi possível iniciar a verificação.'); setSavingIdentity(false); return; }
+      setMessage('Enviámos uma verificação para os dados alterados. Confirma antes de usar o novo contacto.');
+    }
+    await onSave({ ...tempProfile, phone: userProfile.phone, email: userProfile.email });
+    setSavingIdentity(false);
+  };
+  return <div className="pb-24"><Header title="Dados pessoais" onBack={onBack} /><div className="p-4"><div className="flex justify-center mb-6"><label htmlFor="profile-photo-input" className="w-24 h-24 bg-gray-100 rounded-full overflow-hidden relative cursor-pointer"><img src={tempProfile.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(tempProfile.name || 'Pedejá')}&background=34205f&color=fff&size=96`} className="w-full h-full object-cover" alt="Foto de perfil" /><span className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">{profileUploading ? <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Camera />}</span><input id="profile-photo-input" type="file" accept="image/*" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) onSave({ ...tempProfile, _photoEvent: event }); }} disabled={profileUploading} /></label></div><div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4"><label className="block text-sm text-gray-500">Nome<input value={tempProfile.name || ''} onChange={event => setTempProfile({ ...tempProfile, name: event.target.value })} className="w-full mt-1 border rounded-xl px-3 py-3 text-gray-900" autoComplete="name" /></label><label className="block text-sm text-gray-500">Telefone<input value={tempProfile.phone || ''} onChange={event => setTempProfile({ ...tempProfile, phone: event.target.value })} className="w-full mt-1 border rounded-xl px-3 py-3 text-gray-900" autoComplete="tel" /></label><label className="block text-sm text-gray-500">Email<input value={tempProfile.email || ''} onChange={event => setTempProfile({ ...tempProfile, email: event.target.value })} className="w-full mt-1 border rounded-xl px-3 py-3 text-gray-900" autoComplete="email" /></label>{message && <p className="text-xs text-violet-700 bg-violet-50 rounded-xl p-3">{message}</p>}<button disabled={savingIdentity || profileUploading} onClick={save} className="w-full bg-violet-700 text-white py-3 rounded-xl font-bold disabled:opacity-50">{savingIdentity ? 'A guardar...' : 'Guardar alterações'}</button></div><p className="text-xs text-gray-400 mt-3">Alterações de telefone e email exigem confirmação através do Supabase Auth.</p></div></div>;
+}
+
+function Addresses({ userAddresses, newAddr, setNewAddr, handleAddAddress, handleDeleteAddress, getCurrentLocationForForm, onBack }) {
+  const [adding, setAdding] = useState(false);
+  const save = async () => { const ok = await handleAddAddress(newAddr); if (ok) { setNewAddr({ ...EMPTY_ADDRESS }); setAdding(false); } };
+  return <div className="pb-24"><Header title="Moradas" onBack={onBack} /><div className="p-4"><p className="text-sm text-gray-500 mb-4">Moradas guardadas para Fome, Compras e Enviar Pacote.</p><div className="space-y-3">{userAddresses.map(address => <div key={address.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-3"><MapPin size={18} className="text-violet-700 mt-1 shrink-0" /><div className="min-w-0 flex-1"><p className="font-bold text-gray-900">{address.label}</p><p className="text-sm text-gray-600 mt-1">{address.address || 'Morada sem detalhes'}</p><p className="text-xs text-gray-400 mt-1">{address.location ? 'Localização pronta para entregas' : 'Localização ainda não resolvida'}</p></div><button onClick={() => handleDeleteAddress(address.id)} aria-label="Remover morada" className="p-2 text-red-500"><Trash2 size={16} /></button></div>)}{userAddresses.length === 0 && <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">Ainda não existem moradas guardadas.</div>}</div><button onClick={() => setAdding(value => !value)} className="w-full mt-4 py-3 rounded-xl bg-violet-700 text-white font-bold flex items-center justify-center gap-2"><Plus size={17} /> {adding ? 'Cancelar' : 'Adicionar morada'}</button>{adding && <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4 space-y-3"><select value={newAddr.label} onChange={event => setNewAddr({ ...newAddr, label: event.target.value })} className="w-full border rounded-xl p-3"><option>Casa</option><option>Trabalho</option><option>Escola</option><option>Outro</option></select><input value={newAddr.addressLine1} onChange={event => setNewAddr({ ...newAddr, addressLine1: event.target.value })} placeholder="Rua / Avenida e número" className="w-full border rounded-xl p-3" /><div className="grid grid-cols-2 gap-2"><input value={newAddr.neighborhood} onChange={event => setNewAddr({ ...newAddr, neighborhood: event.target.value })} placeholder="Bairro" className="w-full border rounded-xl p-3" /><input value={newAddr.municipality} onChange={event => setNewAddr({ ...newAddr, municipality: event.target.value })} placeholder="Município" className="w-full border rounded-xl p-3" /></div><input value={newAddr.reference} onChange={event => setNewAddr({ ...newAddr, reference: event.target.value })} placeholder="Referência" className="w-full border rounded-xl p-3" /><button onClick={getCurrentLocationForForm} className="w-full border border-violet-200 text-violet-700 rounded-xl py-3 font-semibold">Usar localização actual</button><button onClick={save} className="w-full bg-violet-700 text-white rounded-xl py-3 font-bold">Guardar morada</button></div>}</div></div>;
+}
+
+function Support({ currentUser, onBack, openChatWindow }) {
+  const [category, setCategory] = useState('Problema com a minha conta');
+  const [description, setDescription] = useState('');
+  const [message, setMessage] = useState('');
+  const submit = async () => { if (!description.trim()) return setMessage('Descreve brevemente o que aconteceu.'); const { data, error } = await supabase.rpc('support_create_case', { p_subject_type: 'CUSTOMER', p_subject_id: currentUser?.id, p_case_type: category, p_title: category, p_description: description.trim(), p_metadata: { channel: 'perfil' }, p_idempotency_key: `perfil-${currentUser?.id}-${Date.now()}` }); if (error) return setMessage(error.message || 'Não foi possível criar o pedido de suporte.'); const text = `Olá Pedejá. Pedido de suporte ${data || ''}. Categoria: ${category}.`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer'); setMessage('Pedido criado. O WhatsApp foi aberto com a categoria identificada.'); setDescription(''); };
+  return <div className="pb-24"><Header title="Contactar Pedejá" onBack={onBack} /><div className="p-4"><div className="bg-white rounded-2xl border border-gray-100 p-4"><label className="block text-sm text-gray-500">Categoria<select value={category} onChange={event => setCategory(event.target.value)} className="w-full mt-1 border rounded-xl p-3"><option>Problema com um pedido</option><option>Problema com um pacote</option><option>Problema com pagamento</option><option>Problema com a minha conta</option><option>Outro assunto</option></select></label><label className="block text-sm text-gray-500 mt-4">Descrição<textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} className="w-full mt-1 border rounded-xl p-3" placeholder="Como podemos ajudar?" /></label>{message && <p className="text-xs text-violet-700 bg-violet-50 rounded-xl p-3 mt-3">{message}</p>}<button onClick={submit} className="w-full mt-4 bg-violet-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"><MessageSquare size={17} /> Criar pedido e abrir WhatsApp</button></div><button onClick={() => openChatWindow(`support-${currentUser?.id}`, 'Suporte Pedejá', 'customer')} className="w-full mt-3 py-3 rounded-xl border border-violet-200 text-violet-700 font-bold">Abrir chat de suporte</button></div></div>;
+}
 
 export default function ProfileTab() {
-  const {
-    userProfile,
-    profileSubView, setProfileSubView,
-    userRoles, userWallet, walletHistory,
-    userAddresses,
-    tempProfile, setTempProfile,
-    withdrawMode, setWithdrawMode,
-    withdrawAmount, setWithdrawAmount,
-    withdrawBank, setWithdrawBank,
-    withdrawAccount, setWithdrawAccount,
-    withdrawName, setWithdrawName,
-    setShowTopUpModal,
-    merchantRegForm, setMerchantRegForm,
-    riderRegForm, setRiderRegForm,
-    newAddr, setNewAddr,
-    getCurrentLocationForForm,
-    handleAddAddress, handleDeleteAddress,
-    handleProfilePhotoChange,
-    handleRegistrationPhotoSelect,
-    handleSaveProfile, profileUploading,
-    requestWithdraw, requestRegisterMerchant, requestRegisterRider,
-    openChatWindow, handleLogout,
-    isPending, syncRoles,
-    setActiveRole,
-    notifySystem,
-  } = useApp();
+  const { i18n } = useTranslation();
+  const { userProfile, currentUser, profileSubView, setProfileSubView, userAddresses, newAddr, setNewAddr, handleAddAddress, handleDeleteAddress, getCurrentLocationForForm, tempProfile, setTempProfile, handleProfilePhotoChange, handleSaveProfile, profileUploading, openChatWindow, handleLogout, setThemeMode, themeMode } = useApp();
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [showAccountDelete, setShowAccountDelete] = useState(false);
+  const actualUser = currentUser || { id: userProfile?.id };
 
-  const [newAddrMode, setNewAddrMode] = useState(false);
-  const [merchantSubmitting, setMerchantSubmitting] = useState(false);
-  const [riderSubmitting, setRiderSubmitting] = useState(false);
+  useEffect(() => { if (profileSubView !== 'notifications' || !actualUser?.id) return; setNotificationsLoading(true); supabase.rpc('customer_notification_snapshot', { p_limit: 30 }).then(({ data, error }) => { if (error) setNotice('As notificações estão temporariamente indisponíveis.'); else setNotifications(data || []); setNotificationsLoading(false); }); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [profileSubView, actualUser?.id]);
 
-  const MERCHANT_FORM_INIT = { shopName: '', category: 'Street Food', realName: '', idCard: '', phone: '', bankName: '', bankAccount: '', idCardImage: null, shopImage: null, location: null };
-  const RIDER_FORM_INIT    = { realName: '', vehicle: 'Motorcycle', idCard: '', phone: '', bankName: '', bankAccount: '', idCardImage: null, profileImage: null };
+  const saveProfile = async values => { if (values._photoEvent) { await handleProfilePhotoChange(values._photoEvent); return; } await handleSaveProfile(values); setProfileSubView('main'); };
+  const go = view => setProfileSubView(view);
+  const displayEmail = userProfile?.email || currentUser?.email || 'Email não disponível';
+  const displayPhone = userProfile?.phone || 'Telefone não disponível';
 
-  const handleClearCache = async () => {
-    if (!window.confirm('Pretende limpar a cache e recarregar a aplicação?')) return;
-    const cacheKeys = [
-      'pedeja_orders',
-      'pedeja_pending_requests',
-      'pedeja_riders',
-      'pedeja_restaurants',
-      'pedeja_menu_items',
-      'pedeja_appconfig',
-      'pedeja_wallets',
-      'pedeja_user_roles',
-      'pedeja_chats',
-      'pedeja_promo_codes',
-      'pedeja_admin_notifs',
-      'pedeja_admin_last_check',
-      'pedeja_custom_sound',
-      'pedeja_install_dismissed',
-      'rider_sound_enabled',
-      'rider_vibrate_enabled',
-    ];
-    cacheKeys.forEach(k => {
-      try { localStorage.removeItem(k); } catch { void 0; }
-    });
-    if ('caches' in window) {
-      try {
-        const names = await caches.keys();
-        await Promise.all(names.map(name => caches.delete(name)));
-      } catch { void 0; }
-    }
-    notifySystem('Cache limpa', 'A recarregar a aplicação...', 'success');
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
+  if (profileSubView === 'wallet') return <WalletDetail onBack={() => go('main')} />;
+  if (profileSubView === 'addresses') return <Addresses userAddresses={userAddresses} newAddr={newAddr} setNewAddr={setNewAddr} handleAddAddress={handleAddAddress} handleDeleteAddress={handleDeleteAddress} getCurrentLocationForForm={getCurrentLocationForForm} onBack={() => go('main')} />;
+  if (profileSubView === 'edit_profile') return <ProfileEditor userProfile={userProfile} tempProfile={tempProfile} setTempProfile={setTempProfile} onBack={() => go('main')} onSave={saveProfile} profileUploading={profileUploading} />;
+  if (profileSubView === 'help') return <Support currentUser={actualUser} onBack={() => go('main')} openChatWindow={openChatWindow} />;
+  if (profileSubView === 'notifications') return <div className="pb-24"><Header title="Notificações" onBack={() => go('main')} /><div className="p-4">{notificationsLoading ? <p className="text-center text-sm text-gray-400 py-10">A carregar...</p> : notifications.length ? <div className="space-y-3">{notifications.map(item => <div key={item.event_id} className="bg-white rounded-2xl border border-gray-100 p-4"><p className="font-bold text-gray-900">{item.title || 'Actualização Pedejá'}</p><p className="text-xs text-gray-500 mt-1">{item.context_name || item.reference || 'Actividade da conta'}</p><p className="text-[10px] text-gray-400 mt-2">{item.created_at ? new Date(item.created_at).toLocaleString('pt-AO') : ''}</p></div>)}</div> : <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">Ainda não existem notificações.</div>}{notice && <p className="text-xs text-amber-700 mt-3">{notice}</p>}</div></div>;
+  if (profileSubView === 'preferences') return <div className="pb-24"><Header title="Preferências" onBack={() => go('main')} /><div className="p-4"><Section title="Idioma"><div className="bg-white p-4"><label className="text-sm text-gray-500">Idioma<select value={i18n.language?.slice(0, 2) || 'pt'} onChange={event => { i18n.changeLanguage(event.target.value); localStorage.setItem('pedeja_lang', event.target.value); }} className="w-full mt-2 border rounded-xl p-3"><option value="pt">Português</option><option value="en">English</option><option value="fr">Français</option></select></label></div></Section><Section title="Tema"><div className="grid grid-cols-3 gap-2 p-4"><button onClick={() => setThemeMode('light')} className={`p-3 rounded-xl border text-sm font-semibold ${themeMode === 'light' ? 'border-violet-600 text-violet-700 bg-violet-50' : ''}`}><Sun size={16} className="mx-auto mb-1" />Claro</button><button onClick={() => setThemeMode('dark')} className={`p-3 rounded-xl border text-sm font-semibold ${themeMode === 'dark' ? 'border-violet-600 text-violet-700 bg-violet-50' : ''}`}><Moon size={16} className="mx-auto mb-1" />Escuro</button><button onClick={() => setThemeMode('system')} className={`p-3 rounded-xl border text-sm font-semibold ${themeMode === 'system' ? 'border-violet-600 text-violet-700 bg-violet-50' : ''}`}>Auto</button></div></Section></div></div>;
+  if (profileSubView === 'security') return <div className="pb-24"><Header title="Segurança" onBack={() => go('main')} /><div className="p-4"><div className="bg-white rounded-2xl border border-gray-100 p-5"><ShieldCheck className="text-violet-700" /><h2 className="font-black mt-3">Conta protegida pelo Supabase Auth</h2><p className="text-sm text-gray-500 mt-2">A alteração de telefone e email usa verificação do Auth. Gestão de sessões e eliminação da conta continuam bloqueadas até existir um contrato de produção específico.</p></div></div></div>;
+  if (profileSubView === 'legal') return <div className="pb-24"><Header title="Termos & Privacidade" onBack={() => go('main')} /><div className="p-4 space-y-3"><div className="bg-white rounded-2xl border border-gray-100 p-4"><h2 className="font-bold">Termos de utilização</h2><p className="text-sm text-gray-500 mt-2">Documento legal publicado pelo Pedejá.</p></div><div className="bg-white rounded-2xl border border-gray-100 p-4"><h2 className="font-bold">Política de privacidade</h2><p className="text-sm text-gray-500 mt-2">Documento legal publicado pelo Pedejá.</p></div><div className="bg-white rounded-2xl border border-gray-100 p-4"><h2 className="font-bold">Política de envio</h2><p className="text-sm text-gray-500 mt-2">Documento legal publicado pelo Pedejá.</p></div><p className="text-xs text-amber-700">Conteúdo legal dinâmico não está exposto pelo backend live nesta versão.</p></div></div>;
+  if (profileSubView === 'about') return <div className="pb-24"><Header title="Sobre o Pedejá" onBack={() => go('main')} /><div className="p-6 text-center"><div className="w-16 h-16 rounded-2xl bg-violet-700 text-white font-black text-xl flex items-center justify-center mx-auto">P</div><h2 className="text-xl font-black mt-4">Pedejá</h2><p className="text-sm text-gray-500 mt-2">Peça. Nós entregamos.</p><p className="text-xs text-gray-400 mt-6">Versão {packageJson.version}</p></div></div>;
 
-  return (
-    <div className="p-4 min-h-screen pb-24">
-      {profileSubView === 'main' ? (
-        <>
-          <div className="bg-white p-6 rounded-2xl shadow-sm mb-4 flex items-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden mr-4 relative">
-              <img
-                src={userProfile.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userProfile.name || 'User') + '&background=fb923c&color=fff&size=64'}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-              <div
-                onClick={() => { setTempProfile({ ...userProfile }); setProfileSubView('edit_profile'); }}
-                className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer text-white"
-              >
-                <Edit size={20} />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold">{userProfile.name}</h2>
-              <div className="text-gray-500 text-sm">ID: {userProfile.id}</div>
-            </div>
-          </div>
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setProfileSubView('wallet')}
-              className="flex-1 bg-gradient-to-r from-green-600 to-green-500 p-4 rounded-2xl shadow-lg text-white flex justify-between items-center"
-            >
-              <div className="flex items-center"><carteira className="mr-2" /><span className="font-bold text-sm">Kz {userWallet.toFixed(2)}</span></div>
-            </button>
-            <button
-              onClick={() => openChatWindow('support-' + userProfile.id, 'Suporte (Admin)', 'customer')}
-              className="flex-1 bg-blue-600 p-4 rounded-2xl shadow-lg text-white flex justify-center items-center font-bold text-sm"
-            >
-              <MessageSquare className="mr-2" /> Contactar suporte
-            </button>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-            <div className="p-4 border-b bg-gray-50 font-bold text-gray-700 text-sm">Área de parceiros</div>
-            {userRoles.includes('merchant') ? (
-              <button onClick={() => setActiveRole('merchant')} className="w-full p-4 flex items-center justify-between hover:bg-green-50 border-b">
-                <span className="text-green-700 font-bold">Mudar para comerciante</span><Repeat size={20} />
-              </button>
-            ) : isPending('merchant_reg') ? (
-              <div className="p-4 text-gray-400 border-b flex items-center justify-between bg-gray-50">
-                <span>Registo de comerciante (aguarda aprovação...)</span>
-                <button onClick={syncRoles} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 flex items-center gap-1 ml-2">
-                  <Repeat size={12} /> Verificar
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setProfileSubView('reg_merchant')} className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b">
-                <span>Registar estabelecimento de comida</span><ChevronRight size={20} />
-              </button>
-            )}
-            {userRoles.includes('rider') ? (
-              <button onClick={() => setActiveRole('rider')} className="w-full p-4 flex items-center justify-between hover:bg-blue-50">
-                <span className="text-blue-700 font-bold">Mudar para estafeta</span><Repeat size={20} />
-              </button>
-            ) : isPending('rider_reg') ? (
-              <div className="p-4 text-gray-400 flex items-center justify-between bg-gray-50">
-                <span>Registo de estafeta (aguarda aprovação...)</span>
-                <button onClick={syncRoles} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 flex items-center gap-1 ml-2">
-                  <Repeat size={12} /> Verificar
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => setProfileSubView('reg_rider')} className="w-full p-4 flex items-center justify-between hover:bg-gray-50">
-                <span>Registar como estafeta</span><ChevronRight size={20} />
-              </button>
-            )}
-            <button onClick={handleLogout} className="w-full p-4 flex items-center justify-between hover:bg-red-50 border-t">
-              <span className="text-red-600 font-bold">Terminar sessão</span><LogOut size={20} className="text-red-600" />
-            </button>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <button
-              onClick={() => setProfileSubView('pin_location')}
-              className="w-full p-4 flex items-center justify-between hover:bg-blue-50 border-b"
-            >
-              <div className="flex items-center">
-                <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3"><MapPin size={20} /></div>
-                <div className="text-left">
-                  <div className="font-medium">As minhas moradas</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {userProfile.location
-                      ? `${userProfile.location.lat.toFixed(4)}, ${userProfile.location.lng.toFixed(4)}`
-                      : 'Ainda não definida'}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-            <button onClick={handleClearCache} className="w-full p-4 flex items-center justify-between hover:bg-red-50 border-b">
-              <div className="flex items-center">
-                <div className="bg-red-50 p-2 rounded-lg text-red-500 mr-3"><Trash2 size={20} /></div>
-                <span className="text-gray-800 font-medium">Limpar cache</span>
-              </div>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-            <button onClick={() => { setTempProfile({ ...userProfile }); setProfileSubView('edit_profile'); }} className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b">
-              <div className="flex items-center"><div className="bg-gray-100 p-2 rounded-lg text-gray-600 mr-3"><Settings size={20} /></div><span>Definições/editar perfil</span></div>
-              <ChevronRight size={20} className="text-gray-400" />
-            </button>
-          </div>
-        </>
-
-      ) : profileSubView === 'wallet' ? (
-        <div className="p-4 pt-0 bg-white min-h-[50vh]">
-          <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl shadow-lg text-white mb-6 text-center">
-            <p className="text-green-100 mb-2">Saldo actual</p>
-            <h1 className="text-4xl font-bold mb-6">Kz {userWallet.toFixed(2)}</h1>
-            {!withdrawMode ? (
-              <div className="grid grid-cols-3 gap-4">
-                {[100, 500, 1000].map(amount => (
-                  <button
-                    key={amount}
-                    onClick={() => { setWithdrawAmount(amount.toString()); setShowTopUpModal(true); }}
-                    className="bg-white/20 hover:bg-white/30 py-2 rounded-lg font-bold backdrop-blur-sm"
-                  >
-                    +Kz {amount}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm space-y-2">
-                <label htmlFor="withdraw-amount-input" className="sr-only">Indique o valor</label>
-                <input id="withdraw-amount-input" name="withdrawAmount" type="number" placeholder="Indique o valor" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} className="w-full text-black p-2 rounded text-center font-bold" autoComplete="off" />
-                <label htmlFor="withdraw-bank-input" className="sr-only">Nome do banco</label>
-                <input id="withdraw-bank-input" name="withdrawBank" type="text" placeholder="Nome do banco (ex.: BFA)" value={withdrawBank} onChange={e => setWithdrawBank(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
-                <label htmlFor="withdraw-account-input" className="sr-only">Número da conta</label>
-                <input id="withdraw-account-input" name="withdrawAccount" type="text" placeholder="Número da conta" value={withdrawAccount} onChange={e => setWithdrawAccount(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
-                <label htmlFor="withdraw-name-input" className="sr-only">Titular da conta</label>
-                <input id="withdraw-name-input" name="withdrawName" type="text" placeholder="Titular da conta" value={withdrawName} onChange={e => setWithdrawName(e.target.value)} className="w-full text-black p-2 rounded text-sm" autoComplete="off" />
-                <div className="flex gap-2 pt-2">
-                  <button onClick={() => setWithdrawMode(false)} className="flex-1 bg-gray-500 py-2 rounded font-bold">Cancelar</button>
-                  <button
-                    onClick={() => {
-                      if (withdrawAmount > 0 && withdrawBank && withdrawAccount && withdrawName) {
-                        requestWithdraw(parseFloat(withdrawAmount), { bank: withdrawBank, account: withdrawAccount, name: withdrawName });
-                        setWithdrawMode(false); setWithdrawAmount(''); setWithdrawBank(''); setWithdrawAccount('');
-                      } else { alert('Preencha todos os campos'); }
-                    }}
-                    className="flex-1 bg-white text-green-600 py-2 rounded font-bold"
-                  >
-                    confirmarถอน
-                  </button>
-                </div>
-              </div>
-            )}
-            {!withdrawMode && (
-              <button onClick={() => setWithdrawMode(true)} className="mt-4 text-sm text-green-100 underline flex items-center justify-center w-full">
-                <ArrowDownCircle size={16} className="mr-1" /> Pretende levantar fundos?
-              </button>
-            )}
-          </div>
-          <h3 className="font-bold text-base mb-3 text-gray-700">Histórico de transacções</h3>
-          {walletHistory.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 text-sm">Ainda não existem transacções</div>
-          ) : (
-            <div className="space-y-2">
-              {[...walletHistory].sort((a, b) => {
-                const ms = (e) => e.createdAtMs || parseInt(((e.id || '').match(/\d{10,}/) || ['0'])[0], 10);
-                return ms(b) - ms(a);
-              }).map(tx => {
-                const amt = tx.amount ?? 0;
-                const isIncome = amt >= 0;
-                return (
-                  <div key={tx.id} className="flex justify-between items-center gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-800 text-sm truncate">{tx.desc || '—'}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{tx.createdAtMs ? formatDateTimeFromMs(tx.createdAtMs) : (tx.date || '')}</div>
-                    </div>
-                    <span className={`font-bold text-sm flex-shrink-0 ${isIncome ? 'text-green-600' : 'text-red-500'}`}>
-                      {isIncome ? '+' : '-'}Kz {Math.abs(amt).toLocaleString()}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-      ) : profileSubView === 'pin_location' ? (
-        <div className="p-4 pt-0">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2"><MapPin size={18} className="text-green-500" /> As minhas moradas</h3>
-            <p className="text-xs text-gray-500 mb-4">Guarde casa, trabalho, escola ou outro local onde costuma receber encomendas.</p>
-            <div className="space-y-3">
-              {userAddresses.map(addr => (
-                <div key={addr.id} className="border border-gray-200 rounded-xl p-3 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-bold text-sm">{addr.label}</div>
-                    <div className="text-xs text-gray-600 mt-1">{addr.address || 'Morada sem detalhes'}</div>
-                    <div className="text-[10px] mt-1 ${addr.location ? 'text-green-600' : 'text-amber-600'}">
-                      {addr.location ? 'Localização resolvida' : 'Localização por resolver — a equipa Pedejá pode tratar disso'}
-                    </div>
-                  </div>
-                  <button onClick={() => handleDeleteAddress(addr.id)} className="p-1.5 rounded-lg bg-red-50 text-red-500" aria-label="Remover morada"><Trash2 size={14} /></button>
-                </div>
-              ))}
-              {userAddresses.length === 0 && <div className="text-center py-5 text-gray-400 text-xs">Ainda não existem moradas guardadas.</div>}
-            </div>
-            <button onClick={() => setNewAddrMode(v => !v)} className="w-full mt-4 bg-green-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><Plus size={16} /> {newAddrMode ? 'Cancelar' : 'Adicionar morada'}</button>
-            {newAddrMode && (
-              <div className="mt-4 border border-green-200 rounded-xl p-3 bg-green-50">
-                <select value={newAddr.label} onChange={e => setNewAddr({...newAddr,label:e.target.value})} className="w-full p-2 border rounded-lg text-xs bg-white mb-2">
-                  <option>Casa</option><option>Trabalho</option><option>Escola</option><option>Amigo</option><option>Oficina</option><option>Escritório</option><option>Outro</option>
-                </select>
-                <input value={newAddr.addressLine1} onChange={e => setNewAddr({...newAddr,addressLine1:e.target.value})} placeholder="Rua / Avenida e nº" className="w-full p-2 border rounded-lg text-xs mb-2" />
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <input value={newAddr.neighborhood} onChange={e => setNewAddr({...newAddr,neighborhood:e.target.value})} placeholder="Bairro" className="w-full p-2 border rounded-lg text-xs" />
-                  <input value={newAddr.municipality} onChange={e => setNewAddr({...newAddr,municipality:e.target.value})} placeholder="Município" className="w-full p-2 border rounded-lg text-xs" />
-                </div>
-                <input value={newAddr.reference} onChange={e => setNewAddr({...newAddr,reference:e.target.value})} placeholder="Referência / ponto próximo" className="w-full p-2 border rounded-lg text-xs mb-2" />
-                <button type="button" onClick={getCurrentLocationForForm} className="w-full py-2 rounded-lg bg-white border border-green-200 text-green-700 text-xs font-bold flex items-center justify-center gap-1"><Crosshair size={13} /> Usar localização actual (opcional)</button>
-                <button onClick={async () => { const ok = await handleAddAddress(newAddr); if (ok) { setNewAddr({label:'Casa',addressLine1:'',addressLine2:'',neighborhood:'',municipality:'',city:'',province:'',reference:'',latitude:null,longitude:null,location:null}); setNewAddrMode(false); } }} className="w-full mt-3 bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold">Guardar morada</button>
-              </div>
-            )}
-          </div>
-        </div>
-
-      ) : profileSubView === 'edit_profile' ? (
-        <div className="p-4 pt-0">
-          <div className="flex justify-center mb-6">
-            <label htmlFor="profile-photo-input" className="w-24 h-24 bg-gray-200 rounded-full overflow-hidden relative cursor-pointer">
-              <img
-                src={tempProfile.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(tempProfile.name || 'User') + '&background=fb923c&color=fff&size=96'}
-                className="w-full h-full object-cover"
-                alt="profile"
-              />
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                {profileUploading ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Camera />}
-              </div>
-              <input id="profile-photo-input" name="profileImage" type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoChange} disabled={profileUploading} />
-            </label>
-          </div>
-          <div className="space-y-4">
-            <div><label htmlFor="edit-profile-name-input" className="text-sm text-gray-500">Nome completo</label><input id="edit-profile-name-input" name="name" value={tempProfile.name} onChange={e => setTempProfile({ ...tempProfile, name: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="name" /></div>
-            <div><label htmlFor="edit-profile-phone-input" className="text-sm text-gray-500">Telefone</label><input id="edit-profile-phone-input" name="phone" value={tempProfile.phone} onChange={e => setTempProfile({ ...tempProfile, phone: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="tel" /></div>
-            <div><label htmlFor="edit-profile-email-input" className="text-sm text-gray-500">E-mail</label><input id="edit-profile-email-input" name="email" value={tempProfile.email} onChange={e => setTempProfile({ ...tempProfile, email: e.target.value })} className="w-full border-b py-2 outline-none font-medium text-lg" autoComplete="email" /></div>
-            <button
-              onClick={handleSaveProfile}
-              disabled={profileUploading}
-              className={`w-full bg-green-600 text-white py-3 rounded-lg font-bold mt-8 transition-opacity ${profileUploading ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-              {profileUploading ? 'A carregar imagem...' : 'Guardar alterações'}
-            </button>
-          </div>
-        </div>
-
-      ) : profileSubView === 'reg_merchant' ? (
-        <div className="p-4 pt-0">
-          <div className="bg-orange-50 p-4 rounded-xl mb-6 text-center">
-            <ChefHat size={48} className="text-orange-500 mx-auto mb-2" />
-            <h2 className="text-xl font-bold text-orange-700">ลงทะเบียนComerciante (KYC)</h2>
-          </div>
-          <div className="space-y-4">
-            <div><label htmlFor="merchant-reg-shopname" className="font-bold mb-1 block">nomeComerciante</label><input id="merchant-reg-shopname" name="shopName" value={merchantRegForm.shopName} onChange={e => setMerchantRegForm({ ...merchantRegForm, shopName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-            <div className="mb-4">
-              <label htmlFor="merchant-reg-shopimage" className="text-sm mb-1 block">รูปหน้าestabelecimento (Shop Image)</label>
-              <label htmlFor="merchant-reg-shopimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${merchantRegForm.shopImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                {merchantRegForm.shopImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
-                <input id="merchant-reg-shopimage" name="shopImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setMerchantRegForm, 'shopImage')} />
-              </label>
-              {merchantRegForm.shopImage && <img src={merchantRegForm.shopImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="shop" />}
-            </div>
-            <div><label htmlFor="merchant-reg-category" className="font-bold mb-1 block">หมวดหมู่</label>
-              <select id="merchant-reg-category" name="category" value={merchantRegForm.category} onChange={e => setMerchantRegForm({ ...merchantRegForm, category: e.target.value })} className="w-full border p-2 rounded-lg">
-                <option>Street Food</option><option>Fast Food</option><option>Japanese</option><option>Italian</option><option>Dessert</option>
-              </select>
-            </div>
-            <div className="pt-2 border-t mt-2">
-              <h4 className="font-bold text-gray-700 mb-2">dadosเจ้าของestabelecimento (confirmarตัวตน)</h4>
-              <div><label htmlFor="merchant-reg-realname" className="text-sm mb-1 block">Nome completo</label><input id="merchant-reg-realname" name="realName" value={merchantRegForm.realName} onChange={e => setMerchantRegForm({ ...merchantRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="name" /></div>
-              <div><label htmlFor="merchant-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="merchant-reg-idcard" name="idCard" value={merchantRegForm.idCard} onChange={e => setMerchantRegForm({ ...merchantRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
-              <div><label htmlFor="merchant-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="merchant-reg-phone" name="phone" value={merchantRegForm.phone} onChange={e => setMerchantRegForm({ ...merchantRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div><label htmlFor="merchant-reg-bankname" className="text-sm mb-1 block">banco</label><input id="merchant-reg-bankname" name="bankName" value={merchantRegForm.bankName} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
-                <div><label htmlFor="merchant-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="merchant-reg-bankaccount" name="bankAccount" value={merchantRegForm.bankAccount} onChange={e => setMerchantRegForm({ ...merchantRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-              </div>
-              <div className="mb-4">
-                <label htmlFor="merchant-reg-idcardimage" className="text-sm mb-1 block">รูปถ่ายบัตรประชาชน</label>
-                <label htmlFor="merchant-reg-idcardimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${merchantRegForm.idCardImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {merchantRegForm.idCardImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
-                  <input id="merchant-reg-idcardimage" name="idCardImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setMerchantRegForm, 'idCardImage')} />
-                </label>
-                {merchantRegForm.idCardImage && <img src={merchantRegForm.idCardImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="id" />}
-              </div>
-            </div>
-            <button
-              disabled={merchantSubmitting}
-              onClick={async () => {
-                setMerchantSubmitting(true);
-                const ok = await requestRegisterMerchant(merchantRegForm);
-                setMerchantSubmitting(false);
-                if (ok) {
-                  setMerchantRegForm(MERCHANT_FORM_INIT);
-                  setProfileSubView('main');
-                }
-              }}
-              className="w-full bg-orange-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              {merchantSubmitting
-                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Aentregadados...</>
-                : 'entregaใบregistarComerciante'}
-            </button>
-          </div>
-        </div>
-
-      ) : (
-        <div className="p-4 pt-0">
-          <div className="bg-blue-50 p-4 rounded-xl mb-6 text-center">
-            <Bike size={48} className="text-blue-500 mx-auto mb-2" />
-            <h2 className="text-xl font-bold text-blue-700">Registar como estafeta (KYC)</h2>
-          </div>
-          <div className="space-y-4">
-            <div><label htmlFor="rider-reg-realname" className="font-bold mb-1 block">Nome completo (ผู้ขับขี่)</label><input id="rider-reg-realname" name="realName" value={riderRegForm.realName} onChange={e => setRiderRegForm({ ...riderRegForm, realName: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="name" /></div>
-            <div><label htmlFor="rider-reg-vehicle" className="font-bold mb-1 block">ประเภทพาหนะ</label>
-              <select id="rider-reg-vehicle" name="vehicle" value={riderRegForm.vehicle} onChange={e => setRiderRegForm({ ...riderRegForm, vehicle: e.target.value })} className="w-full border p-2 rounded-lg">
-                <option value="Motorcycle">รถจักรยานยนต์</option><option value="Car">รถยนต์</option>
-              </select>
-            </div>
-            <div className="pt-2 border-t mt-2">
-              <h4 className="font-bold text-gray-700 mb-2">dadosconfirmarตัวตน</h4>
-              <div><label htmlFor="rider-reg-idcard" className="text-sm mb-1 block">เลขบัตรประชาชน</label><input id="rider-reg-idcard" name="idCard" value={riderRegForm.idCard} onChange={e => setRiderRegForm({ ...riderRegForm, idCard: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="off" /></div>
-              <div><label htmlFor="rider-reg-phone" className="text-sm mb-1 block">Telefone</label><input id="rider-reg-phone" name="phone" value={riderRegForm.phone} onChange={e => setRiderRegForm({ ...riderRegForm, phone: e.target.value })} className="w-full border p-2 rounded-lg mb-2" autoComplete="tel" /></div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div><label htmlFor="rider-reg-bankname" className="text-sm mb-1 block">banco</label><input id="rider-reg-bankname" name="bankName" value={riderRegForm.bankName} onChange={e => setRiderRegForm({ ...riderRegForm, bankName: e.target.value })} className="w-full border p-2 rounded-lg" placeholder="กสิกร, ไทยพาณิชย์..." autoComplete="off" /></div>
-                <div><label htmlFor="rider-reg-bankaccount" className="text-sm mb-1 block">เลขที่บัญชี</label><input id="rider-reg-bankaccount" name="bankAccount" value={riderRegForm.bankAccount} onChange={e => setRiderRegForm({ ...riderRegForm, bankAccount: e.target.value })} className="w-full border p-2 rounded-lg" autoComplete="off" /></div>
-              </div>
-              <div className="mb-2">
-                <label htmlFor="rider-reg-idcardimage" className="text-sm mb-1 block">รูปถ่ายบัตรประชาชน <span className="text-red-500">*</span></label>
-                <label htmlFor="rider-reg-idcardimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${riderRegForm.idCardImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {riderRegForm.idCardImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
-                  <input id="rider-reg-idcardimage" name="idCardImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setRiderRegForm, 'idCardImage')} />
-                </label>
-                {riderRegForm.idCardImage && <img src={riderRegForm.idCardImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="id" />}
-              </div>
-              <div className="mb-4">
-                <label htmlFor="rider-reg-profileimage" className="text-sm mb-1 block">รูปโปรไฟล์estafeta (opcional)</label>
-                <label htmlFor="rider-reg-profileimage" className={`w-full border-2 border-dashed p-4 rounded-lg text-center cursor-pointer block ${riderRegForm.profileImage ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 text-gray-500'}`}>
-                  {riderRegForm.profileImage ? <><Check className="inline mr-1" /> seleccionarconcluído</> : <><Camera className="inline mr-1" /> ถ่ายรูป/seleccionarรูป</>}
-                  <input id="rider-reg-profileimage" name="profileImage" type="file" accept="image/*" className="hidden" onChange={e => handleRegistrationPhotoSelect(e, setRiderRegForm, 'profileImage')} />
-                </label>
-                {riderRegForm.profileImage && <img src={riderRegForm.profileImage} className="mt-2 h-32 w-full object-cover rounded-lg" alt="profile" />}
-              </div>
-            </div>
-            <button
-              disabled={riderSubmitting}
-              onClick={async () => {
-                setRiderSubmitting(true);
-                const ok = await requestRegisterRider(riderRegForm);
-                setRiderSubmitting(false);
-                if (ok) {
-                  setRiderRegForm(RIDER_FORM_INIT);
-                  setProfileSubView('main');
-                }
-              }}
-              className="w-full bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              {riderSubmitting
-                ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Aentregadados...</>
-                : 'entregaใบregistarestafeta'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <div className="p-4 min-h-screen pb-24 bg-gray-50"><div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5"><div className="flex items-center gap-4"><div className="w-20 h-20 rounded-full overflow-hidden bg-violet-100 shrink-0"><img src={userProfile?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.name || 'Pedejá')}&background=34205f&color=fff&size=96`} alt="Foto de perfil" className="w-full h-full object-cover" /></div><div className="min-w-0"><h1 className="text-xl font-black text-gray-900 truncate">{userProfile?.name || 'Cliente Pedejá'}</h1><p className="text-sm text-gray-500 mt-1">{displayPhone}</p><p className="text-sm text-gray-500 truncate">{displayEmail}</p></div></div></div><Section title="A minha conta"><Row icon={UserRound} title="Dados pessoais" detail="Nome, telefone, email e foto" onClick={() => { setTempProfile({ ...userProfile }); go('edit_profile'); }} /><Row icon={MapPin} title="Moradas" detail={`${userAddresses.length} morada(s) guardada(s)`} onClick={() => go('addresses')} /></Section><Section title="Pagamentos"><div className="px-4 py-4 border-b border-gray-100"><p className="font-bold text-sm">Método</p><p className="text-xs text-gray-500 mt-1">Disponibilidade definida pelo backend em cada checkout.</p><div className="flex flex-wrap gap-2 mt-3"><span className="px-3 py-2 rounded-xl bg-gray-50 text-sm">Dinheiro · Pague no momento da entrega.</span><span className="px-3 py-2 rounded-xl bg-gray-50 text-sm">Cartão · Cartão bancário ou Multicaixa.</span></div></div><WalletCard onClick={() => go('wallet')} /></Section><Section title="Preferências"><Row icon={Bell} title="Notificações" detail="Eventos e estados da conta" onClick={() => go('notifications')} /><Row icon={Globe2} title="Idioma" detail="Português · English · Français" onClick={() => go('preferences')} /><Row icon={Sun} title="Tema" detail={themeMode === 'system' ? 'Automático' : themeMode === 'dark' ? 'Escuro' : 'Claro'} onClick={() => go('preferences')} /></Section><Section title="Segurança"><Row icon={ShieldCheck} title="Segurança" detail="Verificação e protecção da conta" onClick={() => go('security')} /></Section><Section title="Suporte"><Row icon={CircleHelp} title="Ajuda" detail="Perguntas e orientação" onClick={() => go('help')} /><Row icon={MessageSquare} title="Contactar Pedejá" detail="Criar pedido por categoria" onClick={() => go('help')} /></Section><Section title="Sobre"><Row icon={Info} title="Termos & Privacidade" onClick={() => go('legal')} /><Row icon={Info} title="Sobre o Pedejá" detail={`Versão ${packageJson.version}`} onClick={() => go('about')} /></Section><div className="mt-5 space-y-2"><button onClick={handleLogout} className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-red-600 font-bold flex items-center justify-center gap-2"><LogOut size={18} /> Sair</button><button onClick={() => setShowAccountDelete(true)} className="w-full p-3 text-xs text-red-500">Apagar a minha conta</button></div>{showAccountDelete && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-5"><div className="bg-white rounded-2xl p-5 max-w-sm"><button onClick={() => setShowAccountDelete(false)} className="float-right"><X size={18} /></button><h2 className="font-black text-gray-900">Apagar a minha conta</h2><p className="text-sm text-gray-500 mt-3">Esta operação está bloqueada porque o backend ainda não expõe um contrato seguro de eliminação e retenção de dados. Nenhum registo foi apagado.</p><button onClick={() => setShowAccountDelete(false)} className="w-full mt-5 bg-gray-100 rounded-xl py-3 font-bold">Fechar</button></div></div>}</div>;
 }

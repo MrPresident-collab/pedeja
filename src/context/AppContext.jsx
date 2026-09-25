@@ -13,6 +13,7 @@ import { usePhotoHandlers }  from './hooks/usePhotoHandlers';
 import { useRegistration }   from './hooks/useRegistration';
 import { usePromoActions }   from './hooks/usePromoActions';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AppContext = createContext(null);
 
 const parseGeographyPoint = (value) => {
@@ -1001,7 +1002,6 @@ export function AppProvider({ children }) {
     debouncedUpsert('profile', async () => {
       const profileData = {
         full_name: userProfile.name,
-        phone: userProfile.phone,
         avatar_url: userProfile.image || null,
       };
       const signature = JSON.stringify(profileData);
@@ -1120,7 +1120,7 @@ export function AppProvider({ children }) {
   };
 
   const handleSaveProfile = useCallback(() => {
-    setUserProfile({ ...tempProfile });
+    setUserProfile(prev => ({ ...prev, name: tempProfile.name, image: tempProfile.image }));
     setProfileSubView('main');
     notifySystem('Concluído', 'Perfil guardado', 'success');
   }, [tempProfile]);  
