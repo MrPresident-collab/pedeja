@@ -1,22 +1,25 @@
 import React from 'react';
 import { Home, ShoppingBag, Package, User } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { useApp } from '../../context/AppContext';
 
 export default function BottomNav() {
-  const { t } = useTranslation();
   const { activeTab, setActiveTab, setProfileSubView, orders, userProfile, currentUser, selectedRestaurant } = useApp();
   if (selectedRestaurant) return null;
 
-  const activityBadge = orders.filter(order =>
-    ['pending', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering'].includes(order.status) &&
+  const liveStatuses = ['pending', 'accepted', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'];
+  const orderBadge = orders.filter(order =>
+    order.type !== 'parcel' && liveStatuses.includes(order.status) &&
+    (order.customerId === userProfile.id || order.customerId === currentUser?.id),
+  ).length;
+  const packageBadge = orders.filter(order =>
+    order.type === 'parcel' && liveStatuses.includes(order.status) &&
     (order.customerId === userProfile.id || order.customerId === currentUser?.id),
   ).length;
 
   const tabs = [
     { id: 'home', icon: Home, label: 'Início' },
-    { id: 'activity', icon: ShoppingBag, label: 'Pedidos', badge: activityBadge },
-    { id: 'packages', icon: Package, label: 'Pacotes' },
+    { id: 'orders', icon: ShoppingBag, label: 'Pedidos', badge: orderBadge },
+    { id: 'packages', icon: Package, label: 'Pacotes', badge: packageBadge },
     { id: 'profile', icon: User, label: 'Perfil' },
   ];
 

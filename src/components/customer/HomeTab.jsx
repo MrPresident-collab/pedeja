@@ -22,8 +22,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
-import { DEFAULT_CATEGORIES, PEDEJA_SERVICE_TYPES } from '../../constants';
-import { filterPedejaMarketplaceBusinesses } from '../../domain/pedejaMarketplace';
+import { PEDEJA_SERVICE_TYPES } from '../../constants';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 import { supabase } from '../../lib/supabase';
@@ -37,20 +36,18 @@ const SERVICE_OPTIONS = [
 export default function HomeTab() {
   const {
     serviceType, setServiceType,
-    restaurants, menuItems, appConfig, orders,
+    restaurants, menuItems, appConfig,
     userProfile, userAddresses,
     cart, setCart,
     parcelDetails, setParcelDetails,
     setPaymentMethod,
     parcelMapTarget, setParcelMapTarget,
-    parcelDistance, parcelEstimate,
     placeOrder, placeParcelOrder,
     addToCart, calculateFoodTotal, calculateDeliveryFee,
     handleParcelMapSelect, getCurrentLocationForParcel,
     notifySystem, selectedRestaurant, setSelectedRestaurant, setActiveTab,
   } = useApp();
 
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [orderNotes, setOrderNotes] = useState('');
@@ -74,23 +71,6 @@ export default function HomeTab() {
       : null,
   })), [restaurants, userProfile?.location]);
 
-  const visibleBusinesses = useMemo(() => {
-    let list = filterPedejaMarketplaceBusinesses(businessesWithDistance, serviceType)
-      .filter(business => business.status === 'open');
-
-    if (serviceType === PEDEJA_SERVICE_TYPES.FOME && selectedCategory !== 'Todos') {
-      list = list.filter(business => business.category === selectedCategory);
-    }
-
-    return list;
-  }, [businessesWithDistance, serviceType, selectedCategory]);
-
-  const categories = useMemo(() => {
-    if (serviceType !== PEDEJA_SERVICE_TYPES.FOME) return ['Todos'];
-    const shopCategories = restaurants.filter(b => b.category).map(b => b.category);
-    return ['Todos', ...new Set([...DEFAULT_CATEGORIES, ...shopCategories])];
-  }, [restaurants, serviceType]);
-
   const primaryAddress = useMemo(() => (
     (userAddresses || []).find(address => address.isDefault && String(address.label || '').toLowerCase() === 'casa')
     || (userAddresses || []).find(address => address.isDefault)
@@ -98,46 +78,6 @@ export default function HomeTab() {
     || (userAddresses || [])[0]
     || null
   ), [userAddresses]);
-
-  const activeOrders = useMemo(() => (orders || []).filter(order =>
-    order.customerId === userProfile?.id &&
-    ['pending', 'accepted', 'preparing', 'ready_to_pickup', 'rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)
-  ), [orders, userProfile?.id]);
-
-  const activeDelivery = useMemo(() =>
-    activeOrders.find(order => ['rider_accepted', 'picking_up', 'delivering', 'delivered'].includes(order.status)) || activeOrders[0] || null,
-    [activeOrders],
-  );
-
-  const activeDeliveryEta = useMemo(() => {
-    if (!activeDelivery?.riderLocation) return null;
-    const destination = activeDelivery.status === 'picking_up'
-      ? activeDelivery.pickupLocation
-      : activeDelivery.location;
-    if (!destination) return null;
-    const km = getDistanceFromLatLonInKm(
-      activeDelivery.riderLocation.lat,
-      activeDelivery.riderLocation.lng,
-      destination.lat,
-      destination.lng,
-    );
-    return Math.max(1, Math.ceil((km / 30) * 60));
-  }, [activeDelivery]);
-
-  const activeDeliveryDistance = useMemo(() => {
-    if (!activeDelivery?.riderLocation) return null;
-    const destination = activeDelivery.status === 'picking_up'
-      ? activeDelivery.pickupLocation
-      : activeDelivery.location;
-    if (!destination) return null;
-    const km = getDistanceFromLatLonInKm(
-      activeDelivery.riderLocation.lat,
-      activeDelivery.riderLocation.lng,
-      destination.lat,
-      destination.lng,
-    );
-    return Number(km.toFixed(1));
-  }, [activeDelivery]);
 
   const handleOpenItem = (item) => {
     if (item.options?.length) {
@@ -177,7 +117,8 @@ export default function HomeTab() {
 
     setParcelDetails(previous => ({
       ...previous,
-      dropoff: [
+      pickupAddressId: primaryAddress.id,
+      pickup: primaryAddress.address || [
         primaryAddress.addressLine1,
         primaryAddress.addressLine2,
         primaryAddress.neighborhood,
@@ -185,7 +126,7 @@ export default function HomeTab() {
         primaryAddress.city,
         primaryAddress.province,
       ].filter(Boolean).join(', '),
-      dropoffLocation: isValidCoordinate(primaryAddress.location) ? primaryAddress.location : null,
+      pickupLocation: isValidCoordinate(primaryAddress.location) ? primaryAddress.location : null,
     }));
   };
 
@@ -371,13 +312,14 @@ export default function HomeTab() {
             <Field label="Telefone do destinatário" value={parcelDetails.receiverPhone || ''} onChange={value => setParcelDetails(previous => ({ ...previous, receiverPhone: value }))} type="tel" placeholder="9xx xxx xxx" />
           </div>
           <div className="mt-3"><Field label="Nome do destinatário" value={parcelDetails.receiverName || ''} onChange={value => setParcelDetails(previous => ({ ...previous, receiverName: value }))} placeholder="Nome completo" /></div>
+          <div className="mt-3"><Field label="Descrição do pacote" value={parcelDetails.packageDescription || ''} onChange={value => setParcelDetails(previous => ({ ...previous, packageDescription: value }))} placeholder="O que estás a enviar?" /></div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <label className="text-xs text-gray-500">Tamanho<select value={parcelDetails.packageSize || ''} onChange={event => setParcelDetails(previous => ({ ...previous, packageSize: event.target.value }))} className="border rounded-xl p-2 mt-1 w-full text-sm"><option value="">Escolher</option><option value="SMALL">Pequeno</option><option value="MEDIUM">Médio</option><option value="LARGE">Grande</option></select></label>
+            <label className="flex items-center gap-2 text-sm text-gray-600 mt-5"><input type="checkbox" checked={Boolean(parcelDetails.fragile)} onChange={event => setParcelDetails(previous => ({ ...previous, fragile: event.target.checked }))} /> Frágil</label>
+          </div>
+          <label className="flex items-start gap-2 text-xs text-gray-600 mt-3"><input type="checkbox" checked={Boolean(parcelDetails.consentAccepted)} onChange={event => setParcelDetails(previous => ({ ...previous, consentAccepted: event.target.checked }))} className="mt-0.5" /> Confirmo que não envio artigos proibidos ou ilegais. <span className="text-blue-600">Ver lista completa</span></label>
 
-          {parcelDistance > 0 && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center mt-4">
-              <p className="text-sm font-bold text-blue-800">{parcelDistance.toFixed(1)} km · Estimativa Kz {Number(parcelEstimate || 0).toLocaleString()}</p>
-              <p className="text-xs text-blue-500 mt-0.5">O preço final será confirmado pelo servidor.</p>
-            </div>
-          )}
+          <p className="text-xs text-gray-400 mt-4">A elegibilidade, veículo e preço serão determinados pelo servidor.</p>
 
           <div className="flex items-center gap-2 mt-4 p-2 bg-gray-50 rounded-xl"><Banknote size={16} className="text-gray-500" /><span className="text-sm font-bold">Pagamento</span><button onClick={() => setPaymentMethod('cash')} className="flex-1 py-2 text-xs rounded-lg bg-blue-500 text-white font-bold">Numerário</button></div>
 
@@ -387,13 +329,12 @@ export default function HomeTab() {
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl p-3"><CheckCircle size={14} /> Localização confirmada</div>
           )}
 
-          <button onClick={handleParcelSubmit} disabled={isSubmitting || !parcelDetails.pickup || !parcelDetails.dropoff || !hasPickup || !hasDropoff} className="w-full mt-4 bg-red-500 text-white py-3.5 rounded-xl font-black disabled:opacity-40">{isSubmitting ? 'A preparar...' : 'Calcular e enviar'}</button>
+          <button onClick={handleParcelSubmit} disabled={isSubmitting || !parcelDetails.pickupAddressId || !parcelDetails.pickup || !parcelDetails.dropoff || !hasPickup || !hasDropoff || !parcelDetails.packageDescription || !parcelDetails.receiverName || !parcelDetails.receiverPhone || !parcelDetails.consentAccepted} className="w-full mt-4 bg-red-500 text-white py-3.5 rounded-xl font-black disabled:opacity-40">{isSubmitting ? 'A preparar...' : 'Confirmar envio'}</button>
         </div>
       </div>
     );
   }
 
-  const firstName = (userProfile?.name || 'Utilizador').trim().split(/\\s+/)[0];
   const addressLabel = primaryAddress
     ? [primaryAddress.addressLine1, primaryAddress.neighborhood, primaryAddress.municipality || primaryAddress.city]
       .filter(Boolean).slice(0, 2).join(', ')
@@ -475,11 +416,11 @@ export default function HomeTab() {
   const openNotification = (notification) => {
     setShowNotifications(false);
     if (notification?.source_type === 'order') {
-      setActiveTab('activity');
+      setActiveTab('orders');
       return;
     }
     if (notification?.source_type === 'enviar') {
-      setActiveTab('activity');
+      setActiveTab('packages');
     }
   };
 

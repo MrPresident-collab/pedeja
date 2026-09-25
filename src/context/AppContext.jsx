@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  INITIAL_CONFIG, INITIAL_RESTAURANTS, INITIAL_RIDERS, INITIAL_MENU_ITEMS,
+  INITIAL_CONFIG,
   ADMIN_EMAIL, PEDEJA_SERVICE_TYPES,
 } from '../constants';
-import { generateId, getDistanceFromLatLonInKm, playNotificationSound, playOrderNotificationSound, initPushNotifications } from '../utils';
+import { generateId, getDistanceFromLatLonInKm, isValidCoordinate, playNotificationSound, playOrderNotificationSound, initPushNotifications } from '../utils';
 import { supabase } from '../lib/supabase';
 
 import { useCarteiraActions }  from './hooks/usecarteiraActions';
@@ -14,6 +14,22 @@ import { useRegistration }   from './hooks/useRegistration';
 import { usePromoActions }   from './hooks/usePromoActions';
 
 export const AppContext = createContext(null);
+
+const parseGeographyPoint = (value) => {
+  if (value?.type === 'Point' && Array.isArray(value.coordinates)) {
+    const [lng, lat] = value.coordinates;
+    const point = { lat: Number(lat), lng: Number(lng) };
+    return isValidCoordinate(point) ? point : null;
+  }
+  if (typeof value === 'string') {
+    const match = value.match(/POINT\s*\(\s*(-?[0-9.]+)\s+(-?[0-9.]+)\s*\)/i);
+    if (match) {
+      const point = { lat: Number(match[2]), lng: Number(match[1]) };
+      return isValidCoordinate(point) ? point : null;
+    }
+  }
+  return null;
+};
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
@@ -75,9 +91,9 @@ export function AppProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [totalOrdersCount, setTotalOrdersCount] = useState(0);
   const [appConfig, setAppConfig] = useState(INITIAL_CONFIG);
-  const [restaurants, setRestaurants] = useState(INITIAL_RESTAURANTS);
-  const [riders, setRiders] = useState(INITIAL_RIDERS);
-  const [menuItems, setMenuItems] = useState(INITIAL_MENU_ITEMS);
+  const [restaurants, setRestaurants] = useState([]);
+  const [riders, setRiders] = useState([]);
+  const [menuItems, setMenuItems] = useState({});
   const [pendingRequests, setPendingRequests] = useState([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
@@ -107,7 +123,7 @@ export function AppProvider({ children }) {
   // --- Cart & Order State ---
   const [cart, setCart] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [parcelDetails, setParcelDetails] = useState({ pickup: '', dropoff: '', weight: '1', distance: 0, receiverName: '', receiverPhone: '' });
+  const [parcelDetails, setParcelDetails] = useState({ pickupAddressId: '', pickup: '', pickupLocation: null, dropoff: '', dropoffLocation: null, packageDescription: '', packageSize: '', fragile: false, consentAccepted: false, weight: '', distance: 0, receiverName: '', receiverPhone: '' });
   const [paymentMethod, setPaymentMethod] = useState('cash');
 
   // --- Form & Modal State ---
@@ -397,7 +413,7 @@ export function AppProvider({ children }) {
           setAdminTab('dashboard');
         } else if (data.type === 'order_status' || data.orderId) {
           setActiveRole('customer');
-          setActiveTab('activity');
+          setActiveTab(data.type === 'shipment_status' ? 'packages' : 'orders');
         }
       },
     }).then(fn => {
@@ -474,7 +490,7 @@ export function AppProvider({ children }) {
         if (addressIds.length) {
           const { data: addresses, error: addressesError } = await supabase
             .from('addresses')
-            .select('id, address_line_1, address_line_2, neighborhood, municipality, city, province, country_code')
+            .select('id, address_line_1, address_line_2, neighborhood, municipality, city, province, country_code, location')
             .in('id', addressIds);
           if (addressesError) throw addressesError;
           addressMap = new Map((addresses || []).map(a => [a.id, a]));
@@ -498,7 +514,7 @@ export function AppProvider({ children }) {
             time: '30-45 min',
             deliveryTimeMin: 30,
             deliveryTimeMax: 45,
-            location: address?.location || null,
+            location: parseGeographyPoint(address?.location),
             address: address ? [address.address_line_1, address.address_line_2, address.neighborhood, address.municipality, address.city].filter(Boolean).join(', ') : '',
             priceLabel: '$$',
           };
@@ -722,23 +738,13 @@ export function AppProvider({ children }) {
             .in('id', addressIds);
           if (error) throw error;
           const addressMap = new Map((data || []).map(row => [row.id, row]));
-          const toLocation = value => {
-            if (value?.type === 'Point' && Array.isArray(value.coordinates)) {
-              return { lat: Number(value.coordinates[1]), lng: Number(value.coordinates[0]) };
-            }
-            if (typeof value === 'string') {
-              const match = value.match(/POINT\\s*\\(\\s*(-?[0-9.]+)\\s+(-?[0-9.]+)\\s*\\)/i);
-              if (match) return { lat: Number(match[2]), lng: Number(match[1]) };
-            }
-            return null;
-          };
           addressRows = (customerAddressesResult.data || []).map(row => {
             const address = addressMap.get(row.address_id);
             return {
               id: row.address_id,
               label: row.label,
               address: address ? [address.address_line_1, address.address_line_2, address.neighborhood, address.municipality, address.city, address.province].filter(Boolean).join(', ') : '',
-              location: toLocation(address?.location),
+              location: parseGeographyPoint(address?.location),
               deliveryInstructions: row.delivery_instructions || '',
               recipientName: row.recipient_name || '',
               recipientPhone: row.recipient_phone || '',
@@ -747,16 +753,17 @@ export function AppProvider({ children }) {
           });
         }
         const addresses = addressRows;
+        const resolvedProfile = { ...prof, location: addresses.find(address => address.isDefault)?.location || null };
         persistedProfileRef.current = profileResult.error || !profileResult.data ? null : {
           userId: authUser.id,
           signature: JSON.stringify({
             name: prof.name, phone: prof.phone, avatar: prof.image || null,
-            location: prof.location, addresses,
+            location: resolvedProfile.location, addresses,
           }),
         };
         setCurrentUser({ id: authUser.id, email: authUser.email, ...profile, account_status: accountStatus, roles: mergedRoles });
-        setUserProfile(prof);
-        setTempProfile(prof);
+        setUserProfile(resolvedProfile);
+        setTempProfile(resolvedProfile);
         setUserRoles(mergedRoles);
         setUserAddresses(addresses);
       } catch (e) {

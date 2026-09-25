@@ -1,22 +1,20 @@
-import { generateId, formatDateTime, r2, getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils.js';
+import { generateId, formatDateTime, r2 } from '../../utils.js';
 
 export function useOrderActions(deps) {
   const {
     orders, setOrders,
     cart, setCart,
     riders, appConfig,
-    currentUser, userProfile, userAddresses, userWallet,
-    parcelDetails, setParcelDetails,
-    parcelDistance,
+    currentUser, userProfile, userAddresses,
+    parcelDetails,
     paymentMethod,
     pendingRequests, setPendingRequests,
     selectedOrderToCancel, setSelectedOrderToCancel,
     setCancelReasonInput,
     setShowCancelModal,
     setSelectedRestaurant, setActiveTab,
-    setParcelMapTarget, setParcelEstimate, setParcelDistance,
-    placingOrderRef, pendingLocalOrderIdsRef,
-    creditWalletLocal, fetchUserWallet,
+    placingOrderRef,
+    fetchUserWallet,
     notifySystem, notifyAdmin,
     supabase,
   } = deps;
@@ -173,7 +171,7 @@ export function useOrderActions(deps) {
     };
 
     if (cart.length > 0 && cart[0].restaurantId !== restaurantId) {
-      if (!window.confirm('คุณต้องการเริ่มออเดอร์ใหม่จากร้านนี้ใช่ไหม? (ตะกร้าเก่าจะถูกลบ)')) return;
+      if (!window.confirm('Começar um novo pedido deste comerciante? O carrinho actual será limpo.')) return;
       setCart([newItemObj]);
     } else {
       const existing = cart.find(c => c.id === cartItemId);
@@ -182,7 +180,7 @@ export function useOrderActions(deps) {
       } else {
         setCart([...cart, newItemObj]);
       }
-      notifySystem('เพิ่มลงตะกร้า', `เพิ่ม ${item.name} แล้ว`, 'success');
+      notifySystem('Adicionado ao carrinho', `${item.name} foi adicionado.`, 'success');
     }
   };
 
@@ -223,7 +221,7 @@ export function useOrderActions(deps) {
       notifyAdmin('🛎️ Novo pedido', `${userProfile.name || 'Cliente'} pediu em ${result.order.restaurantName}`, 'info');
       setCart([]);
       setSelectedRestaurant(null);
-      setActiveTab('activity');
+      setActiveTab('orders');
       notifySystem('Pedido criado', `Pedido #${result.order.orderReference || result.order.id.slice(-6)} enviado ao comerciante.`, 'success');
     } finally {
       placingOrderRef.current = false;
@@ -231,101 +229,21 @@ export function useOrderActions(deps) {
   };
 
   const placeParcelOrder = async () => {
-    if (!parcelDetails.pickup || !parcelDetails.dropoff) {
-      return notifySystem('ผิดพลาด', 'กรุณาระบุจุดรับและจุดส่ง', 'error');
+    if (!parcelDetails.pickupAddressId) {
+      return notifySystem('Morada de recolha necessária', 'Escolha uma morada guardada pertencente à sua conta.', 'error');
     }
-
-    if (!isValidCoordinate(parcelDetails.pickupLocation) || !isValidCoordinate(parcelDetails.dropoffLocation)) {
-      return notifySystem('ผิดพลาด', 'กรุณาปักหมุดจุดรับและจุดส่งพัสดุให้ถูกต้องก่อนสั่ง', 'error');
+    if (!parcelDetails.receiverName || !parcelDetails.receiverPhone || !parcelDetails.dropoff || !parcelDetails.packageDescription) {
+      return notifySystem('Dados incompletos', 'Indique destino, destinatário e descrição do pacote antes de continuar.', 'error');
     }
-
-    const dist = parcelDistance > 0 ? parcelDistance : (
-      getDistanceFromLatLonInKm(
-        parcelDetails.pickupLocation.lat, parcelDetails.pickupLocation.lng,
-        parcelDetails.dropoffLocation.lat, parcelDetails.dropoffLocation.lng
-      ) || 1
+    if (!parcelDetails.consentAccepted) {
+      return notifySystem('Consentimento necessário', 'Confirme que não está a enviar artigos proibidos ou ilegais.', 'error');
+    }
+    return notifySystem(
+      'Envio ainda não disponível',
+      'O backend live ainda não expõe o comando de confirmação com consentimento, seleção/recomendação de veículo e pagamento do Enviar. Nenhum envio foi criado.',
+      'error',
     );
-
-    const grandTotal  = calculateDeliveryFee(dist);
-    const uid = currentUser?.id || userProfile?.id || '';
-    if (paymentMethod === 'wallet' && userWallet < grandTotal) {
-      return notifySystem('ผิดพลาด', `ยอดเงินในกระเป๋าไม่เพียงพอ (มี ฿${userWallet} ต้องการ ฿${grandTotal})`, 'error');
-    }
-
-    // Fetch server quote
-    const quoteRes = await _fetchServiceQuote({
-      p_service_type: 'parcel',
-      p_pickup_lat: parcelDetails.pickupLocation.lat,
-      p_pickup_lng: parcelDetails.pickupLocation.lng,
-      p_dropoff_lat: parcelDetails.dropoffLocation.lat,
-      p_dropoff_lng: parcelDetails.dropoffLocation.lng,
-    });
-
-    if (!quoteRes.ok) {
-      return notifySystem('ผิดพลาด', quoteRes.reason, 'error');
-    }
-
-    const quote = quoteRes.quote;
-    const quoteId = quote.quoteId;
-    const serverGrandTotal = quote.grandTotal ?? grandTotal;
-    const serverBillableKm = quote.billableKm ?? dist;
-
-    const orderId = generateId();
-    const newOrder = {
-      id: orderId,
-      quoteId,
-      type: 'parcel',
-      status: 'ready_to_pickup',
-      customerId: uid,
-      customerName: userProfile.name || 'ลูกค้า',
-      customerPhone: userProfile.phone || null,
-      pickup: parcelDetails.pickup,
-      dropoff: parcelDetails.dropoff,
-      pickupLocation: parcelDetails.pickupLocation,
-      location: parcelDetails.dropoffLocation,
-      distance: serverBillableKm,
-      distanceSource: quote.distanceSource || 'osrm',
-      parcelDetails: { ...parcelDetails, distance: serverBillableKm },
-      weight: parcelDetails.weight,
-      receiverName: parcelDetails.receiverName,
-      receiverPhone: parcelDetails.receiverPhone,
-      deliveryFee: serverGrandTotal,
-      riderIncome: r2(serverGrandTotal * (1 - ((appConfig.gpDelivery ?? 15) / 100))),
-      grandTotal: serverGrandTotal,
-      paymentMethod,
-      createdAt: formatDateTime(),
-    };
-    pendingLocalOrderIdsRef.current.add(orderId);
-    setOrders(prev => [newOrder, ...prev]);
-
-    const res = { ok: true, order: newOrder };
-
-    if (!res.ok) {
-      pendingLocalOrderIdsRef.current.delete(orderId);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
-      return notifySystem('ผิดพลาด', res.reason, 'error');
-    }
-
-    const authOrder = res.order || newOrder;
-    const finalGrandTotal = authOrder.grandTotal ?? serverGrandTotal;
-
-    setOrders(prev => prev.map(o => o.id === orderId ? authOrder : o));
-
-    if (paymentMethod === 'wallet') {
-      creditWalletLocal(uid, -finalGrandTotal, `ค่าส่งพัสดุ ออเดอร์ #${orderId.slice(-6)}`);
-    }
-    notifyAdmin('📦 พัสดุใหม่', `${userProfile.name} ส่ง ${parcelDetails.pickup} → ${parcelDetails.dropoff}`, 'info');
-    setParcelDetails({ pickup: '', dropoff: '', weight: '1', distance: 0, receiverName: '', receiverPhone: '' });
-    setParcelDistance(0);
-    setParcelEstimate(0);
-    setParcelMapTarget(null);
-    setActiveTab('activity');
-    notifySystem('สั่งส่งพัสดุสำเร็จ! 📦', `ออเดอร์ #${orderId.slice(-6)} กำลังหาไรเดอร์`, 'success');
-
-    // Auto-dispatch parcel to nearest rider immediately
   };
-
-
 
   const _updateOrder = async (orderId, patch) => {
     let currentOrder = orders.find(o => o.id === orderId);
