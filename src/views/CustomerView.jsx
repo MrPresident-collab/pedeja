@@ -95,7 +95,8 @@ export default function CustomerView() {
       {activeTab === 'home' && (
         <HomeTab searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       )}
-      {activeTab === 'activity' && <ActivityTab />}
+      {activeTab === 'orders' && <ActivityTab domain="orders" />}
+      {activeTab === 'packages' && <ActivityTab domain="packages" />}
       {activeTab === 'profile' && <ProfileTab />}
 
       <BottomNav />
