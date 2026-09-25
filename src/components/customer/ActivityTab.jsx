@@ -286,6 +286,40 @@ function CancelShipment({ activity, onDone }) {
   );
 }
 
+function EditSchedule({ activity, onDone }) {
+  const scheduledFor = activity.shipment?.scheduledFor;
+  const status = upper(activity.shipment?.status || activity.shipmentStatus || activity.status);
+  const editable = Boolean(scheduledFor) && ['PAYMENT_PENDING', 'CONFIRMED'].includes(status);
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(() => scheduledFor ? new Date(scheduledFor).toISOString().slice(0, 16) : '');
+  const [note, setNote] = useState('');
+  const [message, setMessage] = useState('');
+  if (!editable) return null;
+  const submit = async () => {
+    if (!value) return setMessage('Escolhe uma data e hora.');
+    const { error } = await supabase.rpc('edit_customer_enviar_schedule', {
+      p_shipment_id: activity.entityId,
+      p_scheduled_for: new Date(value).toISOString(),
+      p_customer_note: note.trim() || null,
+    });
+    if (error) return setMessage(error.message || 'O servidor não permitiu editar este envio.');
+    onDone();
+  };
+  return (
+    <div className="mt-3">
+      {!open ? <button onClick={() => setOpen(true)} className="w-full py-3 rounded-xl border border-violet-200 text-violet-700 font-bold text-sm">Editar envio</button> : (
+        <div className="bg-white rounded-2xl border border-violet-100 p-4">
+          <p className="font-black text-gray-900">Editar envio</p>
+          <label className="block text-xs text-gray-500 mt-3">Data e hora<input type="datetime-local" value={value} onChange={event => setValue(event.target.value)} className="w-full mt-1 border rounded-xl p-3 text-sm" /></label>
+          <label className="block text-xs text-gray-500 mt-3">Instruções opcionais<textarea value={note} onChange={event => setNote(event.target.value)} className="w-full mt-1 border rounded-xl p-3 text-sm" rows={2} /></label>
+          {message && <p className="mt-3 text-xs text-red-600">{message}</p>}
+          <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={submit} className="py-3 rounded-xl bg-violet-600 text-white font-bold">Guardar</button><button onClick={() => setOpen(false)} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-bold">Voltar</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ActivityDetail({ activity, onBack, onRefresh, onCancelled }) {
   const { openChatWindow, userProfile } = useApp();
   const isParcel = upper(activity.sourceType) !== 'ORDER';
@@ -306,6 +340,7 @@ function ActivityDetail({ activity, onBack, onRefresh, onCancelled }) {
         {activity.rider && <div className="mt-3 bg-white rounded-2xl border border-gray-100 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-gray-400 font-black mb-3">Estafeta</p><div className="flex items-center gap-3"><div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center text-xl shrink-0">{activity.rider.avatarUrl ? <img src={activity.rider.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Truck size={22} />}</div><div className="min-w-0 flex-1"><p className="font-bold text-gray-900">{activity.rider.name || 'Estafeta'}</p><p className="text-xs text-gray-500 mt-1">{vehicleText(activity.rider.vehicle)}</p></div></div><div className="grid grid-cols-2 gap-2 mt-4"><button onClick={chatRider} className="py-3 rounded-xl bg-violet-600 text-white font-bold text-sm flex items-center justify-center gap-2"><MessageSquare size={17} /> Chat</button><button onClick={openSupport} className="py-3 rounded-xl bg-gray-100 text-gray-800 font-bold text-sm flex items-center justify-center gap-2"><Headphones size={17} /> Suporte</button></div></div>}
         {activity.order?.items?.length > 0 && <div className="mt-3 bg-white rounded-2xl border border-gray-100 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-gray-400 font-black mb-3">Itens do pedido</p>{activity.order.items.map(item => <div key={item.id} className="py-2 flex items-center justify-between gap-3 border-b border-gray-100 last:border-0"><span className="text-sm text-gray-800">{item.quantity || item.qty} × {item.name}</span><span className="text-sm font-semibold text-gray-700">{formatKz(item.lineTotal)}</span></div>)}</div>}
         <Progress status={activity.shipment?.status || activity.orderStatus || activity.status} isParcel={isParcel} />
+        {isParcel && <EditSchedule activity={activity} onDone={onCancelled} />}
         {isParcel && <CancelShipment activity={activity} onDone={onCancelled} />}
         <p className="mt-4 text-center text-[10px] text-gray-400 flex items-center justify-center gap-1"><Truck size={12} /> Estado actualizado directamente pelo servidor.</p>
       </div>
@@ -335,7 +370,25 @@ export default function ActivityTab({ domain = 'orders' }) {
       setError('Não foi possível carregar os dados do servidor.');
     } else {
       const activeRows = Array.isArray(activeResult.data) ? activeResult.data : [];
-      const historyRows = (Array.isArray(historyResult.data) ? historyResult.data : []).map(isParcel ? mapShipmentHistory : mapOrderHistory);
+      let historyRows = (Array.isArray(historyResult.data) ? historyResult.data : []).map(isParcel ? mapShipmentHistory : mapOrderHistory);
+      if (!isParcel && historyRows.length) {
+        const detailedRows = await Promise.all(historyRows.map(async row => {
+          const { data: detail } = await supabase.rpc('get_customer_order_detail', { p_order_id: row.entityId });
+          if (!detail) return row;
+          return {
+            ...row,
+            order: {
+              ...row.order,
+              items: (detail.items || []).map(item => ({
+                ...item,
+                quantity: item.quantity,
+                lineTotal: Number(item.lineTotal || 0),
+              })),
+            },
+          };
+        }));
+        historyRows = detailedRows;
+      }
       setActivities(mergeActivity(historyRows, activeRows, domain));
       setError('');
     }
