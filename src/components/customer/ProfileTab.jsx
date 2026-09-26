@@ -84,7 +84,19 @@ function ThemeView({ onBack, themeMode, setThemeMode }) {
 function SecurityView({ onBack }) {
   const [sessions,setSessions]=useState([]); const [loading,setLoading]=useState(true); const [message,setMessage]=useState('');
   const load=async()=>{setLoading(true);const {data,error}=await supabase.rpc('customer_sessions_snapshot');if(error)setMessage(error.message||'Não foi possível carregar as sessões.');else setSessions(Array.isArray(data)?data:[]);setLoading(false)};
-  useEffect(()=>{load()},[]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.rpc('customer_sessions_snapshot');
+      if (cancelled) return;
+      if (error) setMessage(error.message || 'Não foi possível carregar as sessões.');
+      else setSessions(Array.isArray(data) ? data : []);
+      setLoading(false);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, []);
   const signOut=async(id)=>{const {error}=await supabase.rpc('customer_sign_out_session',{p_session_id:id});if(error)setMessage(error.message||'Não foi possível terminar a sessão.');else load()};
   return <div className="pb-24"><Header title="Segurança" onBack={onBack}/><div className="p-4 space-y-4"><Section title="Account Safety"><div className="p-4 text-sm text-gray-600 space-y-3"><p><b>O que faço se perder a minha conta?</b><br/>Contacta imediatamente o suporte e protege o acesso ao teu email.</p><p><b>Como o Pedejá protege a minha conta?</b><br/>O acesso usa autenticação e verificações antes de alterações sensíveis.</p><p><b>O Pedejá partilha a minha informação?</b><br/>Não vendemos nem partilhamos os teus dados pessoais com terceiros para fins comerciais.</p></div></Section><Section title="Verification"><div className="p-4 text-sm text-gray-600">As alterações de email e telefone exigem confirmação através da autenticação da conta.</div></Section><Section title="Sign out other sessions"><div className="p-4">{loading?<p className="text-sm text-gray-400">A carregar sessões...</p>:sessions.length?sessions.map(s=><div key={s.session_id} className="py-3 border-b last:border-0 flex items-start gap-3"><Smartphone size={18} className="text-violet-700 mt-1"/><div className="flex-1"><p className="text-sm font-bold">{s.user_agent||'Dispositivo'}</p><p className="text-[10px] text-gray-500 mt-1">Último uso: {s.last_used_at?new Date(s.last_used_at).toLocaleString('pt-AO'):'—'} {s.is_current?'· Este dispositivo':''}</p></div>{!s.is_current&&<button onClick={()=>signOut(s.session_id)} className="text-xs font-bold text-red-600">Sair</button>}</div>):<p className="text-sm text-gray-400">Nenhuma outra sessão encontrada.</p>}{message&&<p className="text-xs text-amber-700 mt-3">{message}</p>}</div></Section></div></div>;
 }
