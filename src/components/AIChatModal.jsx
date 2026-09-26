@@ -18,7 +18,7 @@ export default function AIChatModal({ isOpen, onClose }) {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
-  useEffect(() => { setMessages(previous => previous.length === 1 && previous[0].sender === 'bot' ? [{ sender: 'bot', text: copy.welcome, time: now(copy.locale) }] : previous); }, [language]);
+  useEffect(() => { setMessages(previous => previous.length === 1 && previous[0].sender === 'bot' ? [{ sender: 'bot', text: copy.welcome, time: now(copy.locale) }] : previous); }, [language, copy.locale, copy.welcome]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
   if (!isOpen) return null;
   const handleSend = async (value = inputText) => {
