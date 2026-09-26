@@ -105,7 +105,6 @@ export default function RiderPreviewView() {
       isDataLoading: false,
       supabase: previewSupabase,
       notifySystem: noop,
-      setActiveRole: noop,
     };
   }, [isDarkMode, orders, riders, riderTab]);
 
