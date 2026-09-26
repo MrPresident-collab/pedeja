@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase';
 
 const EMPTY_ADDRESS = { label: 'Casa', addressLine1: '', addressLine2: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null, location: null };
 const PROFILE_VIEWS = new Set(['wallet', 'addresses', 'edit_profile', 'notifications', 'notification_preferences', 'language', 'theme', 'security', 'help', 'legal', 'about']);
-const PEDEJA_WHATSAPP_NUMBER = (import.meta.env.VITE_PEDEJA_WHATSAPP_NUMBER || '').replace(/\\D/g, '');
+const PEDEJA_WHATSAPP_NUMBER = (import.meta.env.VITE_PEDEJA_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
 function Row({ icon, title, detail, onClick, danger = false }) {
   return <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border-b border-gray-100 last:border-0 hover:bg-gray-50 ${danger ? 'text-red-600' : 'text-gray-800'}`}><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${danger ? 'bg-red-50' : 'bg-violet-50 text-violet-700'}`}>{React.createElement(icon, { size: 18 })}</span><span className="min-w-0 flex-1"><span className="block font-semibold text-sm">{title}</span>{detail && <span className="block text-xs text-gray-400 mt-0.5 truncate">{detail}</span>}</span><ChevronRight size={17} className="text-gray-300 shrink-0" /></button>;
