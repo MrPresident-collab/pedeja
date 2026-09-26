@@ -763,7 +763,7 @@ export default function RiderView() {
       mapInstanceRef.current = null;
       riderMarkerRef.current = null;
     };
-  }, [riderTab]);
+  }, [riderTab, gps]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -1490,11 +1490,11 @@ export default function RiderView() {
             ['active', Bike, 'Entregas'],
             ['wallet', WalletCards, 'Ganhos'],
             ['profile', User, 'Perfil'],
-          ].map(([tab, Icon, label]) => {
+          ].map(([tab, TabIcon, label]) => {
             const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
             return (
               <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-violet-700' : muted}`}>
-                <Icon size={18} />
+                <TabIcon size={18} />
                 {label}
               </button>
             );
