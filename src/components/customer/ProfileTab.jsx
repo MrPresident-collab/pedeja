@@ -3,7 +3,6 @@ import {
   ArrowLeft, Bell, Camera, ChevronRight, CircleHelp, Globe2, Banknote, BookOpen,
   Info, LogOut, MapPin, MessageSquare, Moon, Package, Plus, ShieldCheck,
   Sun, Trash2, UserRound, WalletCards, X, Smartphone, Headphones, CreditCard as CardIcon,
-  Facebook, Instagram, Linkedin,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../../package.json';
