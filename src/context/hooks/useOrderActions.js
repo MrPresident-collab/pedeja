@@ -270,7 +270,11 @@ export function useOrderActions(deps) {
     const { data: consentId, error: consentError } = await supabase.rpc('accept_enviar_policy', { p_quote_id: quote.quote_id, p_policy_version_id: policyRow.id });
     if (consentError || !consentId) return notifySystem('Consentimento não concluído', consentError?.message || 'Não foi possível registar o consentimento.', 'error');
     const idem = typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID() : `${Date.now()}-${generateId()}`;
-    const { data: shipmentId, error: createError } = await supabase.rpc('create_customer_enviar_shipment', { p_quote_id: quote.quote_id, p_selected_vehicle_type: option.vehicle_type, p_policy_consent_id: consentId, p_idempotency_key: idem });
+    const rpcName = parcelDetails.scheduledFor ? 'schedule_customer_enviar_shipment' : 'create_customer_enviar_shipment';
+    const rpcArgs = parcelDetails.scheduledFor
+      ? { p_quote_id: quote.quote_id, p_selected_vehicle_type: option.vehicle_type, p_policy_consent_id: consentId, p_scheduled_for: new Date(parcelDetails.scheduledFor).toISOString(), p_idempotency_key: idem }
+      : { p_quote_id: quote.quote_id, p_selected_vehicle_type: option.vehicle_type, p_policy_consent_id: consentId, p_idempotency_key: idem };
+    const { data: shipmentId, error: createError } = await supabase.rpc(rpcName, rpcArgs);
     if (createError || !shipmentId) return notifySystem('Não foi possível criar o envio', createError?.message || 'O servidor recusou a criação do envio.', 'error');
     if (paymentMethod === 'wallet') {
       const { error: payError } = await supabase.rpc('customer_pay_enviar_with_wallet', { p_shipment_id: shipmentId, p_idempotency_key: idem });
