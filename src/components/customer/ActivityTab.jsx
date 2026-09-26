@@ -349,7 +349,7 @@ function ActivityDetail({ activity, onBack, onRefresh, onCancelled }) {
 }
 
 export default function ActivityTab({ domain = 'orders' }) {
-  const { setActiveTab, setServiceType } = useApp();
+  const { setActiveTab, setServiceType, setParcelDetails } = useApp();
   const [activities, setActivities] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -372,22 +372,7 @@ export default function ActivityTab({ domain = 'orders' }) {
       const activeRows = Array.isArray(activeResult.data) ? activeResult.data : [];
       let historyRows = (Array.isArray(historyResult.data) ? historyResult.data : []).map(isParcel ? mapShipmentHistory : mapOrderHistory);
       if (!isParcel && historyRows.length) {
-        const detailedRows = await Promise.all(historyRows.map(async row => {
-          const { data: detail } = await supabase.rpc('get_customer_order_detail', { p_order_id: row.entityId });
-          if (!detail) return row;
-          return {
-            ...row,
-            order: {
-              ...row.order,
-              items: (detail.items || []).map(item => ({
-                ...item,
-                quantity: item.quantity,
-                lineTotal: Number(item.lineTotal || 0),
-              })),
-            },
-          };
-        }));
-        historyRows = detailedRows;
+        // History stays as a projection. Full order details are fetched only when the customer opens an order.
       }
       setActivities(mergeActivity(historyRows, activeRows, domain));
       setError('');
@@ -399,8 +384,7 @@ export default function ActivityTab({ domain = 'orders' }) {
     // This effect synchronizes the screen with the authoritative Supabase snapshot.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadActivities();
-    const interval = window.setInterval(() => loadActivities(true), 10000);
-    return () => window.clearInterval(interval);
+    return undefined;
   }, [loadActivities]);
 
   const openActivity = async activity => {
@@ -428,10 +412,8 @@ export default function ActivityTab({ domain = 'orders' }) {
   }, [activities, isParcel]);
 
   const handleStart = scheduled => {
-    if (scheduled) {
-      setNotice('Agendamento indisponível: o backend live ainda não expõe um comando de criação de envio agendado. Nenhum envio foi criado.');
-      return;
-    }
+    setNotice('');
+    setParcelDetails(previous => ({ ...previous, scheduledFor: scheduled ? (previous.scheduledFor || new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0,16)) : '' }));
     setServiceType('ENVIAR');
     setActiveTab('home');
   };
