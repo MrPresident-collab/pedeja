@@ -201,7 +201,12 @@ test('Order metadata writes use a scoped RPC and direct client UPDATE is revoked
   assert.match(migration, /REVOKE UPDATE ON public\.orders FROM authenticated/i);
   assert.match(migration, /unsupported_order_metadata/i);
 
-  const appContext = readFileSync('src/context/AppContext.jsx', 'utf8');
-  assert.match(appContext, /rpc\('update_order_metadata'/i);
-  assert.doesNotMatch(appContext, /from\(['"]orders['"]\)\.update\(/i);
+  const sourceFiles = [
+    'src/context/AppContext.jsx',
+    'src/context/hooks/useOrderActions.js',
+  ];
+  const source = sourceFiles.map(file => readFileSync(file, 'utf8')).join('\n');
+
+  assert.match(source, /rpc\('update_order_metadata'/i);
+  assert.doesNotMatch(source, /from\(['"]orders['"]\)\.update\(/i);
 });
