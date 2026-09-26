@@ -23,6 +23,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import packageJson from '../../package.json';
 import { useApp } from '../context/AppContext';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'ARRIVED_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'ARRIVED_DESTINATION'];
@@ -111,8 +112,6 @@ export default function RiderView() {
     currentUser,
     riders,
     openChatWindow,
-    isDarkMode,
-    toggleDarkMode,
     themeMode,
     setThemeMode,
     handleLogout,
@@ -127,7 +126,6 @@ export default function RiderView() {
   const [availability, setAvailability] = useState(rider?.availabilityStatus || 'OFFLINE');
   const [gpsStatus, setGpsStatus] = useState('idle');
   const [gps, setGps] = useState(null);
-  const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [networkOnline, setNetworkOnline] = useState(() => navigator.onLine !== false);
   const [offer, setOffer] = useState(null);
   const [offerSeconds, setOfferSeconds] = useState(0);
@@ -361,7 +359,7 @@ export default function RiderView() {
       clearInterval(offerTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, [hydrateOffer, loadJob, rider?.id, supabase]);
+  }, [hydrateOffer, loadJob, rider?.id, setRiderTab, supabase]);
 
   useEffect(() => {
     if (!rider?.id) return undefined;
@@ -410,10 +408,9 @@ export default function RiderView() {
 
     const reportLocation = (position) => {
       if (cancelled) return;
-      const { latitude, longitude, accuracy } = position.coords;
+      const { latitude, longitude } = position.coords;
       const next = { lat: latitude, lng: longitude };
       setGps(next);
-      setGpsAccuracy(Number.isFinite(accuracy) ? accuracy : null);
       setGpsStatus('tracking');
 
       supabase.rpc('rider_update_location', {
@@ -712,6 +709,83 @@ export default function RiderView() {
     );
   }, [activeJob, openChatWindow, uid]);
 
+  const createRiderMarkerIcon = useCallback(() => {
+    const avatarUrl = userProfile?.avatarUrl ? escapeHtml(userProfile.avatarUrl) : '';
+    const avatarMarkup = avatarUrl
+      ? '<img src="' + avatarUrl + '" alt="" draggable="false" style="display:block;width:54px;height:54px;object-fit:cover;border-radius:50%;" />'
+      : '<div style="width:54px;height:54px;border-radius:50%;background:#F7F5FF;display:flex;align-items:center;justify-content:center;color:#6D28D9;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg></div>';
+
+    const radarMarkup = isOnline && !isBusy
+      ? '<span class="pedeja-rider-radar"></span><span class="pedeja-rider-radar pedeja-rider-radar-delay"></span>'
+      : '';
+
+    return L.divIcon({
+      className: 'pedeja-rider-map-icon',
+      html: '<style>' +
+        '@keyframes pedeja-rider-radar { 0% { transform:scale(.48); opacity:.34; } 70% { opacity:.10; } 100% { transform:scale(1.42); opacity:0; } }' +
+        '.pedeja-rider-map-icon{background:transparent!important;border:0!important;}' +
+        '.pedeja-rider-map-icon .pedeja-rider-radar{position:absolute;left:9px;top:9px;width:72px;height:72px;border:2px solid #6D28D9;border-radius:50%;box-sizing:border-box;animation:pedeja-rider-radar 2.6s ease-out infinite;pointer-events:none;}' +
+        '.pedeja-rider-map-icon .pedeja-rider-radar-delay{animation-delay:1.3s;}' +
+        '</style>' +
+        '<div style="width:90px;height:90px;position:relative;background:transparent;">' +
+        radarMarkup +
+        '<div style="position:absolute;left:18px;top:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:3px solid #6D28D9;box-shadow:0 2px 8px rgba(38,20,72,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        avatarMarkup +
+        '</div>' +
+        '</div>',
+      iconSize: [90, 90],
+      iconAnchor: [45, 45],
+    });
+  }, [isBusy, isOnline, userProfile?.avatarUrl]);
+
+  useEffect(() => {
+    if (riderTab !== 'home') return undefined;
+    if (!mapRef.current || mapInstanceRef.current) return undefined;
+
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      attributionControl: true,
+      dragging: true,
+      scrollWheelZoom: false,
+      doubleClickZoom: true,
+      touchZoom: true,
+    }).setView(gps ? [gps.lat, gps.lng] : [-8.8383, 13.2344], gps ? 15 : 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      riderMarkerRef.current = null;
+    };
+  }, [riderTab]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (riderTab !== 'home' || !map || !gps) return;
+
+    const point = [gps.lat, gps.lng];
+    const icon = createRiderMarkerIcon();
+
+    if (!riderMarkerRef.current) {
+      riderMarkerRef.current = L.marker(point, {
+        icon,
+        interactive: false,
+        keyboard: false,
+      }).addTo(map);
+    } else {
+      riderMarkerRef.current.setLatLng(point);
+      riderMarkerRef.current.setIcon(icon);
+    }
+
+    map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
+  }, [createRiderMarkerIcon, gps, riderTab]);
+
   if (!rider) {
     return (
       <div className="min-h-screen bg-violet-950 text-white flex items-center justify-center p-6">
@@ -802,82 +876,6 @@ export default function RiderView() {
     );
   };
 
-  const createRiderMarkerIcon = useCallback(() => {
-    const avatarUrl = userProfile?.avatarUrl ? escapeHtml(userProfile.avatarUrl) : '';
-    const avatarMarkup = avatarUrl
-      ? '<img src="' + avatarUrl + '" alt="" draggable="false" style="display:block;width:54px;height:54px;object-fit:cover;border-radius:50%;" />'
-      : '<div style="width:54px;height:54px;border-radius:50%;background:#F7F5FF;display:flex;align-items:center;justify-content:center;color:#6D28D9;"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg></div>';
-
-    const radarMarkup = isOnline && !isBusy
-      ? '<span class="pedeja-rider-radar"></span><span class="pedeja-rider-radar pedeja-rider-radar-delay"></span>'
-      : '';
-
-    return L.divIcon({
-      className: 'pedeja-rider-map-icon',
-      html: '<style>' +
-        '@keyframes pedeja-rider-radar { 0% { transform:scale(.48); opacity:.34; } 70% { opacity:.10; } 100% { transform:scale(1.42); opacity:0; } }' +
-        '.pedeja-rider-map-icon{background:transparent!important;border:0!important;}' +
-        '.pedeja-rider-map-icon .pedeja-rider-radar{position:absolute;left:9px;top:9px;width:72px;height:72px;border:2px solid #6D28D9;border-radius:50%;box-sizing:border-box;animation:pedeja-rider-radar 2.6s ease-out infinite;pointer-events:none;}' +
-        '.pedeja-rider-map-icon .pedeja-rider-radar-delay{animation-delay:1.3s;}' +
-        '</style>' +
-        '<div style="width:90px;height:90px;position:relative;background:transparent;">' +
-        radarMarkup +
-        '<div style="position:absolute;left:18px;top:18px;width:54px;height:54px;border-radius:50%;background:#FFFFFF;border:3px solid #6D28D9;box-shadow:0 2px 8px rgba(38,20,72,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
-        avatarMarkup +
-        '</div>' +
-        '</div>',
-      iconSize: [90, 90],
-      iconAnchor: [45, 45],
-    });
-  }, [isBusy, isOnline, userProfile?.avatarUrl]);
-
-  useEffect(() => {
-    if (riderTab !== 'home') return undefined;
-    if (!mapRef.current || mapInstanceRef.current) return undefined;
-
-    const map = L.map(mapRef.current, {
-      zoomControl: false,
-      attributionControl: true,
-      dragging: true,
-      scrollWheelZoom: false,
-      doubleClickZoom: true,
-      touchZoom: true,
-    }).setView(gps ? [gps.lat, gps.lng] : [-8.8383, 13.2344], gps ? 15 : 13);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-
-    mapInstanceRef.current = map;
-
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      riderMarkerRef.current = null;
-    };
-  }, [riderTab]);
-
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (riderTab !== 'home' || !map || !gps) return;
-
-    const point = [gps.lat, gps.lng];
-    const icon = createRiderMarkerIcon();
-
-    if (!riderMarkerRef.current) {
-      riderMarkerRef.current = L.marker(point, {
-        icon,
-        interactive: false,
-        keyboard: false,
-      }).addTo(map);
-    } else {
-      riderMarkerRef.current.setLatLng(point);
-      riderMarkerRef.current.setIcon(icon);
-    }
-
-    map.setView(point, Math.max(map.getZoom(), 15), { animate: true });
-  }, [createRiderMarkerIcon, gps, riderTab]);
   const renderAccountState = () => {
     if (!accountRestricted) return null;
     const title = isAccountSuspended ? 'CONTA SUSPENSA' : isAccountDeactivated ? 'CONTA DESACTIVADA' : 'CONTA ENCERRADA';
@@ -1020,7 +1018,6 @@ export default function RiderView() {
     const cash = ['CASH', 'NUMERARIO', 'CASH_ON_DELIVERY'].includes(activeJob.paymentMethod);
     const targetLocation = pickupPhase ? activeJob.pickup_location : activeJob.destination_location;
     const targetAddress = pickupPhase ? activeJob.pickupAddress : activeJob.destinationAddress;
-    const contactName = pickupPhase ? activeJob.senderName : activeJob.recipientName;
     const contactPhone = pickupPhase ? activeJob.senderPhone : activeJob.recipientPhone;
     const nextAction = activeJob.status === 'ACCEPTED'
       ? 'ARRIVED_PICKUP'
@@ -1442,7 +1439,7 @@ export default function RiderView() {
           <button type="button" disabled className="w-full p-3 text-sm font-bold text-red-600 opacity-60">
             APAGAR A MINHA CONTA
           </button>
-          <p className="text-center text-xs text-slate-400">Pedejá v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.1.0'}</p>
+          <p className="text-center text-xs text-slate-400">Pedejá v{packageJson.version}</p>
         </div>
       </div>
     );
