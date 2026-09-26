@@ -189,9 +189,7 @@ export function useOrderActions(deps) {
     placingOrderRef.current = true;
     try {
       void promoDiscount;
-      if (paymentMethod !== 'cash') {
-        return notifySystem('Método indisponível', 'O pagamento pela carteira ainda não está disponível no backend live. Escolha Numerário.', 'error');
-      }
+      if (!['cash','wallet','card'].includes(paymentMethod)) return notifySystem('Método de pagamento', 'Escolha um método de pagamento.', 'error');
 
       const primaryAddr = userAddresses?.find(address => address.isDefault) || userAddresses?.[0];
       const isUuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -217,7 +215,18 @@ export function useOrderActions(deps) {
       });
       if (!result.ok) return notifySystem('Não foi possível fazer o pedido', result.reason, 'error');
 
-      setOrders(prev => [result.order, ...prev.filter(order => order.id !== result.order.id)]);
+      let finalOrder = result.order;
+      if (paymentMethod === 'wallet') {
+        const idempotencyKey = typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID() : `${Date.now()}-${generateId()}`;
+        const { error: walletError } = await supabase.rpc('customer_pay_order_with_wallet', { p_order_id: result.order.id, p_idempotency_key: idempotencyKey });
+        if (walletError) return notifySystem('Pagamento não concluído', walletError.message || 'O pagamento com a Carteira Pedejá não foi aceite.', 'error');
+        const refreshed = await _fetchAuthoritativeOrder(result.order.id);
+        if (!refreshed.ok) return notifySystem('Erro ao actualizar pedido', refreshed.reason, 'error');
+        finalOrder = refreshed.order;
+      } else if (paymentMethod === 'card') {
+        return notifySystem('Cartão ainda não disponível', 'O provedor de cartão ainda não está configurado. Escolhe Dinheiro ou Carteira.', 'error');
+      }
+      setOrders(prev => [finalOrder, ...prev.filter(order => order.id !== finalOrder.id)]);
       notifyAdmin('🛎️ Novo pedido', `${userProfile.name || 'Cliente'} pediu em ${result.order.restaurantName}`, 'info');
       setCart([]);
       setSelectedRestaurant(null);
