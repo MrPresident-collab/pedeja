@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
 import BottomNav from '../components/customer/BottomNav';
@@ -11,21 +9,11 @@ import TopUpModal from '../components/customer/TopUpModal';
 import RatingModal from '../components/customer/RatingModal';
 
 export default function CustomerView() {
-  const { t } = useTranslation();
   const {
     activeTab,
-    profileSubView, setProfileSubView,
     toasts, removeToast,
-    userProfile,
-    selectedRestaurant,
     showTopUpModal,
-    forceRefresh,
   } = useApp();
-
-
-  const handleRefresh = async () => {
-    await forceRefresh();
-  };
 
   return (
     <div className="pb-20 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-white transition-colors duration-200">
