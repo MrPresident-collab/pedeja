@@ -45,7 +45,7 @@ export default function HomeTab() {
     placeOrder, placeParcelOrder,
     addToCart, calculateFoodTotal, calculateDeliveryFee,
     handleParcelMapSelect, getCurrentLocationForParcel,
-    notifySystem, selectedRestaurant, setSelectedRestaurant, setActiveTab,
+    notifySystem, selectedRestaurant, setSelectedRestaurant, setActiveTab, setProfileSubView,
   } = useApp();
 
   const [selectedMenuItem, setSelectedMenuItem] = useState(null);
@@ -211,7 +211,7 @@ export default function HomeTab() {
             <div className="flex justify-between text-sm text-gray-500 mb-2"><span>Entrega</span><span>Kz {calculateDeliveryFee(cart[0].distance || 0).toLocaleString()}</span></div>
             <div className="flex justify-between font-black text-lg mb-2"><span>Estimativa</span><span className="text-orange-600">Kz {(calculateFoodTotal() + calculateDeliveryFee(cart[0].distance || 0)).toLocaleString()}</span></div>
             <p className="text-[11px] text-gray-400 mb-3">O total final é calculado pelo servidor no checkout.</p>
-            <div className="mb-3"><p className="text-xs font-semibold text-gray-500 mb-2">Método</p><div className="grid grid-cols-3 gap-2"><button onClick={() => setPaymentMethod('cash')} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='cash'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Dinheiro</button><button onClick={() => setPaymentMethod('card')} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='card'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Cartão</button><button onClick={() => setPaymentMethod('wallet')} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='wallet'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Carteira ›</button></div></div>
+            <div className="mb-3"><p className="text-xs font-semibold text-gray-500 mb-2">Método</p><div className="grid grid-cols-3 gap-2"><button onClick={() => setPaymentMethod('cash')} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='cash'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Dinheiro</button><button onClick={() => setPaymentMethod('card')} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='card'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Cartão</button><button onClick={() => { setPaymentMethod('wallet'); setActiveTab('profile'); setProfileSubView('wallet'); }} className={`py-2.5 rounded-xl border text-xs font-bold ${paymentMethod==='wallet'?'bg-violet-600 text-white border-violet-600':'bg-white text-gray-700 border-gray-200'}`}>Carteira ›</button></div></div>
             <button onClick={() => placeOrder(0, orderNotes)} className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold shadow-md">Confirmar pedido</button>
           </div>
         )}
