@@ -65,6 +65,20 @@ export default function HomeTab() {
   const [repeatItems, setRepeatItems] = useState([]);
   const [repeatLoading, setRepeatLoading] = useState(true);
 
+
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotifications = async () => {
+      setNotificationsLoading(true);
+      const { data, error } = await supabase.rpc('customer_notification_snapshot', { p_limit: 30 });
+      if (!cancelled && !error) setNotifications(Array.isArray(data) ? data : []);
+      if (!cancelled) setNotificationsLoading(false);
+    };
+    loadNotifications();
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const loadRepeatItems = async () => {
@@ -404,18 +418,6 @@ export default function HomeTab() {
       .filter(Boolean).slice(0, 2).join(', ')
     : 'Adicionar morada';
 
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadNotifications = async () => {
-      setNotificationsLoading(true);
-      const { data, error } = await supabase.rpc('customer_notification_snapshot', { p_limit: 30 });
-      if (!cancelled && !error) setNotifications(Array.isArray(data) ? data : []);
-      if (!cancelled) setNotificationsLoading(false);
-    };
-    loadNotifications();
-    return () => { cancelled = true; };
-  }, []);
 
   const openNotification = (notification) => {
     setShowNotifications(false);
