@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ArrowLeft, Bell, Camera, ChevronRight, CircleHelp, CreditCard, Globe2,
+  ArrowLeft, Bell, Camera, ChevronRight, CircleHelp, Globe2, Banknote, BookOpen,
   Info, LogOut, MapPin, MessageSquare, Moon, Package, Plus, ShieldCheck,
-  Sun, Trash2, UserRound, WalletCards, X, Smartphone, Headphones,
+  Sun, Trash2, UserRound, WalletCards, X, Smartphone, Headphones, CreditCard as CardIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../../package.json';
@@ -10,7 +10,6 @@ import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
 
 const EMPTY_ADDRESS = { label: 'Casa', addressLine1: '', addressLine2: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null, location: null };
-const PROFILE_VIEWS = new Set(['wallet', 'addresses', 'edit_profile', 'notifications', 'notification_preferences', 'language', 'theme', 'security', 'help', 'legal', 'about']);
 const PEDEJA_WHATSAPP_NUMBER = (import.meta.env.VITE_PEDEJA_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
 function Row({ icon, title, detail, onClick, danger = false }) {
