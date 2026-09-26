@@ -3,6 +3,7 @@ import {
   ArrowLeft, Bell, Camera, ChevronRight, CircleHelp, Globe2, Banknote, BookOpen,
   Info, LogOut, MapPin, MessageSquare, Moon, Package, Plus, ShieldCheck,
   Sun, Trash2, UserRound, WalletCards, X, Smartphone, Headphones, CreditCard as CardIcon,
+  Facebook, Instagram, Linkedin,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../../package.json';
@@ -10,7 +11,12 @@ import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabase';
 
 const EMPTY_ADDRESS = { label: 'Casa', addressLine1: '', addressLine2: '', neighborhood: '', municipality: '', city: 'Luanda', province: 'Luanda', reference: '', latitude: null, longitude: null, location: null };
-const PEDEJA_WHATSAPP_NUMBER = (import.meta.env.VITE_PEDEJA_WHATSAPP_NUMBER || '').replace(/\D/g, '');
+const PEDEJA_WHATSAPP_NUMBER = '244958316486';
+const PEDEJA_SOCIALS = {
+  facebook: 'https://www.facebook.com/pedeja.ao',
+  instagram: '',
+  linkedin: 'https://www.linkedin.com/company/pedej%C3%A1/',
+};
 
 function Row({ icon, title, detail, onClick, danger = false }) {
   return <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border-b border-gray-100 last:border-0 hover:bg-gray-50 ${danger ? 'text-red-600' : 'text-gray-800'}`}><span className={`w-9 h-9 rounded-xl flex items-center justify-center ${danger ? 'bg-red-50' : 'bg-violet-50 text-violet-700'}`}>{React.createElement(icon, { size: 18 })}</span><span className="min-w-0 flex-1"><span className="block font-semibold text-sm">{title}</span>{detail && <span className="block text-xs text-gray-400 mt-0.5 truncate">{detail}</span>}</span><ChevronRight size={17} className="text-gray-300 shrink-0" /></button>;
@@ -66,7 +72,7 @@ function Addresses({ userAddresses, newAddr, setNewAddr, handleAddAddress, handl
 function Support({ currentUser, onBack }) {
   const [category,setCategory]=useState('Problema com a minha conta'); const [description,setDescription]=useState(''); const [message,setMessage]=useState('');
   const submit=async()=>{if(!description.trim())return setMessage('Descreve brevemente o que aconteceu.');if(!PEDEJA_WHATSAPP_NUMBER)return setMessage('O WhatsApp do Pedejá ainda não está configurado.');const {data,error}=await supabase.rpc('support_create_case',{p_subject_type:'CUSTOMER',p_subject_id:currentUser?.id,p_case_type:category,p_title:category,p_description:description.trim(),p_metadata:{channel:'whatsapp'},p_idempotency_key:`perfil-${currentUser?.id}-${Date.now()}`});if(error)return setMessage(error.message||'Não foi possível criar o pedido de suporte.');window.open(`https://wa.me/${PEDEJA_WHATSAPP_NUMBER}?text=${encodeURIComponent(`Olá Pedejá. Categoria: ${category}. ${description.trim()}`)}`,'_blank','noopener,noreferrer');setMessage('O WhatsApp foi aberto com o teu pedido.');setDescription('')};
-  return <div className="pb-24"><Header title="Suporte" onBack={onBack}/><div className="p-4 space-y-4"><div className="bg-white rounded-2xl border border-gray-100 overflow-hidden"><div className="px-4 py-3 font-black">🆘 Ajuda</div><div className="grid grid-cols-3 border-t border-gray-100">{[['113','Polícia Nacional'],['112','Ambulância'],['115','Bombeiros']].map(([n,l])=><a key={n} href={`tel:${n}`} className="p-4 text-center border-r last:border-0 border-gray-100"><p className="font-black text-lg">{n}</p><p className="text-[10px] text-gray-500 mt-1">{l}</p></a>)}</div></div><div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex items-center gap-2 font-black"><Headphones size={17}/> WhatsApp</div><div className="mt-4 space-y-3">{['Problema com um pedido','Problema com um pacote','Problema com pagamento','Problema com a minha conta','Outro assunto'].map(item=><button key={item} onClick={()=>setCategory(item)} className={`w-full text-left px-4 py-3 rounded-xl border text-sm ${category===item?'border-violet-500 bg-violet-50 text-violet-800 font-bold':'border-gray-200'}`}>{item}</button>)}<textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4} placeholder="Descreve a tua questão..." className="w-full border rounded-xl p-3 text-sm"/>{message&&<p className="text-xs text-violet-700 bg-violet-50 rounded-xl p-3">{message}</p>}<button onClick={submit} className="w-full bg-violet-700 text-white py-3 rounded-xl font-bold">Abrir WhatsApp</button></div></div></div></div>;
+  return <div className="pb-24"><Header title="Suporte" onBack={onBack}/><div className="p-4 space-y-4"><div className="bg-white rounded-2xl border border-gray-100 overflow-hidden"><div className="px-4 py-3 font-black">🆘 Ajuda</div><div className="grid grid-cols-3 border-t border-gray-100">{[['113','Polícia Nacional'],['112','Ambulância'],['115','Bombeiros']].map(([n,l])=><a key={n} href={`tel:${n}`} className="p-4 text-center border-r last:border-0 border-gray-100"><p className="font-black text-lg">{n}</p><p className="text-[10px] text-gray-500 mt-1">{l}</p></a>)}</div></div><div className="bg-white rounded-2xl border border-gray-100 p-4"><div className="flex items-center gap-2 font-black"><Headphones size={17}/> WhatsApp</div><p className="text-xs text-gray-400 mt-1">+244 958 316 486</p><div className="mt-4 space-y-3">{['Problema com um pedido','Problema com um pacote','Problema com pagamento','Problema com a minha conta','Outro assunto'].map(item=><button key={item} onClick={()=>setCategory(item)} className={`w-full text-left px-4 py-3 rounded-xl border text-sm ${category===item?'border-violet-500 bg-violet-50 text-violet-800 font-bold':'border-gray-200'}`}>{item}</button>)}<textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4} placeholder="Descreve a tua questão..." className="w-full border rounded-xl p-3 text-sm"/>{message&&<p className="text-xs text-violet-700 bg-violet-50 rounded-xl p-3">{message}</p>}<button onClick={submit} className="w-full bg-violet-700 text-white py-3 rounded-xl font-bold">Abrir WhatsApp</button></div></div></div></div>;
 }
 
 function LanguageView({ onBack, i18n }) {
