@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, LockKeyhole } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ToastContainer from '../components/ToastContainer';
@@ -22,7 +22,7 @@ function normalizePhone(raw, dial) {
 
 export default function AuthView() {
   const { authMode, setAuthMode, setActiveRole, toasts, removeToast, notifySystem } = useApp();
-  const [country, setCountry] = useState('AO');
+  const country = 'AO';
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [stage, setStage] = useState('phone');
@@ -39,10 +39,7 @@ export default function AuthView() {
   });
   const otpInputRef = useRef(null);
 
-  const selectedCountry = useMemo(
-    () => COUNTRIES.find((item) => item.code === country) || COUNTRIES[0],
-    [country],
-  );
+  const selectedCountry = COUNTRIES[0];
 
   const fullPhone = normalizePhone(phone, selectedCountry.dial);
   const isOnboarding = authMode === 'register';
