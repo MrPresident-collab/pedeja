@@ -260,7 +260,7 @@ export default function HomeTab() {
             <h1 className="text-2xl font-black mt-1">O que queres pedir?</h1>
           </div>
           <div className="grid grid-cols-2 gap-2 p-1.5 bg-white border border-gray-200 rounded-2xl mb-5">
-            <button type="button" onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.FOME)} className={`py-2.5 rounded-xl text-sm font-black ${serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500'}`}>Comida</button>
+            <button type="button" onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.FOME)} className={`py-2.5 rounded-xl text-sm font-black ${serviceType === PEDEJA_SERVICE_TYPES.FOME ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500'}`}>Fome</button>
             <button type="button" onClick={() => setServiceType(PEDEJA_SERVICE_TYPES.COMPRAS)} className={`py-2.5 rounded-xl text-sm font-black ${serviceType === PEDEJA_SERVICE_TYPES.COMPRAS ? 'bg-violet-600 text-white shadow-sm' : 'text-gray-500'}`}>Compras</button>
           </div>
           {marketplaceBusinesses.length ? (
@@ -515,7 +515,7 @@ export default function HomeTab() {
                 const isProduct = Boolean(item.product_name);
                 const Icon = discoverMode === 'drinks' ? Wine : discoverMode === 'promo' ? Tag : item.marketplace_category === 'compras' ? ShoppingBag : Utensils;
                 const itemName = isProduct ? item.product_name : item.name;
-                const categoryName = discoverMode === 'drinks' ? 'Bebidas' : discoverMode === 'promo' ? 'Promo' : item.marketplace_category === 'compras' ? 'Compras' : 'Comida';
+                const categoryName = discoverMode === 'drinks' ? 'Bebidas' : discoverMode === 'promo' ? 'Promo' : item.marketplace_category === 'compras' ? 'Compras' : 'Fome';
                 return (
                   <button key={item.business_id || item.id} type="button" onClick={() => {
                     if (!isProduct && item.id) openBusiness(item);
