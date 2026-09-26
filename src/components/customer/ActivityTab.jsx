@@ -268,7 +268,7 @@ function CancelShipment({ activity, onDone }) {
   ];
   const submit = async () => {
     if (!reason || (reason === 'CUSTOM' && !custom.trim())) return setMessage('Indica o motivo do cancelamento.');
-    if (addressChange) return setMessage('A alteração de morada não pode ser concluída: o backend live ainda não expõe o comando autoritativo de atualização do destino. O envio não foi cancelado.');
+    if (addressChange) return;
     setMessage('');
     const code = ['NO_LONGER_NEEDED', 'RIDER_DELAY'].includes(reason) ? 'CUSTOM' : reason;
     const text = custom.trim() || reasonOptions.find(([value]) => value === reason)?.[1] || '';
@@ -284,6 +284,16 @@ function CancelShipment({ activity, onDone }) {
       {step === 'confirm' ? <><p className="font-black text-gray-900">Cancelar envio?</p><p className="text-sm text-gray-500 mt-1">Tens a certeza de que queres cancelar este envio?</p><div className="grid grid-cols-2 gap-2 mt-4"><button onClick={() => setStep('reason')} className="py-3 rounded-xl bg-red-500 text-white font-bold">Continuar</button><button onClick={() => setStep('idle')} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-bold">Voltar</button></div></> : <><p className="font-black text-gray-900">Por que estás a cancelar?</p><div className="space-y-2 mt-3">{reasonOptions.map(([value, label]) => <label key={value} className="flex items-center gap-2 text-sm text-gray-700"><input type="radio" name={`cancel-${activity.entityId}`} checked={reason === value} onChange={() => setReason(value)} /> {label}</label>)}</div>{reason === 'CUSTOM' && <textarea value={custom} onChange={event => setCustom(event.target.value)} placeholder="Conta-nos o motivo..." className="w-full mt-3 border rounded-xl p-3 text-sm" rows={3} />}{addressChange && <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 p-3 text-xs text-amber-800">A nova morada exige validação de coordenadas, posse, área de serviço e revalidação do envio. Essa operação ainda não existe no backend live.</div>}{message && <p className="mt-3 text-xs text-red-600">{message}</p>}<div className="grid grid-cols-2 gap-2 mt-4"><button onClick={submit} className="py-3 rounded-xl bg-red-500 text-white font-bold">Confirmar cancelamento</button><button onClick={() => setStep('confirm')} className="py-3 rounded-xl bg-gray-100 text-gray-700 font-bold">Voltar</button></div></>}
     </div>
   );
+}
+
+function DestinationChange({ activity, onDone }) {
+  const current = activity.shipment || {};
+  const point = pointFromGeoJson(activity.destinationLocation);
+  const [form,setForm]=useState({line1:current.recipientAddress?.line1||'',reference:'',neighborhood:current.recipientAddress?.neighborhood||'',municipality:current.recipientAddress?.municipality||'',city:current.recipientAddress?.city||'',province:current.recipientAddress?.province||''});
+  const [location,setLocation]=useState(point); const [message,setMessage]=useState(''); const [saving,setSaving]=useState(false);
+  const capture=()=>{if(!navigator.geolocation)return setMessage('O navegador não suporta localização.');navigator.geolocation.getCurrentPosition(p=>setLocation({lat:p.coords.latitude,lng:p.coords.longitude}),()=>setMessage('Não foi possível obter a localização do destino.'),{enableHighAccuracy:true,timeout:10000})};
+  const save=async()=>{if(!form.line1||!form.neighborhood||!form.municipality||!form.city||!form.province||!location)return setMessage('Preenche a morada e confirma a localização.');setSaving(true);setMessage('');const {error}=await supabase.rpc('update_customer_enviar_destination',{p_shipment_id:activity.entityId,p_address_line_1:form.line1,p_address_line_2:null,p_reference:form.reference||null,p_neighborhood:form.neighborhood,p_municipality:form.municipality,p_city:form.city,p_province:form.province,p_latitude:Number(location.lat),p_longitude:Number(location.lng)});setSaving(false);if(error)return setMessage(error.message||'A morada não foi actualizada.');onDone()};
+  return <div className="mt-3 bg-white rounded-2xl border border-violet-100 p-4"><p className="font-black">Qual é a nova morada de entrega?</p><div className="space-y-2 mt-3"><input value={form.line1} onChange={e=>setForm({...form,line1:e.target.value})} placeholder="Rua e número" className="w-full border rounded-xl p-3 text-sm"/><input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})} placeholder="Referência" className="w-full border rounded-xl p-3 text-sm"/><input value={form.neighborhood} onChange={e=>setForm({...form,neighborhood:e.target.value})} placeholder="Bairro" className="w-full border rounded-xl p-3 text-sm"/><input value={form.municipality} onChange={e=>setForm({...form,municipality:e.target.value})} placeholder="Município" className="w-full border rounded-xl p-3 text-sm"/><input value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Cidade" className="w-full border rounded-xl p-3 text-sm"/><input value={form.province} onChange={e=>setForm({...form,province:e.target.value})} placeholder="Província" className="w-full border rounded-xl p-3 text-sm"/></div><button onClick={capture} className="w-full mt-3 py-3 rounded-xl border border-violet-200 text-violet-700 font-bold text-sm">{location?'Localização confirmada':'Confirmar localização'}</button>{message&&<p className="mt-3 text-xs text-red-600">{message}</p>}<button disabled={saving} onClick={save} className="w-full mt-3 py-3 rounded-xl bg-violet-600 text-white font-bold disabled:opacity-50">{saving?'A actualizar...':'Confirmar nova morada'}</button></div>;
 }
 
 function EditSchedule({ activity, onDone }) {
@@ -342,6 +352,7 @@ function ActivityDetail({ activity, onBack, onRefresh, onCancelled }) {
         <Progress status={activity.shipment?.status || activity.orderStatus || activity.status} isParcel={isParcel} />
         {isParcel && <EditSchedule activity={activity} onDone={onCancelled} />}
         {isParcel && <CancelShipment activity={activity} onDone={onCancelled} />}
+        {isParcel && upper(activity.shipment?.status) !== 'DELIVERED' && <DestinationChange activity={activity} onDone={onCancelled} />}
         <p className="mt-4 text-center text-[10px] text-gray-400 flex items-center justify-center gap-1"><Truck size={12} /> Estado actualizado directamente pelo servidor.</p>
       </div>
     </div>
