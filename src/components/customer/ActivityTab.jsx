@@ -262,7 +262,7 @@ function CancelShipment({ activity, onDone }) {
     ['NO_LONGER_NEEDED', 'Já não preciso de enviar'],
     ['RECIPIENT_NO_LONGER_INTERESTED', 'O destinatário já não precisa'],
     ['PACKAGE_NO_LONGER_VALID', 'O pacote já não está disponível'],
-    ...(status !== 'CONFIRMED' ? [['NO_RIDER_FOUND', 'Não foi encontrado nenhum Estafeta']] : []),
+    ...(status === 'READY' ? [['NO_RIDER_FOUND', 'Não foi encontrado nenhum Estafeta']] : []),
     ...(status === 'ASSIGNED' || status === 'PICKUP_PENDING' ? [['RIDER_DELAY', 'O Estafeta está a demorar demasiado'], ['ADDRESS_CHANGED', 'A morada de entrega mudou']] : []),
     ['CUSTOM', 'Outro motivo'],
   ];
