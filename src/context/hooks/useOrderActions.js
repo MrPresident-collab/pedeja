@@ -238,20 +238,48 @@ export function useOrderActions(deps) {
   };
 
   const placeParcelOrder = async () => {
-    if (!parcelDetails.pickupAddressId) {
-      return notifySystem('Morada de recolha necessária', 'Escolha uma morada guardada pertencente à sua conta.', 'error');
+    if (!parcelDetails.pickupAddressId) return notifySystem('Morada de recolha necessária', 'Escolha uma morada guardada pertencente à sua conta.', 'error');
+    if (!parcelDetails.receiverName || !parcelDetails.receiverPhone || !parcelDetails.dropoff || !parcelDetails.packageDescription) return notifySystem('Dados incompletos', 'Indique destino, destinatário e descrição do pacote antes de continuar.', 'error');
+    if (!parcelDetails.dropoffLocation || !Number.isFinite(Number(parcelDetails.dropoffLocation.lat)) || !Number.isFinite(Number(parcelDetails.dropoffLocation.lng))) return notifySystem('Localização necessária', 'Confirme a localização do destino.', 'error');
+    if (!parcelDetails.consentAccepted) return notifySystem('Consentimento necessário', 'Confirme que não está a enviar artigos proibidos ou ilegais.', 'error');
+    const parts = String(parcelDetails.dropoff).split(',').map(v => v.trim()).filter(Boolean);
+    const { data: quote, error: quoteError } = await supabase.rpc('customer_enviar_quote', {
+      p_pickup_address_id: parcelDetails.pickupAddressId,
+      p_recipient_name: parcelDetails.receiverName,
+      p_recipient_phone: parcelDetails.receiverPhone,
+      p_recipient_address_line_1: parts[0] || parcelDetails.dropoff,
+      p_recipient_address_line_2: null,
+      p_recipient_neighborhood: parts[1] || null,
+      p_recipient_municipality: parts[2] || null,
+      p_recipient_city: parts[3] || 'Luanda',
+      p_recipient_province: parts[4] || 'Luanda',
+      p_recipient_latitude: Number(parcelDetails.dropoffLocation.lat),
+      p_recipient_longitude: Number(parcelDetails.dropoffLocation.lng),
+      p_package_description: parcelDetails.packageDescription,
+      p_package_weight_kg: Number(parcelDetails.weight || 1),
+      p_package_size: parcelDetails.packageSize || 'SMALL',
+      p_is_fragile: Boolean(parcelDetails.fragile),
+      p_customer_note: parcelDetails.customerNote || null,
+    });
+    if (quoteError || !quote?.quote_id) return notifySystem('Não foi possível preparar o envio', quoteError?.message || 'O servidor não devolveu uma cotação válida.', 'error');
+    const option = (quote.options || []).find(o => o.recommended) || (quote.options || [])[0];
+    if (!option) return notifySystem('Sem veículo disponível', 'Neste momento não existe um veículo elegível para este envio.', 'error');
+    const { data: policy } = await supabase.rpc('get_active_enviar_policy');
+    const policyRow = Array.isArray(policy) ? policy[0] : policy;
+    if (!policyRow?.id) return notifySystem('Política de envio indisponível', 'O envio não pode ser confirmado até existir uma política de envio publicada.', 'error');
+    const { data: consentId, error: consentError } = await supabase.rpc('accept_enviar_policy', { p_quote_id: quote.quote_id, p_policy_version_id: policyRow.id });
+    if (consentError || !consentId) return notifySystem('Consentimento não concluído', consentError?.message || 'Não foi possível registar o consentimento.', 'error');
+    const idem = typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID() : `${Date.now()}-${generateId()}`;
+    const { data: shipmentId, error: createError } = await supabase.rpc('create_customer_enviar_shipment', { p_quote_id: quote.quote_id, p_selected_vehicle_type: option.vehicle_type, p_policy_consent_id: consentId, p_idempotency_key: idem });
+    if (createError || !shipmentId) return notifySystem('Não foi possível criar o envio', createError?.message || 'O servidor recusou a criação do envio.', 'error');
+    if (paymentMethod === 'wallet') {
+      const { error: payError } = await supabase.rpc('customer_pay_enviar_with_wallet', { p_shipment_id: shipmentId, p_idempotency_key: idem });
+      if (payError) return notifySystem('Pagamento não concluído', payError.message || 'Não foi possível pagar com a Carteira Pedejá.', 'error');
+    } else if (paymentMethod === 'card') {
+      return notifySystem('Cartão ainda não disponível', 'O provedor de cartão ainda não está configurado. Escolhe Dinheiro ou Carteira.', 'error');
     }
-    if (!parcelDetails.receiverName || !parcelDetails.receiverPhone || !parcelDetails.dropoff || !parcelDetails.packageDescription) {
-      return notifySystem('Dados incompletos', 'Indique destino, destinatário e descrição do pacote antes de continuar.', 'error');
-    }
-    if (!parcelDetails.consentAccepted) {
-      return notifySystem('Consentimento necessário', 'Confirme que não está a enviar artigos proibidos ou ilegais.', 'error');
-    }
-    return notifySystem(
-      'Envio ainda não disponível',
-      'O backend live ainda não expõe o comando de confirmação com consentimento, seleção/recomendação de veículo e pagamento do Enviar. Nenhum envio foi criado.',
-      'error',
-    );
+    setActiveTab('packages');
+    notifySystem('Envio criado', 'O teu envio foi registado pelo servidor.', 'success');
   };
 
   const _updateOrder = async (orderId, patch) => {
