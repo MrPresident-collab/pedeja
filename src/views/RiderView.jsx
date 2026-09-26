@@ -1490,11 +1490,11 @@ export default function RiderView() {
             ['active', Bike, 'Entregas'],
             ['wallet', WalletCards, 'Ganhos'],
             ['profile', User, 'Perfil'],
-          ].map(([tab, TabIcon, label]) => {
+          ].map(([tab, IconComponent, label]) => {
             const selected = (tab === 'home' && ['home', 'jobs'].includes(riderTab)) || riderTab === tab;
             return (
               <button key={tab} onClick={() => setRiderTab(tab)} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${selected ? 'text-violet-700' : muted}`}>
-                <TabIcon size={18} />
+                {React.createElement(IconComponent, { size: 18 })}
                 {label}
               </button>
             );
