@@ -58,10 +58,6 @@ export default function HomeTab() {
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [discoverMode, setDiscoverMode] = useState('nearby');
-  const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
-  const [repeatItems, setRepeatItems] = useState([]);
-  const [repeatLoading, setRepeatLoading] = useState(false);
-  const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [homeMode, setHomeMode] = useState('home');
 
 
@@ -79,23 +75,7 @@ export default function HomeTab() {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (PEDEJA_LAUNCH_MODE === 'enviar_only') { setRepeatItems([]); setRepeatLoading(false); return undefined; }
-    const loadRepeatItems = async () => {
-      setRepeatLoading(true);
-      try {
-        const { data, error } = await supabase.rpc('customer_repeat_items');
-        if (!cancelled && !error) setRepeatItems(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setRepeatItems([]);
-      } finally {
-        if (!cancelled) setRepeatLoading(false);
-      }
-    };
-    loadRepeatItems();
-    return () => { cancelled = true; };
-  }, []);
+
 
   const businessesWithDistance = useMemo(() => restaurants.map(business => ({
     ...business,
@@ -115,21 +95,7 @@ export default function HomeTab() {
     || null
   ), [userAddresses]);
 
-  const discoverBusinesses = useMemo(() => {
-    const openBusinesses = businessesWithDistance.filter(business => business.status === 'open');
-    if (discoverMode === 'nearby') {
-      return [...openBusinesses].sort((a, b) => {
-        if (a.distance == null && b.distance == null) return 0;
-        if (a.distance == null) return 1;
-        if (b.distance == null) return -1;
-        return a.distance - b.distance;
-      }).slice(0, 6);
-    }
-    const targetType = discoverMode === 'food'
-      ? PEDEJA_SERVICE_TYPES.FOME
-      : PEDEJA_SERVICE_TYPES.COMPRAS;
-    return openBusinesses.filter(business => business.serviceType === targetType).slice(0, 6);
-  }, [businessesWithDistance, discoverMode]);
+
 
   const discoverTabs = [
     { id: 'nearby', label: 'Perto de ti', icon: MapPin },
@@ -138,23 +104,7 @@ export default function HomeTab() {
     { id: 'promo', label: 'Promo', icon: Tag },
   ];
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadDiscovery = async () => {
-      if (PEDEJA_LAUNCH_MODE === 'enviar_only' || !['drinks', 'promo'].includes(discoverMode)) return;
-      setDiscoveryLoading(true);
-      try {
-        const { data, error } = await supabase.rpc('customer_discovery', { p_mode: discoverMode });
-        if (!cancelled && !error) {
-          setMarketplaceDiscovery(prev => ({ ...prev, [discoverMode === 'drinks' ? 'beverages' : 'promos']: Array.isArray(data) ? data : [] }));
-        }
-      } finally {
-        if (!cancelled) setDiscoveryLoading(false);
-      }
-    };
-    loadDiscovery();
-    return () => { cancelled = true; };
-  }, [discoverMode]);
+
 
   const handleOpenItem = (item) => {
     if (item.options?.length) {
