@@ -74,13 +74,27 @@ export function AppProvider({ children }) {
   }, [isDarkMode, setThemeModeAndPersist]);
 
   // --- Role & Navigation ---
-  const [activeRole, setActiveRole] = useState(() => {
+  const getRouteRole = () => {
     const path = window.location.pathname.replace(/\\/+$/, '') || '/';
     if (path === '/estafeta' || path.startsWith('/estafeta/')) return 'rider';
     if (path === '/comerciante' || path.startsWith('/comerciante/')) return 'merchant';
     if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
     return 'customer';
-  });
+  };
+
+  const [activeRole, setActiveRoleState] = useState(getRouteRole);
+
+  const setActiveRole = useCallback((nextRole) => {
+    const role = typeof nextRole === 'function' ? nextRole(getRouteRole()) : nextRole;
+    const routes = { customer: '/', rider: '/estafeta', merchant: '/comerciante', admin: '/admin' };
+    if (!routes[role]) return;
+    if (window.location.pathname !== routes[role]) {
+      window.history.pushState({}, '', routes[role]);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+    setActiveRoleState(role);
+  }, []);
+
   const [adminTab, setAdminTab] = useState('dashboard');
   const [merchantTab, setMerchantTab] = useState('orders');
   const [riderTab, setRiderTab] = useState('jobs');
