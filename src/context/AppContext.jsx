@@ -1299,7 +1299,7 @@ export function AppProvider({ children }) {
       await loadUserSession(session.user);
     }
     await fetchAppData();
-  }, [fetchAppData, loadUserSession]);
+  }, [fetchAppData, loadUserSession, setActiveRole]);
 
   // ── Auth Functions ───────────────────────────────────────────────────────
   const handleLogin = async () => {
