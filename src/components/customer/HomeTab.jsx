@@ -59,6 +59,9 @@ export default function HomeTab() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [discoverMode, setDiscoverMode] = useState('nearby');
   const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
+  const [repeatItems, setRepeatItems] = useState([]);
+  const [repeatLoading, setRepeatLoading] = useState(false);
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [homeMode, setHomeMode] = useState('home');
 
 
@@ -424,18 +427,6 @@ export default function HomeTab() {
     }
   };
 
-  const discoverList = discoverMode === 'shopping'
-    ? businessesWithDistance.filter(b => b.status === 'open' && b.serviceType === PEDEJA_SERVICE_TYPES.COMPRAS).slice(0, 6)
-    : discoverMode === 'drinks'
-      ? marketplaceDiscovery.beverages
-      : discoverMode === 'promo'
-        ? marketplaceDiscovery.promos
-        : discoverBusinesses;
-
-  const openBusiness = (business) => {
-    setServiceType(business.serviceType || PEDEJA_SERVICE_TYPES.FOME);
-    setSelectedRestaurant(business);
-  };
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
