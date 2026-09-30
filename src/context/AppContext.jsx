@@ -420,9 +420,14 @@ export function AppProvider({ children }) {
         } else if (data.type === 'admin_alert') {
           setActiveRole('admin');
           setAdminTab('dashboard');
-        } else if (data.type === 'order_status' || data.orderId) {
+        } else if (data.type === 'shipment_status') {
           setActiveRole('customer');
-          setActiveTab(data.type === 'shipment_status' ? 'packages' : 'orders');
+          setActiveTab('packages');
+        } else if (data.type === 'order_status' || data.orderId) {
+          // Customer Pedidos is frozen for the Enviar-first launch.
+          // Do not route customer notifications into the frozen order surface.
+          setActiveRole('customer');
+          setActiveTab('home');
         }
       },
     }).then(fn => {
