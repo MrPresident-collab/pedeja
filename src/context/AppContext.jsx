@@ -726,7 +726,7 @@ export function AppProvider({ children }) {
       gpsSessionRef.current = '';
       isClearingAuthRef.current = false;
     }
-  }, [clearAuthStorageKeys, clearDebounceTimers]);
+  }, [clearAuthStorageKeys, clearDebounceTimers, setActiveRole]);
 
   const loadUserSession = useCallback((authUser) => {
     if (!authUser?.id) return Promise.resolve();
@@ -1299,7 +1299,7 @@ export function AppProvider({ children }) {
       await loadUserSession(session.user);
     }
     await fetchAppData();
-  }, [fetchAppData, loadUserSession, setActiveRole]);
+  }, [fetchAppData, loadUserSession]);
 
   // ── Auth Functions ───────────────────────────────────────────────────────
   const handleLogin = async () => {
