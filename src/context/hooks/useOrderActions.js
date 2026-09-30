@@ -1,4 +1,5 @@
 import { generateId, formatDateTime, r2 } from '../../utils.js';
+import { PEDEJA_LAUNCH_MODE } from '../../constants.js';
 
 export function useOrderActions(deps) {
   const {
@@ -185,6 +186,10 @@ export function useOrderActions(deps) {
   };
 
   const placeOrder = async (promoDiscount = 0, notes = '') => {
+    if (PEDEJA_LAUNCH_MODE === 'enviar_only') {
+      notifySystem('Pedir Algo indisponível', 'Pedejá está actualmente a lançar primeiro o Enviar Pacote.', 'info');
+      return;
+    }
     if (placingOrderRef.current || cart.length === 0) return;
     placingOrderRef.current = true;
     try {
