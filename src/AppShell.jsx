@@ -8,7 +8,7 @@ import CustomerAuthView from './views/CustomerAuthView';
 import RiderAuthView from './views/AuthView';
 
 function getRouteRole() {
-  const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
   if (path === '/estafeta' || path.startsWith('/estafeta/')) return 'rider';
   if (path === '/comerciante' || path.startsWith('/comerciante/')) return 'merchant';
   if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
