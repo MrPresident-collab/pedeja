@@ -6,15 +6,6 @@ import AIChatModal from './components/AIChatModal';
 import InstallBanner from './components/InstallBanner';
 import CustomerAuthView from './views/CustomerAuthView';
 import RiderAuthView from './views/AuthView';
- 
-const APP_ROUTES = {
-  customer: '/',
-  rider: '/estafeta',
-  merchant: '/comerciante',
-  admin: '/admin',
-};
-
-void APP_ROUTES;
 
 function getRouteRole() {
   const path = window.location.pathname.replace(/\\/+$/, '') || '/';
