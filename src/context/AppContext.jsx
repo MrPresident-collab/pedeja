@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   INITIAL_CONFIG,
-  ADMIN_EMAIL, PEDEJA_SERVICE_TYPES,
+  ADMIN_EMAIL, PEDEJA_SERVICE_TYPES, PEDEJA_LAUNCH_MODE,
 } from '../constants';
 import { generateId, getDistanceFromLatLonInKm, isValidCoordinate, playNotificationSound, playOrderNotificationSound, initPushNotifications } from '../utils';
 import { supabase } from '../lib/supabase';
@@ -86,7 +86,7 @@ export function AppProvider({ children }) {
   const [riderTab, setRiderTab] = useState('jobs');
   const [activeTab, setActiveTab] = useState('home');
   const [profileSubView, setProfileSubView] = useState('main');
-  const [serviceType, setServiceType] = useState(PEDEJA_SERVICE_TYPES.FOME);
+  const [serviceType, setServiceType] = useState(PEDEJA_LAUNCH_MODE === 'enviar_only' ? PEDEJA_SERVICE_TYPES.ENVIAR : PEDEJA_SERVICE_TYPES.FOME);
 
   // --- Data State ---
   const [orders, setOrders] = useState([]);
