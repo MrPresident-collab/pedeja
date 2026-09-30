@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getDistanceFromLatLonInKm, isValidCoordinate } from '../../utils';
-import { PEDEJA_SERVICE_TYPES } from '../../constants';
+import { PEDEJA_SERVICE_TYPES, PEDEJA_LAUNCH_MODE } from '../../constants';
 import RestaurantCard from '../RestaurantCard';
 import InteractiveMap from '../InteractiveMap';
 import { supabase } from '../../lib/supabase';
@@ -72,7 +72,7 @@ export default function HomeTab() {
     const loadNotifications = async () => {
       setNotificationsLoading(true);
       const { data, error } = await supabase.rpc('customer_notification_snapshot', { p_limit: 30 });
-      if (!cancelled && !error) setNotifications(Array.isArray(data) ? data : []);
+      if (!cancelled && !error) setNotifications(Array.isArray(data) ? data.filter(item => item?.source_type === 'enviar' || item?.title === 'enviar') : []);
       if (!cancelled) setNotificationsLoading(false);
     };
     loadNotifications();
@@ -81,6 +81,7 @@ export default function HomeTab() {
 
   useEffect(() => {
     let cancelled = false;
+    if (PEDEJA_LAUNCH_MODE === 'enviar_only') { setRepeatItems([]); setRepeatLoading(false); return undefined; }
     const loadRepeatItems = async () => {
       setRepeatLoading(true);
       try {
@@ -140,7 +141,7 @@ export default function HomeTab() {
   useEffect(() => {
     let cancelled = false;
     const loadDiscovery = async () => {
-      if (!['drinks', 'promo'].includes(discoverMode)) return;
+      if (PEDEJA_LAUNCH_MODE === 'enviar_only' || !['drinks', 'promo'].includes(discoverMode)) return;
       setDiscoveryLoading(true);
       try {
         const { data, error } = await supabase.rpc('customer_discovery', { p_mode: discoverMode });
@@ -421,10 +422,6 @@ export default function HomeTab() {
 
   const openNotification = (notification) => {
     setShowNotifications(false);
-    if (notification?.source_type === 'order') {
-      setActiveTab('orders');
-      return;
-    }
     if (notification?.source_type === 'enviar') {
       setActiveTab('packages');
     }
@@ -461,9 +458,10 @@ export default function HomeTab() {
           </button>
         </div>
 
-        <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setHomeMode('marketplace'); }} className="w-full mt-5 h-12 rounded-2xl bg-white border border-gray-200 px-4 flex items-center gap-3 text-left shadow-sm">
+        <button type="button" disabled className="w-full mt-5 h-12 rounded-2xl bg-gray-100 border border-gray-200 px-4 flex items-center gap-3 text-left opacity-60 cursor-not-allowed">
           <Search size={19} className="text-gray-400" />
-          <span className="text-sm text-gray-500">Comida e Compras</span>
+          <span className="text-sm text-gray-500 flex-1">Comida e Compras</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Em breve</span>
         </button>
 
         <section className="mt-5">
@@ -500,13 +498,13 @@ export default function HomeTab() {
               <p className="mt-0.5 text-xs text-gray-500">De um ponto para outro</p>
             </button>
 
-            <button type="button" onClick={() => { setServiceType(PEDEJA_SERVICE_TYPES.FOME); setActiveTab('home'); }} className="text-left active:scale-[0.985] transition-transform">
+            <button type="button" disabled className="text-left opacity-55 cursor-not-allowed">
               <div className="relative h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-amber-300 via-orange-400 to-orange-600 shadow-sm">
                 <div className="absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/15" />
                 <div className="absolute -left-5 -bottom-8 w-24 h-24 rounded-full bg-white/10" />
                 <Utensils size={62} strokeWidth={1.25} className="absolute right-4 top-4 text-white/80" />
               </div>
-              <p className="mt-2.5 text-base font-black text-gray-900">Pedir Algo</p>
+              <div className="flex items-center justify-between mt-2.5"><p className="text-base font-black text-gray-900">Pedir Algo</p><span className="text-[9px] font-black uppercase tracking-wider text-gray-400">Em breve</span></div>
               <p className="mt-0.5 text-xs text-gray-500">Comida e compras</p>
             </button>
           </div>
@@ -514,65 +512,18 @@ export default function HomeTab() {
 
         <section className="mt-8">
           <h2 className="text-base font-black mb-3">DESCOBRE</h2>
-          {discoveryLoading && <div className="h-32 rounded-3xl bg-gray-100 animate-pulse" />}
-          {!discoveryLoading && discoverList.length > 0 && (
-            <div className="grid grid-cols-2 gap-4">
-              {discoverList.map(item => {
-                const isProduct = Boolean(item.product_name);
-                const Icon = discoverMode === 'drinks' ? Wine : discoverMode === 'promo' ? Tag : item.marketplace_category === 'compras' ? ShoppingBag : Utensils;
-                const itemName = isProduct ? item.product_name : item.name;
-                const categoryName = discoverMode === 'drinks' ? 'Bebidas' : discoverMode === 'promo' ? 'Promo' : item.marketplace_category === 'compras' ? 'Compras' : 'Fome';
-                return (
-                  <button key={item.business_id || item.id} type="button" onClick={() => {
-                    if (!isProduct && item.id) openBusiness(item);
-                  }} className="text-left">
-                    <div className="h-32 rounded-3xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-sm flex items-center justify-center">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <Icon size={48} strokeWidth={1.2} className="text-gray-300" />
-                      )}
-                    </div>
-                    <p className="mt-2.5 text-sm font-black text-gray-900">{categoryName}</p>
-                    <p className="mt-0.5 text-xs text-gray-500 truncate">{itemName}</p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {!discoveryLoading && discoverList.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
-              <p className="text-sm font-semibold text-gray-500">{discoverMode === 'promo' ? 'Ainda não há promoções disponíveis.' : 'Ainda não há opções disponíveis.'}</p>
-            </div>
-          )}
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
+            <p className="text-sm font-bold text-gray-500">Comida e compras estão congeladas nesta fase.</p>
+            <p className="text-xs text-gray-400 mt-1">Estamos a lançar primeiro o Enviar Pacote.</p>
+          </div>
         </section>
 
         <section className="mt-8 pb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-black">PEDIR NOVAMENTE</h2>
+          <h2 className="text-base font-black mb-3">PEDIR NOVAMENTE</h2>
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-6 text-center">
+            <p className="text-sm font-bold text-gray-500">Esta funcionalidade está temporariamente congelada.</p>
+            <p className="text-xs text-gray-400 mt-1">O histórico de Pedidos continua preservado, mas não está activo no lançamento.</p>
           </div>
-          {repeatLoading ? (
-            <div className="flex gap-3 overflow-hidden">
-              {[1,2,3].map(i => <div key={i} className="w-36 h-44 shrink-0 rounded-2xl bg-gray-100 animate-pulse" />)}
-            </div>
-          ) : repeatItems.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {repeatItems.map(item => (
-                <button key={`${item.product_id}-${item.business_id}`} type="button" onClick={() => setServiceType(item.marketplace_category === 'compras' ? PEDEJA_SERVICE_TYPES.COMPRAS : PEDEJA_SERVICE_TYPES.FOME)} className="w-36 shrink-0 text-left bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <div className="h-28 bg-gray-100 overflow-hidden">
-                    {item.image_url ? <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={28} className="text-gray-300" /></div>}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-black text-sm truncate">{item.product_name}</p>
-                    <p className="text-[11px] text-gray-500 truncate mt-1">{item.business_name}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{item.order_count} pedidos</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-5 text-sm text-gray-400 text-center">Ainda não tens pedidos para repetir.</div>
-          )}
         </section>
       </div>
       {showNotifications && (
