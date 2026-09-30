@@ -1,25 +1,23 @@
 // ===== App Constants =====
 
 export const INITIAL_CONFIG = {
-  appRadius: 15,          // km
-  restaurantRadius: 10,   // km
-  riderRadius: 5,         // km
-  baseFee: 20,            // AOA
-  perKmFee: 10,           // AOA/km
-  rideBaseFee: 20,        // AOA (viagem)
-  ridePerKmFee: 10,       // AOA/km (viagem)
-  gpFood: 30,             // % GP comerciante (entrega de comida)
-  gpDelivery: 15,         // % GP estafeta (entrega de encomendas)
-  gpRide: 15,             // % GP viagem
-  gpService: 15,          // % GP serviço
-  // Extra Service options for Service Category
+  appRadius: 15,
+  restaurantRadius: 10,
+  riderRadius: 5,
+  baseFee: 20,
+  perKmFee: 10,
+  rideBaseFee: 20,
+  ridePerKmFee: 10,
+  gpFood: 30,
+  gpDelivery: 15,
+  gpRide: 15,
+  gpService: 15,
   extraServices: [
     { name: "Limpeza doméstica", price: 350 },
     { name: "Limpeza e reparação de ar condicionado", price: 500 },
     { name: "Reparação de canalização e electricidade", price: 400 },
     { name: "Transporte de bens", price: 600 }
   ],
-  // Admin Payment Info
   adminBankName: "",
   adminBankAccount: "",
   adminAccountName: "",
@@ -27,11 +25,12 @@ export const INITIAL_CONFIG = {
   adminPaymentReference: ""
 };
 
-// No fabricated/default customer coordinates. Location is resolved from an address or an explicit device signal.
 export const USER_LOCATION = null;
 
-// Pedejá V1 product surface. Legacy BoomRider capabilities remain in the codebase
-// but are intentionally not exposed in the current customer experience.
+// Launch mode: Enviar Pacote is the only customer commerce surface exposed.
+// Fome and Compras remain in the codebase/database but are frozen until reactivation.
+export const PEDEJA_LAUNCH_MODE = 'enviar_only';
+
 export const PEDEJA_SERVICE_TYPES = Object.freeze({
   FOME: 'fome',
   COMPRAS: 'compras',
@@ -47,7 +46,9 @@ export const PEDEJA_LEGACY_SERVICE_TYPE_MAP = Object.freeze({
 export const normalizePedejaServiceType = (value) =>
   PEDEJA_LEGACY_SERVICE_TYPE_MAP[value] || value;
 
-export const PEDEJA_ACTIVE_SERVICES = Object.freeze(Object.values(PEDEJA_SERVICE_TYPES));
+export const PEDEJA_ACTIVE_SERVICES = Object.freeze([
+  PEDEJA_SERVICE_TYPES.ENVIAR,
+]);
 
 export const PEDEJA_BUSINESS_CATEGORIES = Object.freeze({
   [PEDEJA_SERVICE_TYPES.FOME]: [
@@ -59,8 +60,7 @@ export const PEDEJA_BUSINESS_CATEGORIES = Object.freeze({
 });
 
 export const DEFAULT_CATEGORIES = [
-  "Refeições", 
-
+  "Refeições",
   "Massas e arroz",
   "Bebidas",
   "Sobremesas",
@@ -94,6 +94,5 @@ export const STATUS_LABELS = {
   cancelled: { label: "Cancelado", color: "text-red-500", bg: "bg-red-100" },
 };
 
-// ===== Admin Config =====
 export const ADMIN_EMAIL = import.meta?.env?.VITE_ADMIN_EMAIL || '';
 
