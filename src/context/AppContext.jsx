@@ -86,7 +86,15 @@ export function AppProvider({ children }) {
   const [riderTab, setRiderTab] = useState('jobs');
   const [activeTab, setActiveTab] = useState('home');
   const [profileSubView, setProfileSubView] = useState('main');
-  const [serviceType, setServiceType] = useState(PEDEJA_LAUNCH_MODE === 'enviar_only' ? PEDEJA_SERVICE_TYPES.ENVIAR : PEDEJA_SERVICE_TYPES.FOME);
+  const [serviceType, setServiceTypeState] = useState(
+    PEDEJA_LAUNCH_MODE === 'enviar_only' ? PEDEJA_SERVICE_TYPES.ENVIAR : PEDEJA_SERVICE_TYPES.FOME,
+  );
+  const setServiceType = useCallback((nextService) => {
+    if (PEDEJA_LAUNCH_MODE === 'enviar_only' && nextService !== PEDEJA_SERVICE_TYPES.ENVIAR) {
+      return;
+    }
+    setServiceTypeState(nextService);
+  }, []);
 
   // --- Data State ---
   const [orders, setOrders] = useState([]);
