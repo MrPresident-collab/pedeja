@@ -4,7 +4,25 @@ import ToastContainer from './components/ToastContainer';
 import ChatModal from './components/ChatModal';
 import AIChatModal from './components/AIChatModal';
 import InstallBanner from './components/InstallBanner';
-import AuthView from './views/AuthView';
+import CustomerAuthView from './views/CustomerAuthView';
+import RiderAuthView from './views/AuthView';
+ 
+const APP_ROUTES = {
+  customer: '/',
+  rider: '/estafeta',
+  merchant: '/comerciante',
+  admin: '/admin',
+};
+
+void APP_ROUTES;
+
+function getRouteRole() {
+  const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+  if (path === '/estafeta' || path.startsWith('/estafeta/')) return 'rider';
+  if (path === '/comerciante' || path.startsWith('/comerciante/')) return 'merchant';
+  if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
+  return 'customer';
+}
 
 const CustomerView = lazy(() => import('./views/CustomerView'));
 const MerchantView = lazy(() => import('./views/MerchantView'));
@@ -22,13 +40,14 @@ function ViewLoader() {
 
 function AppRouter() {
   const { isLoggedIn, activeRole, toasts, removeToast } = useApp();
+  const routeRole = getRouteRole();
   const [aiChatOpen, setAiChatOpen] = useState(false);
 
   return (
     <div id="app-scroll" style={{ fontFamily: "'Ubuntu', 'Inter', sans-serif" }}>
       <InstallBanner />
       {!isLoggedIn ? (
-        <AuthView />
+        routeRole === 'rider' ? <RiderAuthView /> : <CustomerAuthView />
       ) : (
         <>
           <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -45,10 +64,10 @@ function AppRouter() {
           </button>
 
           <Suspense fallback={<ViewLoader />}>
-            {activeRole === 'customer' && <CustomerView />}
-            {activeRole === 'merchant' && <MerchantView />}
-            {activeRole === 'rider' && <RiderView />}
-            {activeRole === 'admin' && <AdminView />}
+            {routeRole === 'customer' && activeRole === 'customer' && <CustomerView />}
+            {routeRole === 'merchant' && activeRole === 'merchant' && <MerchantView />}
+            {routeRole === 'rider' && activeRole === 'rider' && <RiderView />}
+            {routeRole === 'admin' && activeRole === 'admin' && <AdminView />}
           </Suspense>
         </>
       )}
