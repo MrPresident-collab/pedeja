@@ -75,11 +75,11 @@ export function AppProvider({ children }) {
 
   // --- Role & Navigation ---
   const [activeRole, setActiveRole] = useState(() => {
-    try {
-      return localStorage.getItem('pedeja_app_face') || 'customer';
-    } catch {
-      return 'customer';
-    }
+    const path = window.location.pathname.replace(/\\/+$/, '') || '/';
+    if (path === '/estafeta' || path.startsWith('/estafeta/')) return 'rider';
+    if (path === '/comerciante' || path.startsWith('/comerciante/')) return 'merchant';
+    if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
+    return 'customer';
   });
   const [adminTab, setAdminTab] = useState('dashboard');
   const [merchantTab, setMerchantTab] = useState('orders');
