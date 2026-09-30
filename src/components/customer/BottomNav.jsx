@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Package, User } from 'lucide-react';
+import { Home, Package, User, ShoppingBag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function BottomNav() {
@@ -15,6 +15,7 @@ export default function BottomNav() {
 
   const tabs = [
     { id: 'home', icon: Home, label: 'Início' },
+    { id: 'orders', icon: ShoppingBag, label: 'Pedidos' },
     { id: 'packages', icon: Package, label: 'Pacotes', badge: packageBadge },
     { id: 'profile', icon: User, label: 'Perfil' },
   ];
