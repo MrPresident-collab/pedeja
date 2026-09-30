@@ -77,16 +77,6 @@ export default function HomeTab() {
 
 
 
-  const businessesWithDistance = useMemo(() => restaurants.map(business => ({
-    ...business,
-    distance: isValidCoordinate(userProfile?.location) && isValidCoordinate(business.location)
-      ? Number(getDistanceFromLatLonInKm(
-          userProfile.location.lat, userProfile.location.lng,
-          business.location.lat, business.location.lng,
-        ).toFixed(1))
-      : null,
-  })), [restaurants, userProfile?.location]);
-
   const primaryAddress = useMemo(() => (
     (userAddresses || []).find(address => address.isDefault && String(address.label || '').toLowerCase() === 'casa')
     || (userAddresses || []).find(address => address.isDefault)
