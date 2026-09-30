@@ -452,7 +452,7 @@ export function AppProvider({ children }) {
       cancelled = true;
       cleanup();
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, setActiveRole]);
 
   // ── Realtime listener for app_config synchronization across sessions ─────
   useEffect(() => {
