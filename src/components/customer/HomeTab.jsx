@@ -59,11 +59,8 @@ export default function HomeTab() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [discoverMode, setDiscoverMode] = useState('nearby');
   const [marketplaceDiscovery, setMarketplaceDiscovery] = useState({ beverages: [], promos: [] });
-  const [discoveryLoading, setDiscoveryLoading] = useState(false);
   const [homeMode, setHomeMode] = useState('home');
 
-  const [repeatItems, setRepeatItems] = useState([]);
-  const [repeatLoading, setRepeatLoading] = useState(true);
 
 
 
